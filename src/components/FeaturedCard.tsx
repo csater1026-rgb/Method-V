@@ -47,7 +47,7 @@ export function FeaturedCard({ app, rank }: { app: FeaturedApp; rank: number }) 
         <p className="mt-1 line-clamp-2 text-sm text-ink/85">{app.tagline}</p>
         <div className="pointer-events-auto mt-3 flex items-center gap-2">
           {/* A plain link (not next/link) so prefetching never counts as a try. */}
-          <a href={`/try/${app.slug}`} target="_blank" rel="noopener" className="btn-accent">
+          <a href={`/try/${app.slug}?via=card`} target="_blank" rel="noopener" className="btn-accent">
             Try it →
           </a>
           <CategoryChip category={app.category} />

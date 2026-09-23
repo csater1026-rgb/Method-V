@@ -16,9 +16,11 @@ export function ShareKit({ slug, name, tagline }: Props) {
 
   const page = `${origin}/apps/${slug}`;
   const badge = `${origin}/badge/${slug}${theme === "light" ? "?theme=light" : ""}`;
+  const embed = `${origin}/embed/${slug}${theme === "light" ? "?theme=light" : ""}`;
   const snippets = {
     HTML: `<a href="${page}"><img src="${badge}" alt="Try ${name} on Method V" width="232" height="54"></a>`,
     Markdown: `[![Try ${name} on Method V](${badge})](${page})`,
+    "embed card": `<iframe src="${embed}" title="${name.replace(/"/g, "&quot;")} on Method V" width="420" height="160" style="border:0;max-width:100%" loading="lazy"></iframe>`,
   };
   const post = `${name}: ${tagline}. Try it on Method V`;
 
@@ -36,7 +38,8 @@ export function ShareKit({ slug, name, tagline }: Props) {
     <div className="mt-4 rounded-lg border border-line bg-bg/50 p-4">
       <h3 className="display text-2xl">Share kit</h3>
       <p className="mt-1 text-sm text-muted">
-        Put the badge on your site or GitHub README. Every click lands on your Method V page.
+        Put the badge on your site or GitHub README, or embed a card with a Try it button. Tries from embeds show up in
+        your stats.
       </p>
 
       <div className="mt-3 flex flex-wrap items-center gap-3">

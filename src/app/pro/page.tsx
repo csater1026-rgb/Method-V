@@ -2,16 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { BuyPro, PinApp } from "@/components/Earn";
-import { StatsChart } from "@/components/StatsChart";
 import { BOOST, EARN, formatCents } from "@/lib/constants";
-import { getAppStats, getMyApps, getOwnProfile, getViewer, isPro } from "@/lib/data";
+import { getMyApps, getOwnProfile, getViewer, isPro } from "@/lib/data";
 import { demoApps, demoProfiles } from "@/lib/demo";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
 export const metadata: Metadata = { title: "Pro" };
 
 const PERKS = [
-  { title: "Stats for your apps", body: "Tries per day for the last 30 days, and how many came from sponsor cards." },
+  { title: "Stats for 30 and 90 days", body: "Tries, likes and feedback per day, where tries come from, and CSV export." },
   { title: "A pinned app", body: "Put your best app first on your profile, with a Pinned label." },
   { title: "Half-price boosts", body: `Boosts cost ⚡${EARN.pro.boostPerDay} a day instead of ⚡${BOOST.perDay}.` },
   { title: "A Pro badge", body: "Next to your name on your profile." },
@@ -26,8 +25,6 @@ export default async function ProPage({ searchParams }: PageProps<"/pro">) {
   const myApps = isSupabaseConfigured
     ? await getMyApps(viewer)
     : demoApps.filter((a) => a.owner_id === profile?.id).map((a) => ({ id: a.id, slug: a.slug, name: a.name }));
-  const picked = myApps.find((a) => a.slug === params.app) ?? myApps[0];
-  const stats = pro && picked ? await getAppStats(picked.id) : null;
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-8">
@@ -78,41 +75,11 @@ export default async function ProPage({ searchParams }: PageProps<"/pro">) {
       </div>
 
       {pro && (
-        <section aria-label="Your stats" className="mt-12">
-          <h2 className="display text-4xl">Your stats</h2>
-          {myApps.length === 0 ? (
-            <p className="mt-2 text-sm text-muted">
-              Post an app to see its stats.{" "}
-              <Link href="/submit" className="text-accent hover:underline">
-                Post a Drop
-              </Link>
-            </p>
-          ) : (
-            <>
-              {myApps.length > 1 && (
-                <nav aria-label="Your apps" className="mt-3 flex flex-wrap gap-1.5">
-                  {myApps.map((a) => (
-                    <Link
-                      key={a.id}
-                      href={`/pro?app=${a.slug}`}
-                      aria-current={a.id === picked?.id ? "page" : undefined}
-                      className={`rounded-md border px-3 py-1.5 text-sm font-semibold ${
-                        a.id === picked?.id ? "border-accent bg-accent text-accent-ink" : "border-line text-muted hover:text-ink"
-                      }`}
-                    >
-                      {a.name}
-                    </Link>
-                  ))}
-                </nav>
-              )}
-              <div className="mt-4 rounded-xl border border-line bg-surface p-4">
-                {stats ? <StatsChart stats={stats} label={`Tries for ${picked!.name}`} /> : <p className="text-sm text-muted">Couldn&apos;t load stats.</p>}
-              </div>
-              <div className="mt-4">
-                <PinApp apps={myApps} pinned={profile?.pinned_app_id ?? null} />
-              </div>
-            </>
-          )}
+        <section aria-label="Your Pro" className="mt-12 flex flex-col gap-4">
+          <Link href="/dashboard?days=30" className="btn-ghost self-start">
+            Open your stats →
+          </Link>
+          {myApps.length > 0 && <PinApp apps={myApps} pinned={profile?.pinned_app_id ?? null} />}
         </section>
       )}
     </div>

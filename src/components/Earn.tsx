@@ -10,6 +10,7 @@ import {
   cashOut,
   endSponsorship,
   fundSponsorship,
+  offerBrandSponsorship,
   offerSponsorship,
   pinApp,
   respondSponsorship,
@@ -21,6 +22,8 @@ import type { ActionResult, Sponsorship } from "@/lib/types";
 import { useSignIn } from "./SignIn";
 
 type MyApp = { id: string; name: string };
+// Something you can sponsor with: one of your apps, or a verified brand.
+type Sponsor = MyApp & { kind?: "app" | "brand" };
 type Redirect = { ok: true; url: string } | { ok: false; error: string };
 
 // Dollars typed by a person -> whole cents, or NaN.
@@ -147,7 +150,7 @@ export function BackButton({
 }
 
 // Offer to pay another app per real try it sends you.
-export function SponsorOffer({ target, myApps }: { target: { id: string; name: string }; myApps: MyApp[] }) {
+export function SponsorOffer({ target, myApps }: { target: { id: string; name: string }; myApps: Sponsor[] }) {
   const [open, setOpen] = useState(false);
   const [fromId, setFromId] = useState(myApps[0]?.id ?? "");
   const [price, setPrice] = useState("0.50");
@@ -182,7 +185,11 @@ export function SponsorOffer({ target, myApps }: { target: { id: string; name: s
             e.preventDefault();
             setMessage(null);
             startTransition(async () => {
-              const r = await offerSponsorship(fromId, target.id, priceCents, budgetCents, note);
+              const from = myApps.find((a) => a.id === fromId);
+              const r =
+                from?.kind === "brand"
+                  ? await offerBrandSponsorship(fromId, target.id, priceCents, budgetCents, note)
+                  : await offerSponsorship(fromId, target.id, priceCents, budgetCents, note);
               setMessage(
                 r.ok
                   ? { ok: true, text: `Offer sent. You'll pay once ${target.name}'s builder accepts.` }
@@ -198,7 +205,7 @@ export function SponsorOffer({ target, myApps }: { target: { id: string; name: s
               <select value={fromId} onChange={(e) => setFromId(e.target.value)} className="field w-auto py-1.5">
                 {myApps.map((a) => (
                   <option key={a.id} value={a.id}>
-                    {a.name}
+                    {a.kind === "brand" ? `${a.name} (brand)` : a.name}
                   </option>
                 ))}
               </select>
@@ -296,7 +303,10 @@ export function SponsorshipRow({ deal }: { deal: Sponsorship }) {
         <span>
           {isSponsor ? "You sponsor " : "Sponsored by "}
           {other ? (
-            <Link href={`/apps/${other.slug}`} className="font-semibold hover:underline">
+            <Link
+              href={isSponsor || deal.sponsor?.kind !== "brand" ? `/apps/${other.slug}` : `/brands/${other.slug}`}
+              className="font-semibold hover:underline"
+            >
               {other.name}
             </Link>
           ) : (

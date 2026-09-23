@@ -60,12 +60,15 @@ export default async function ProfilePage({ params }: PageProps<"/u/[username]">
             </div>
             <div className="sm:ml-auto">
               {isSelf ? (
-                <span className="flex gap-2">
+                <span className="flex flex-wrap gap-2">
                   <Link href="/settings" className="btn-ghost">
                     Edit profile
                   </Link>
                   <Link href="/swaps" className="btn-ghost">
                     Swaps
+                  </Link>
+                  <Link href="/dashboard" className="btn-ghost">
+                    Stats
                   </Link>
                   <Link href="/earn" className="btn-ghost">
                     Earn

@@ -93,6 +93,14 @@ export default async function EarnPage({ searchParams }: PageProps<"/earn">) {
         )}
       </p>
 
+      <p className="mt-2 text-sm text-muted">
+        Sponsoring for a company?{" "}
+        <Link href="/brands/new" className="text-accent hover:underline">
+          List your brand
+        </Link>{" "}
+        and it can make offers too.
+      </p>
+
       <DealSection title="Needs you" empty="Nothing waiting on you." deals={needsYou} />
       <DealSection title="Running" empty="No deals running. Open an app you like and tap Make an offer." deals={running} />
       {past.length > 0 && <DealSection title="Past deals" empty="" deals={past} />}

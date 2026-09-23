@@ -23,6 +23,7 @@ import {
   appStatus,
   getApp,
   getBackers,
+  getMyBrands,
   getComments,
   getFeedbackPanel,
   getMyApps,
@@ -47,7 +48,7 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
   const [app, viewer] = await Promise.all([getApp(slug), getViewer()]);
   if (!app) notFound();
 
-  const [comments, following, feedbackPanel, updates, partners, myApps, questions, backers] = await Promise.all([
+  const [comments, following, feedbackPanel, updates, partners, myApps, questions, backers, myBrands] = await Promise.all([
     app.drop ? getComments(app.drop.id) : [],
     isFollowing(viewer, app.owner_id),
     getFeedbackPanel(app, viewer),
@@ -56,7 +57,13 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
     viewer && viewer.id !== app.owner_id ? getMyApps(viewer) : Promise.resolve([]),
     getQuestions(app.id, viewer),
     getBackers(app.id),
+    viewer && viewer.id !== app.owner_id ? getMyBrands(viewer) : Promise.resolve([]),
   ]);
+  // You can sponsor with one of your apps or a verified brand.
+  const sponsors = [
+    ...myApps.map((a) => ({ id: a.id, name: a.name, kind: "app" as const })),
+    ...myBrands.filter((b) => b.verified && b.live).map((b) => ({ id: b.id, name: b.name, kind: "brand" as const })),
+  ];
   const wouldUse = app.feedback_count ? Math.round((app.would_use_yes_count / app.feedback_count) * 100) : null;
   const rating = app.feedback_count ? (app.rating_sum / app.feedback_count).toFixed(1) : null;
   const isOwner = viewer?.id === app.owner_id;
@@ -112,7 +119,7 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <a href={`/try/${app.slug}`} target="_blank" rel="noopener" className="btn-accent px-6 py-3 text-base">
+          <a href={`/try/${app.slug}?via=page`} target="_blank" rel="noopener" className="btn-accent px-6 py-3 text-base">
             Try it →
           </a>
           {app.drop && (
@@ -185,6 +192,12 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
               </Link>{" "}
               <span className="text-muted">Team up with other builders from their app pages.</span>
             </p>
+            <p className="mt-2 text-sm">
+              <Link href={`/dashboard?app=${app.slug}`} className="text-accent hover:underline">
+                See stats →
+              </Link>{" "}
+              <span className="text-muted">Tries per day and where they come from.</span>
+            </p>
           </GrowPanel>
         )}
 
@@ -221,10 +234,10 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
         {myApps.length > 0 && <TeamUp target={{ id: app.id, name: app.name }} myApps={myApps} />}
 
         {/* Boost Exchange, paid. In demo mode everyone sees it so it can be tried. */}
-        {!isOwner && (myApps.length > 0 || !isSupabaseConfigured) && (
+        {!isOwner && (sponsors.length > 0 || !isSupabaseConfigured) && (
           <SponsorOffer
             target={{ id: app.id, name: app.name }}
-            myApps={myApps.length > 0 ? myApps : [{ id: "demo", name: "your app" }]}
+            myApps={sponsors.length > 0 ? sponsors : [{ id: "demo", name: "your app" }]}
           />
         )}
 

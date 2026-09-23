@@ -28,6 +28,9 @@ export function Footer() {
           <Link href="/challenges" className="hover:text-ink">Challenges</Link>
           <Link href="/earn" className="hover:text-ink">Earn</Link>
           <Link href="/pro" className="hover:text-ink">Pro</Link>
+          <Link href="/brands" className="hover:text-ink">Brands</Link>
+          <Link href="/developers" className="hover:text-ink">Developers</Link>
+          <Link href="/app" className="hover:text-ink">Get the app</Link>
         </nav>
       </div>
     </footer>

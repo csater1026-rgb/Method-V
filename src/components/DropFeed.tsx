@@ -138,7 +138,7 @@ function DropSlide({ item, first, signedIn, muted, onToggleSound }: SlideProps) 
           </div>
           <div className={`mt-3 flex items-center gap-2 ${reveal} delay-100`}>
             {/* A plain link (not next/link) so prefetching never counts as a try. */}
-            <a href={`/try/${app.slug}`} target="_blank" rel="noopener" className="btn-accent px-5">
+            <a href={`/try/${app.slug}?via=feed`} target="_blank" rel="noopener" className="btn-accent px-5">
               Try it →
             </a>
             <CategoryChip category={app.category} />

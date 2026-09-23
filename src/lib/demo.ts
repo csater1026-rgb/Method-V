@@ -310,8 +310,25 @@ export const demoBackers: Record<string, { user: string; note: string; days: num
   "demo-app-quizpop": [{ user: "demo-ada", note: "My niece's class loves it!", days: 2 }],
 };
 
-// host app -> sponsor app
-export const demoSponsors: Record<string, string> = { "demo-app-quizpop": "demo-app-noteflow" };
+// host app -> sponsor (an app, or a brand from demoBrands)
+export const demoSponsors: Record<string, string> = {
+  "demo-app-quizpop": "demo-app-noteflow",
+  "demo-app-palettepal": "demo-brand-pixelhost",
+};
+
+export const demoBrands = [
+  {
+    id: "demo-brand-pixelhost",
+    owner_id: "demo-june",
+    slug: "pixelhost",
+    name: "PixelHost",
+    tagline: "Hosting for side projects, free until you get users",
+    description: "A sample brand, to show how companies outside Method V sponsor apps on the Boost Exchange.",
+    url: "https://example.com",
+    verified: true,
+    created_at: ago(20),
+  },
+];
 
 export const demoChallenges = [
   {

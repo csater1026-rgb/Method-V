@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { TRY_SOURCES, isOneOf } from "@/lib/constants";
 import { getViewer } from "@/lib/data";
 import { demoApps } from "@/lib/demo";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
@@ -28,9 +29,11 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/try/[slug]">
   if (!app) return new NextResponse("Not found", { status: 404 });
 
   const viewer = await getViewer();
+  const via = request.nextUrl.searchParams.get("via");
+  const source = isOneOf(TRY_SOURCES, via) ? via : "direct";
   // A repeat try by the same signed-in person hits a unique index and is
   // simply not counted again.
-  await supabase.from("try_clicks").insert({ app_id: app.id, user_id: viewer?.id ?? null });
+  await supabase.from("try_clicks").insert({ app_id: app.id, user_id: viewer?.id ?? null, source });
 
   const sponsorship = request.nextUrl.searchParams.get("s");
   if (viewer && sponsorship && UUID.test(sponsorship)) {

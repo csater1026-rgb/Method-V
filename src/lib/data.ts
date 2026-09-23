@@ -6,6 +6,7 @@ import { CATEGORIES, PRICING, STAGES, TESTER_RANKS, isOneOf, testerRank } from "
 import {
   demoApps,
   demoBackers,
+  demoBrands,
   demoChallenges,
   demoDay,
   demoJobs,
@@ -24,9 +25,10 @@ import {
 import { isSupabaseConfigured, publicFileUrl } from "./supabase/env";
 import { createClient } from "./supabase/server";
 import type {
+  Analytics,
   App,
   AppCard,
-  AppStat,
+  Brand,
   Backer,
   Challenge,
   ChallengeEntry,
@@ -1031,8 +1033,11 @@ export function isPro(profile: { pro_until: string | null } | null | undefined, 
 }
 
 function demoSponsorCard(hostId: string): SponsorCard | null {
-  const sponsor = demoApps.find((a) => a.id === demoSponsors[hostId]);
-  return sponsor ? { id: sponsor.id, slug: sponsor.slug, name: sponsor.name, tagline: sponsor.tagline } : null;
+  const id = demoSponsors[hostId];
+  const sponsor = demoApps.find((a) => a.id === id);
+  if (sponsor) return { id: `demo-deal-${hostId}`, kind: "app", slug: sponsor.slug, name: sponsor.name, tagline: sponsor.tagline };
+  const brand = demoBrands.find((b) => b.id === id);
+  return brand ? { id: `demo-deal-${hostId}`, kind: "brand", slug: brand.slug, name: brand.name, tagline: brand.tagline } : null;
 }
 
 // "Sponsored by" cards for running Boost Exchange deals, keyed by host app.
@@ -1050,7 +1055,13 @@ export async function getSponsorCards(hostIds: string[]): Promise<Map<string, Sp
   const supabase = await createClient();
   const { data } = await supabase.rpc("active_sponsors", { p_hosts: ids });
   for (const row of (data ?? []) as any[]) {
-    out.set(row.host_app, { id: row.sponsorship_id, slug: row.sponsor_slug, name: row.sponsor_name, tagline: row.sponsor_tagline });
+    out.set(row.host_app, {
+      id: row.sponsorship_id,
+      kind: row.sponsor_kind === "brand" ? "brand" : "app",
+      slug: row.sponsor_slug,
+      name: row.sponsor_name,
+      tagline: row.sponsor_tagline,
+    });
   }
   return out;
 }
@@ -1203,7 +1214,8 @@ export async function getMySponsorships(viewer: Viewer): Promise<Sponsorship[]> 
     .from("sponsorships")
     .select(
       `id, status, price_cents, budget_cents, spent_cents, tries, message, created_at, started_at, sponsor_user,
-       sponsor:apps!sponsorships_sponsor_app_fkey(id, slug, name), host:apps!sponsorships_host_app_fkey(id, slug, name)`,
+       sponsor:apps!sponsorships_sponsor_app_fkey(id, slug, name), host:apps!sponsorships_host_app_fkey(id, slug, name),
+       brand:brands!sponsorships_sponsor_brand_fkey(id, slug, name)`,
     )
     .order("created_at", { ascending: false })
     .limit(50);
@@ -1217,7 +1229,7 @@ export async function getMySponsorships(viewer: Viewer): Promise<Sponsorship[]> 
     message: r.message ?? "",
     created_at: r.created_at,
     started_at: r.started_at,
-    sponsor: r.sponsor ?? null,
+    sponsor: r.sponsor ? { ...r.sponsor, kind: "app" } : r.brand ? { ...r.brand, kind: "brand" } : null,
     host: r.host ?? null,
     mine: r.sponsor_user === viewer.id ? "sponsor" : "host",
   }));
@@ -1249,21 +1261,6 @@ export async function getEarnings(viewer: Viewer): Promise<Earnings> {
     account: !account.data ? "none" : account.data.payouts_enabled ? "ready" : "pending",
     pro_until: profile.data?.pro_until ?? null,
   };
-}
-
-// Tries per day for the last 30 days (Pro, own apps only).
-export async function getAppStats(appId: string): Promise<AppStat[] | null> {
-  if (!isSupabaseConfigured) {
-    const base = Date.UTC(2026, 8, 23);
-    return Array.from({ length: 30 }, (_, i) => {
-      const wave = Math.round(8 + 6 * Math.sin(i / 3) + i / 2);
-      return { day: new Date(base - (29 - i) * DAY_MS).toISOString().slice(0, 10), tries: wave, sponsored: i > 20 ? Math.round(wave / 3) : 0 };
-    });
-  }
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc("app_stats", { p_app: appId });
-  if (error) return null;
-  return (data ?? []) as AppStat[];
 }
 
 // --- Challenges ---
@@ -1328,6 +1325,110 @@ export async function getChallenge(
     entries: (rows ?? []).map((r: any) => ({ id: r.id, vote_count: r.vote_count, app: toCard(r.app) })),
     votedFor: (vote.data as { entry_id: string } | null)?.entry_id ?? null,
   };
+}
+
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+// ---------------------------------------------------------------------------
+// Phase 5: Scale
+// ---------------------------------------------------------------------------
+
+/* eslint-disable @typescript-eslint/no-explicit-any -- rows come back untyped without generated types */
+
+const BRAND_FIELDS = "id, owner_id, slug, name, tagline, description, url, link_checked_at, verified_at, created_at";
+
+function toBrand(row: any): Brand {
+  return {
+    id: row.id,
+    owner_id: row.owner_id,
+    slug: row.slug,
+    name: row.name,
+    tagline: row.tagline,
+    description: row.description ?? "",
+    url: row.url,
+    verified: Boolean(row.verified_at),
+    live: Boolean(row.link_checked_at),
+    created_at: row.created_at,
+  };
+}
+
+const demoBrandList = (): Brand[] =>
+  demoBrands.map((b) => ({ ...b, verified: b.verified, live: true }));
+
+// Live brands, verified ones first.
+export async function getBrands(): Promise<Brand[]> {
+  if (!isSupabaseConfigured) return demoBrandList();
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("brands")
+    .select(BRAND_FIELDS)
+    .not("link_checked_at", "is", null)
+    .order("verified_at", { ascending: false, nullsFirst: false })
+    .order("created_at", { ascending: false })
+    .limit(60);
+  return (data ?? []).map(toBrand);
+}
+
+export async function getMyBrands(viewer: Viewer | null): Promise<Brand[]> {
+  if (!viewer) return [];
+  const supabase = await createClient();
+  const { data } = await supabase.from("brands").select(BRAND_FIELDS).eq("owner_id", viewer.id).order("created_at");
+  return (data ?? []).map(toBrand);
+}
+
+// A brand and the apps it's sponsoring right now.
+export async function getBrand(slug: string): Promise<{ brand: Brand; sponsoring: AppCard[] } | null> {
+  if (!isSupabaseConfigured) {
+    const brand = demoBrandList().find((b) => b.slug === slug);
+    if (!brand) return null;
+    const hosts = Object.entries(demoSponsors).filter(([, s]) => s === brand.id).map(([h]) => h);
+    return { brand, sponsoring: demoCards().filter((c) => hosts.includes(c.id)) };
+  }
+  const supabase = await createClient();
+  const { data } = await supabase.from("brands").select(BRAND_FIELDS).eq("slug", slug).maybeSingle();
+  if (!data) return null;
+  const { data: rows } = await supabase.rpc("brand_sponsoring", { p_brand: data.id });
+  const ids = ((rows ?? []) as { app_id: string }[]).map((r) => r.app_id);
+  let sponsoring: AppCard[] = [];
+  if (ids.length > 0) {
+    const { data: apps } = await supabase.from("apps").select(CARD_SELECT).in("id", ids);
+    sponsoring = (apps ?? []).map(toCard);
+  }
+  return { brand: toBrand(data), sponsoring };
+}
+
+// Builder analytics: daily numbers and where tries came from.
+export async function getAnalytics(appId: string, days: number): Promise<Analytics | { error: string }> {
+  if (!isSupabaseConfigured) {
+    // A made-up 90-day curve, scaled so it adds up to most of the app's real
+    // demo try count, then cut to the range asked for.
+    const base = Date.UTC(2026, 8, 23);
+    const curve = Array.from({ length: 90 }, (_, i) => 10 + 7 * Math.sin(i / 4) + (i / 90) * 8);
+    const allTime = demoApps.find((a) => a.id === appId)?.try_count ?? 100;
+    const scale = (allTime * 0.8) / curve.reduce((n, v) => n + v, 0);
+    const daily = curve.slice(90 - days).map((v, i) => {
+      const t = days - 1 - i;
+      const tries = Math.round(v * scale);
+      return {
+        day: new Date(base - t * DAY_MS).toISOString().slice(0, 10),
+        tries,
+        sponsored: t < 9 ? Math.round(tries / 3) : 0,
+        likes: Math.round(tries / 2.5),
+        feedback: i % 5 === 0 && tries > 2 ? 1 : 0,
+      };
+    });
+    const total = daily.reduce((n, d) => n + d.tries, 0);
+    const split: [string, number][] = [["feed", 0.38], ["page", 0.22], ["embed", 0.14], ["card", 0.1], ["share", 0.08], ["direct", 0.05], ["api", 0.03]];
+    return { days, daily, sources: split.map(([source, f]) => ({ source, tries: Math.round(total * f) })).filter((x) => x.tries > 0) };
+  }
+  const supabase = await createClient();
+  const [daily, sources] = await Promise.all([
+    supabase.rpc("app_daily", { p_app: appId, p_days: days }),
+    supabase.rpc("app_sources", { p_app: appId, p_days: days }),
+  ]);
+  const error = daily.error ?? sources.error;
+  if (error) return { error: error.code === "P0001" ? error.message : "Couldn't load stats." };
+  return { days, daily: (daily.data ?? []) as Analytics["daily"], sources: (sources.data ?? []) as Analytics["sources"] };
 }
 
 /* eslint-enable @typescript-eslint/no-explicit-any */

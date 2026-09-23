@@ -3,7 +3,8 @@ import type { SponsorCard } from "@/lib/types";
 // The Boost Exchange "Sponsored by" card. Always labeled, and the link is a
 // plain <a> to /try so only real taps count (and are paid for).
 export function SponsoredBy({ sponsor, compact = false }: { sponsor: SponsorCard; compact?: boolean }) {
-  const href = `/try/${sponsor.slug}?s=${sponsor.id}`;
+  // Brands live outside Method V, so their cards go through /go instead of /try.
+  const href = sponsor.kind === "brand" ? `/go/${sponsor.slug}?s=${sponsor.id}` : `/try/${sponsor.slug}?s=${sponsor.id}&via=sponsor`;
   if (compact) {
     return (
       <a
@@ -27,7 +28,7 @@ export function SponsoredBy({ sponsor, compact = false }: { sponsor: SponsorCard
           <p className="text-sm text-muted">{sponsor.tagline}</p>
         </div>
         <a href={href} target="_blank" rel="noopener sponsored" className="btn-ghost">
-          Try {sponsor.name} →
+          {sponsor.kind === "brand" ? "Visit" : "Try"} {sponsor.name} →
         </a>
       </div>
     </aside>

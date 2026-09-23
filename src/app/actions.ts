@@ -1010,3 +1010,84 @@ export async function pinApp(appId: string | null): Promise<ActionResult> {
   revalidatePath(`/u/${auth.viewer.username}`);
   return { ok: true };
 }
+
+// ---------------------------------------------------------------------------
+// Phase 5: brands on the Boost Exchange
+// ---------------------------------------------------------------------------
+
+export type NewBrand = { name: string; tagline: string; description: string; url: string };
+
+// Lists a brand. Like apps, it only goes live after the server checks its
+// link; it can sponsor once the Method V team verifies it.
+export async function createBrand(input: NewBrand): Promise<ActionResult & { slug?: string }> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  const name = input.name.trim();
+  const tagline = input.tagline.trim();
+  const description = input.description.trim();
+  const url = input.url.trim();
+  if (!name || name.length > 60) return { ok: false, error: "Brand name is required (up to 60 characters)." };
+  if (!tagline || tagline.length > 120) return { ok: false, error: "Add a one-line description (up to 120 characters)." };
+  if (description.length > 1000) return { ok: false, error: "Keep the description under 1,000 characters." };
+  if (!/^https:\/\//i.test(url)) return { ok: false, error: "Use your site's https:// address." };
+
+  const admin = createAdminClient();
+  if (!admin) return { ok: false, error: "The server is missing SUPABASE_SECRET_KEY, so it can't verify links yet." };
+  const link = await checkLink(url);
+  if (!link.ok) return { ok: false, error: `Link check failed: ${link.reason}` };
+
+  const supabase = await createClient();
+  const base = slugify(name);
+  let brand: { id: string; slug: string } | null = null;
+  for (let attempt = 0; attempt < 5 && !brand; attempt++) {
+    const slug = attempt === 0 ? base : `${base}-${Math.random().toString(36).slice(2, 6)}`;
+    const { data, error } = await supabase
+      .from("brands")
+      .insert({ owner_id: auth.viewer.id, slug, name, tagline, description, url })
+      .select("id, slug")
+      .single();
+    if (data) brand = data;
+    else if (error?.code !== "23505") return { ok: false, error: rpcError(error?.message, "Couldn't save the brand.") };
+  }
+  if (!brand) return { ok: false, error: "Couldn't pick a link for the brand. Try a slightly different name." };
+
+  const { error } = await admin.from("brands").update({ link_checked_at: new Date().toISOString() }).eq("id", brand.id);
+  if (error) return { ok: false, error: "Couldn't finish listing the brand." };
+  revalidatePath("/brands");
+  return { ok: true, slug: brand.slug };
+}
+
+export async function deleteBrand(brandId: string): Promise<ActionResult> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  if (!UUID.test(brandId)) return { ok: false, error: "Unknown brand." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("brands").delete().eq("id", brandId).eq("owner_id", auth.viewer.id);
+  if (error) return { ok: false, error: rpcError(error.message, "Couldn't delete the brand.") };
+  revalidatePath("/brands");
+  return { ok: true };
+}
+
+export async function offerBrandSponsorship(
+  brandId: string,
+  hostAppId: string,
+  priceCents: number,
+  budgetCents: number,
+  message: string,
+): Promise<ActionResult> {
+  const price = Math.round(Number(priceCents));
+  const budget = Math.round(Number(budgetCents));
+  const invalid =
+    (UUID.test(brandId) && UUID.test(hostAppId) ? null : "Pick the brand you're sponsoring with.") ??
+    (price >= EARN.sponsor.minPrice && price <= EARN.sponsor.maxPrice ? null : "Pay between $0.10 and $5 per try.") ??
+    (budget >= EARN.sponsor.minBudget && budget <= EARN.sponsor.maxBudget ? null : "Set a budget between $10 and $1,000.") ??
+    (budget >= price * EARN.sponsor.minTries ? null : "The budget should cover at least 10 tries.") ??
+    (message.trim().length <= 280 ? null : "Keep the message under 280 characters.");
+  return callRpc(
+    "offer_brand_sponsorship",
+    { p_brand: brandId, p_host_app: hostAppId, p_price: price, p_budget: budget, p_message: message.trim() },
+    "Couldn't send the offer.",
+    ["/earn"],
+    invalid,
+  );
+}

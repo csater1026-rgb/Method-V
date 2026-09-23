@@ -53,6 +53,13 @@ Builder tools (launch day, boosts, share kit) live in the *Grow* panel on your o
 - **Earn (`/earn`):** your balance from tips and sponsored tries, *Set up payouts* (Stripe Connect Express) and *Cash out* from $5, your sponsorship deals, and history.
 - **Pro (`/pro`):** $6 for 30 days, not a subscription. You get tries per day for the last 30 days (including how many came from sponsor cards), a pinned app on your profile, boosts at ⚡5 a day instead of ⚡10, and a Pro badge.
 
+**Phase 5 ("Scale") is built:**
+
+- **Get the app (`/app`):** Method V installs to the home screen on iPhone (Safari → Share → Add to Home Screen) and Android/desktop Chrome (Install). It opens full screen with the tab bar and shows a friendly page when offline. Native App Store and Google Play apps come later.
+- **Stats (`/dashboard`):** for each of your apps: tries, likes, feedback and sponsored tries per day, and where tries come from (Drops feed, app page, embeds, cards, sponsor cards, shared links, API, direct). The last 7 days are free; 30 and 90 days and CSV export come with Pro.
+- **Public API (`/api/v1`) and embeds:** read-only JSON for apps, builders, jobs and challenges, open to any site. There's an embeddable app card (`/embed/<app>`, an iframe with a Try it button) and the badge. Builders get the embed snippet in their Share kit, and the docs are at `/developers`.
+- **Brand sponsors (`/brands`):** companies outside Method V list a brand (its site is link-checked). Once the Method V team verifies it, the brand can make pay-per-try offers on any app, with the same rules and labels as app-to-app deals. To verify a brand, set `verified_at` on its row in the `brands` table.
+
 Payments are off until Stripe is connected (step 6 below). Until then offers, jobs and challenges still work, and anything that takes money says payments aren't switched on.
 
 ## Run it locally
@@ -100,6 +107,10 @@ To deploy, import the repo into [Vercel](https://vercel.com) and add the same en
 | Jobs board `/jobs`, `/jobs/new`, `/jobs/[id]` | `src/app/jobs/`, `src/components/Jobs.tsx`, `src/components/JobCard.tsx` |
 | Back it, sponsor offers, deal rows, payouts, Pro buttons | `src/components/Earn.tsx`, `src/components/Sponsored.tsx`, `src/components/Backers.tsx` |
 | Earn `/earn`, Pro `/pro`, Challenges `/challenges` | `src/app/earn/`, `src/app/pro/`, `src/app/challenges/`, `src/components/Challenges.tsx` |
+| Stats dashboard and CSV export | `src/app/dashboard/`, `src/lib/dashboard.ts`, `src/components/StatsChart.tsx` |
+| Public API, embed card, developer docs | `src/app/api/v1/`, `src/lib/api.ts`, `src/app/embed/[slug]/route.ts`, `src/app/developers/` |
+| Installable app: manifest, icons, service worker, install page | `src/app/manifest.ts`, `src/app/app-icon/`, `src/app/apple-icon.tsx`, `public/sw.js`, `src/components/InstallApp.tsx`, `src/app/app/` |
+| Brands and brand links | `src/app/brands/`, `src/components/Brands.tsx`, `src/app/go/[slug]/route.ts` |
 | Stripe (REST, no SDK), webhook, refunds | `src/lib/stripe.ts`, `src/lib/stripe-core.ts`, `src/lib/payments.ts`, `src/app/api/stripe/webhook/route.ts` |
 | Database tables, security rules, counters, storage bucket | `supabase/migrations/` |
 
@@ -112,6 +123,8 @@ A few rules the code relies on:
 - **Featured apps** on Home are the ones whose `featured_until` is in the future. Set it by hand in the Supabase table editor (people can't set it on their own apps). With none picked, Home shows the most liked and tried apps from the last 30 days.
 - **Connections gate messages.** The database only accepts a message when the two people have an accepted connection. Notifications are written by database triggers (never for your own actions, and not repeated while unread); nobody can create them directly.
 - **Money only moves through the server and Stripe.** The site creates a pending payment with `prepare_payment()` as the payer, so every rule applies. Only the signed Stripe webhook, using the secret key, can complete it (`complete_payment()`, safe to repeat). Nobody can write payments, earnings, payouts, backings or sponsorship totals from the browser. Cash-outs move the whole balance into a pending payout before the Stripe transfer and put it back if the transfer fails. Unspent sponsorship budget is marked for refund in the database and refunded through Stripe. A failed refund is retried the next time the sponsor opens `/earn`.
+- **Only the embed card can be framed.** Every other page sends `X-Frame-Options: DENY` (see `next.config.ts`). The embed runs no scripts and loads nothing but the Drop's poster.
+- **The API is read-only and public.** It only returns what's already public on the site, and the CDN caches each answer for a minute. Links in it go through `/try/<app>?via=api`, so tries are counted.
 - **Sponsored is always labeled.** Sponsor cards always say Sponsored, and each app shows one sponsor at a time. A sponsored try only counts when it lands on the sponsor's own app.
 - **Videos live in the `drops` bucket** under a folder named after the uploader's user ID, and people can only upload into their own folder.
 

@@ -3,6 +3,7 @@ import { Big_Shoulders, Martian_Mono, Schibsted_Grotesk } from "next/font/google
 import { cookies } from "next/headers";
 
 import { Footer } from "@/components/Footer";
+import { ServiceWorker } from "@/components/InstallApp";
 import { Nav } from "@/components/Nav";
 import { SignInProvider } from "@/components/SignIn";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
@@ -22,9 +23,14 @@ export const metadata: Metadata = {
   },
   description:
     "Where builders show off what they've made, get real users, earn from their apps and find people to work with. 60 seconds. Then try it.",
+  applicationName: "Method V",
+  // Opens full screen when added to an iPhone home screen.
+  appleWebApp: { capable: true, title: "Method V", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {
+  // Draw under the home indicator; the tab bar and header pad themselves with safe-area insets.
+  viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f3eee2" },
     { media: "(prefers-color-scheme: dark)", color: "#121814" },
@@ -45,7 +51,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       {/* --chrome is the height of everything above the page, so the Drops feed can fill the rest. */}
       <body
         className="flex min-h-full flex-col font-sans"
-        style={{ "--chrome": isSupabaseConfigured ? "calc(3.5rem + 1px)" : "calc(5.25rem + 1px)" } as React.CSSProperties}
+        style={{ "--chrome": isSupabaseConfigured ? "calc(3.5rem + 1px + env(safe-area-inset-top))" : "calc(5.25rem + 1px + env(safe-area-inset-top))" } as React.CSSProperties}
       >
         <SignInProvider>
           <Nav />
@@ -57,6 +63,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           <main className="flex flex-1 flex-col">{children}</main>
           <Footer />
         </SignInProvider>
+        <ServiceWorker />
       </body>
     </html>
   );

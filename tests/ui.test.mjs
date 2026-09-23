@@ -91,7 +91,7 @@ await run("feed (phone)", phone, async (page) => {
   const bottomGap = tabs.y - (box.y + box.height);
   ok(Math.abs(bottomGap) <= 1, `feed fills the space above the tab bar (gap ${bottomGap}px)`);
   const tryLink = page.locator("article").first().getByRole("link", { name: "Try it →" });
-  ok((await tryLink.getAttribute("href")) === "/try/noteflow", "Try it links to /try/<slug>");
+  ok((await tryLink.getAttribute("href")) === "/try/noteflow?via=feed", "Try it links to /try/<slug>, tagged as from the feed");
   await noSideScroll(page, "feed");
   await page.screenshot({ path: OUT + "feed-phone.png" });
 
@@ -468,8 +468,8 @@ await run("jobs board (phone)", phone, async (page) => {
   await page.getByRole("button", { name: "Apply" }).click();
   await page.getByLabel("Why you?").fill("I built the NoteFlow landing page.");
   await page.getByRole("button", { name: "Send application" }).click();
-  await page.getByText(/demo mode/i).first().waitFor();
-  ok(await page.getByRole("form", { name: "Apply" }).getByText(/demo mode/i).isVisible(), "applying explains demo mode");
+  await page.getByRole("form", { name: "Apply" }).getByText(/demo mode/i).waitFor();
+  ok(true, "applying explains demo mode");
   await go(page, "/jobs/demo-job-marco");
   ok(await page.getByRole("button", { name: "Connect" }).isVisible(), "looking-for-work posts use Connect instead of Apply");
   ok((await page.getByRole("button", { name: "Apply" }).count()) === 0, "no Apply on a looking-for-work post");
@@ -477,7 +477,7 @@ await run("jobs board (phone)", phone, async (page) => {
   await page.getByRole("radio", { name: "Gig" }).click();
   await page.getByLabel("Title").fill("Logo for my study app");
   await page.getByRole("button", { name: "Post it" }).click();
-  await page.getByText(/demo mode/i).first().waitFor();
+  await page.getByText(/Add your Supabase keys/).first().waitFor({ timeout: 10_000 });
   ok(true, "posting a job explains demo mode");
   await noSideScroll(page, "jobs form");
   await page.screenshot({ path: `${OUT}jobs-phone.png`, fullPage: true });
@@ -531,12 +531,10 @@ await run("earn + pro (phone)", phone, async (page) => {
   ok(await page.getByText(/demo mode, so there/).isVisible(), "Earn explains demo mode");
   ok((await page.getByRole("region", { name: "Balance" }).textContent()).includes("$0"), "balance shows");
   await go(page, "/pro");
-  ok(await page.getByText("Stats for your apps").isVisible(), "Pro lists its perks");
-  const stats = page.getByRole("figure", { name: /Tries for/ });
-  ok(await stats.isVisible(), "Pro preview shows 30-day stats");
-  ok((await stats.locator("[title]").count()) === 30, "30 days of bars");
+  ok(await page.getByText("Stats for 30 and 90 days").isVisible(), "Pro lists its perks");
+  ok(await page.getByRole("link", { name: "Open your stats →" }).isVisible(), "Pro links to the stats dashboard");
   await page.getByRole("button", { name: /Add 30 days|Get Pro/ }).click();
-  await page.getByText(/demo mode/i).first().waitFor();
+  await page.getByText(/Add your Supabase keys/).first().waitFor({ timeout: 10_000 });
   ok(true, "buying Pro explains demo mode");
   await noSideScroll(page, "pro");
   await page.screenshot({ path: `${OUT}pro-phone.png`, fullPage: true });
@@ -560,7 +558,7 @@ await run("challenges (desktop)", desktop, async (page) => {
   ok((await entries.count()) === 2, "entries listed");
   ok((await entries.first().textContent()).includes("NoteFlow"), "ranked by votes");
   await entries.first().getByRole("button", { name: /▲/ }).click();
-  await page.getByText(/demo mode/i).first().waitFor();
+  await page.getByText(/Add your Supabase keys/).first().waitFor({ timeout: 10_000 });
   ok(true, "voting explains demo mode");
   await page.screenshot({ path: `${OUT}challenges-desktop.png`, fullPage: true });
 });
@@ -578,6 +576,120 @@ let res = await fetch(BASE + "/api/stripe/webhook", { method: "POST", body: "{}"
 ok(res.status === 404, `webhook is off without Stripe keys (${res.status})`);
 res = await fetch(BASE + "/try/noteflow?s=00000000-0000-0000-0000-000000000000", { redirect: "manual" });
 ok(res.status === 303, "sponsor links still redirect to the app");
+
+// ---------------------------------------------------------------------------
+// Phase 5: Scale
+// ---------------------------------------------------------------------------
+
+await run("stats dashboard (phone)", phone, async (page) => {
+  await go(page, "/dashboard");
+  ok((await page.getByRole("heading", { level: 1 }).textContent()) === "Stats", "dashboard opens");
+  const chart = page.getByRole("figure", { name: /Tries for NoteFlow/ });
+  ok((await chart.locator("[title]").count()) === 7, "7 days by default");
+  await page.getByRole("navigation", { name: "Range" }).getByRole("link", { name: "30d" }).click();
+  await page.waitForURL(/days=30/);
+  ok((await page.getByRole("figure", { name: /Tries for/ }).locator("[title]").count()) === 30, "30-day range for Pro");
+  const sources = page.getByRole("region", { name: "Where tries come from" });
+  ok((await sources.textContent()).includes("Embeds on other sites"), "tries are broken down by source");
+  await page.getByRole("navigation", { name: "Your apps" }).getByRole("link", { name: "Splitsy" }).click();
+  await page.waitForURL(/app=splitsy/);
+  ok(await page.getByRole("figure", { name: /Tries for Splitsy/ }).isVisible(), "switch between your apps");
+  ok(await page.getByRole("link", { name: "Download CSV" }).isVisible(), "Pro can download a CSV");
+  await noSideScroll(page, "dashboard");
+  await page.screenshot({ path: `${OUT}dashboard-phone.png`, fullPage: true });
+});
+
+await run("brands (desktop)", desktop, async (page) => {
+  await go(page, "/brands");
+  ok(await page.getByRole("link", { name: /PixelHost/ }).isVisible(), "brand directory lists verified brands");
+  await go(page, "/brands/pixelhost");
+  ok(await page.getByText("Verified sponsor").isVisible(), "brand page shows it's verified");
+  ok((await page.getByRole("region", { name: "Sponsoring" }).textContent()).includes("PalettePal"), "brand page lists who it sponsors");
+  await go(page, "/apps/palettepal");
+  const card = page.getByRole("complementary", { name: "Sponsored" });
+  ok(/^\/go\/pixelhost\?s=/.test((await card.getByRole("link").getAttribute("href")) ?? ""), "brand sponsor cards go through /go");
+  ok(await card.getByRole("link", { name: "Visit PixelHost →" }).isVisible(), "brand cards say Visit");
+  await go(page, "/brands/new");
+  await page.getByLabel("Website").fill("https://example.com");
+  await page.getByLabel("Brand name").fill("Acme");
+  await page.getByLabel("One line about it").fill("Tools for builders");
+  await page.getByRole("button", { name: "List the brand" }).click();
+  await page.getByText(/Add your Supabase keys/).first().waitFor({ timeout: 10_000 });
+  ok(true, "listing a brand explains demo mode");
+  await page.screenshot({ path: `${OUT}brands-desktop.png`, fullPage: true });
+});
+
+await run("developers + install (phone)", phone, async (page) => {
+  await go(page, "/developers");
+  ok(await page.getByText("/api/v1/apps/{slug}").isVisible(), "API docs list the endpoints");
+  const frame = page.frameLocator("iframe[title^='NoteFlow on Method V']");
+  await frame.getByRole("link", { name: "Try it →" }).waitFor();
+  ok((await frame.getByRole("link", { name: "Try it →" }).getAttribute("href")).endsWith("/try/noteflow?via=embed"), "the example embed renders with a counted Try link");
+  await noSideScroll(page, "developers");
+  await go(page, "/app");
+  ok(await page.getByRole("heading", { name: "iPhone and iPad" }).isVisible(), "install steps for iPhone");
+  ok(await page.getByRole("heading", { name: "Android" }).isVisible(), "install steps for Android");
+  await noSideScroll(page, "get the app");
+  await go(page, "/offline");
+  ok(await page.getByRole("heading", { name: "You're offline" }).isVisible(), "offline page");
+  const manifestHref = await page.locator('link[rel="manifest"]').getAttribute("href");
+  ok(manifestHref === "/manifest.webmanifest", `pages link the manifest (${manifestHref})`);
+  ok((await page.locator('link[rel="apple-touch-icon"]').count()) > 0, "pages link an iPhone home-screen icon");
+  const sw = await page.evaluate(async () => {
+    const reg = await navigator.serviceWorker.getRegistration();
+    return reg ? reg.active?.scriptURL ?? reg.installing?.scriptURL ?? reg.waiting?.scriptURL ?? "registered" : null;
+  });
+  ok(Boolean(sw), `service worker registers (${sw})`);
+});
+
+{
+  const manifest = await (await fetch(BASE + "/manifest.webmanifest")).json();
+  ok(manifest.name === "Method V" && manifest.display === "standalone", "manifest makes the site installable");
+  ok(manifest.icons.some((i) => i.sizes === "512x512" && i.purpose === "maskable"), "manifest has a maskable icon");
+  for (const icon of manifest.icons) {
+    const r = await fetch(BASE + icon.src);
+    const bytes = new Uint8Array(await r.arrayBuffer());
+    ok(r.status === 200 && r.headers.get("content-type") === "image/png" && bytes[1] === 0x50, `icon ${icon.src} is a PNG`);
+  }
+  ok((await fetch(BASE + "/app-icon/huge")).status === 404, "unknown icon size is 404");
+  const sw = await fetch(BASE + "/sw.js");
+  ok(sw.status === 200 && /no-cache/.test(sw.headers.get("cache-control") ?? ""), "service worker is never cached");
+
+  const home = await fetch(BASE + "/");
+  ok(home.headers.get("x-frame-options") === "DENY", "pages can't be framed by other sites");
+  const embed = await fetch(BASE + "/embed/noteflow?theme=light");
+  const embedHtml = await embed.text();
+  ok(embed.status === 200 && !embed.headers.get("x-frame-options"), "the embed card can be framed");
+  ok(/frame-ancestors \*/.test(embed.headers.get("content-security-policy") ?? "") && /default-src 'none'/.test(embed.headers.get("content-security-policy") ?? ""), "the embed runs no scripts");
+  ok(embedHtml.includes("NoteFlow") && embedHtml.includes("/try/noteflow?via=embed") && embedHtml.includes("#fbf8f1"), "embed shows the app, a counted Try link and the light theme");
+  ok(!/<script/i.test(embedHtml), "embed has no scripts");
+  ok((await fetch(BASE + "/embed/nope")).status === 404, "unknown embed is 404");
+
+  const index = await fetch(BASE + "/api/v1");
+  ok(index.headers.get("access-control-allow-origin") === "*", "API is open to other sites (CORS)");
+  ok(Boolean((await index.json()).endpoints.apps), "API index lists endpoints");
+  const apps = await (await fetch(BASE + "/api/v1/apps")).json();
+  ok(apps.apps.length === 4 && apps.apps.every((a) => a.try_url.endsWith(`/try/${a.slug}?via=api`)), "apps list with counted try links");
+  ok(!JSON.stringify(apps).includes("owner_id") && !JSON.stringify(apps).includes('"url":"https://example.com"'), "API leaves out internal ids and raw links");
+  const edu = await (await fetch(BASE + "/api/v1/apps?category=education&limit=1")).json();
+  ok(edu.apps.length === 1 && edu.apps[0].slug === "quizpop", "filters and limit work");
+  const one = await (await fetch(BASE + "/api/v1/apps/noteflow")).json();
+  ok(one.app.stats.tries === 412 && one.app.builder.username === "ada_builds", "one app with stats and builder");
+  const missing = await fetch(BASE + "/api/v1/apps/nope");
+  ok(missing.status === 404 && (await missing.json()).error, "unknown app is a 404 with a message");
+  const user = await (await fetch(BASE + "/api/v1/users/ada_builds")).json();
+  ok(user.user.pro === true && user.apps.length === 2, "builder profile with their apps");
+  ok(!("credits" in user.user) && !("payouts_enabled" in user.user), "profiles leave out private fields");
+  ok((await (await fetch(BASE + "/api/v1/jobs?kind=gig")).json()).jobs.length === 1, "jobs endpoint filters by kind");
+  ok((await (await fetch(BASE + "/api/v1/challenges")).json()).challenges.length === 2, "challenges endpoint");
+  const pre = await fetch(BASE + "/api/v1/apps", { method: "OPTIONS" });
+  ok(pre.status === 204 && pre.headers.get("access-control-allow-methods")?.includes("GET"), "CORS preflight");
+  ok((await fetch(BASE + "/go/pixelhost", { redirect: "manual" })).status === 303, "brand links redirect");
+  ok((await fetch(BASE + "/go/nope", { redirect: "manual" })).status === 404, "unknown brand is 404");
+  const csv = await fetch(BASE + "/dashboard/export?app=noteflow&days=30");
+  const csvText = await csv.text();
+  ok(csv.headers.get("content-type")?.startsWith("text/csv") && csvText.trim().split("\n").length === 31, "CSV export has a header and 30 days");
+}
 
 await browser.close();
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");

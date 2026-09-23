@@ -80,7 +80,7 @@ function TryFirst({ app, open }: { app: AppRef; open: TestRequest | null }) {
       </p>
       <div className="flex flex-wrap gap-2">
         <a
-          href={`/try/${app.slug}`}
+          href={`/try/${app.slug}?via=page`}
           target="_blank"
           rel="noopener"
           className="btn-accent"

@@ -254,7 +254,7 @@ export type JobApplication = {
 };
 
 // A "Sponsored by" card shown on the host app and its Drops.
-export type SponsorCard = { id: string; slug: string; name: string; tagline: string };
+export type SponsorCard = { id: string; kind: "app" | "brand"; slug: string; name: string; tagline: string };
 
 export type SponsorshipStatus = "offered" | "accepted" | "declined" | "active" | "completed" | "ended";
 
@@ -268,7 +268,8 @@ export type Sponsorship = {
   message: string;
   created_at: string;
   started_at: string | null;
-  sponsor: { id: string; slug: string; name: string } | null;
+  // The sponsoring app, or brand (kind "brand").
+  sponsor: { id: string; slug: string; name: string; kind: "app" | "brand" } | null;
   host: { id: string; slug: string; name: string } | null;
   mine: "sponsor" | "host";
 };
@@ -303,4 +304,23 @@ export type Challenge = {
 
 export type ChallengeEntry = { id: string; vote_count: number; app: AppCard };
 
-export type AppStat = { day: string; tries: number; sponsored: number };
+// ---------------------------------------------------------------------------
+// Phase 5: Scale
+// ---------------------------------------------------------------------------
+
+export type Brand = {
+  id: string;
+  owner_id: string;
+  slug: string;
+  name: string;
+  tagline: string;
+  description: string;
+  url: string;
+  verified: boolean;
+  live: boolean;
+  created_at: string;
+};
+
+export type DailyStat = { day: string; tries: number; sponsored: number; likes: number; feedback: number };
+
+export type Analytics = { days: number; daily: DailyStat[]; sources: { source: string; tries: number }[] };

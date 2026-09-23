@@ -19,7 +19,7 @@ export async function Nav() {
 
   return (
     <>
-      <header className="sticky top-0 z-30 border-b border-line bg-bg/90 backdrop-blur">
+      <header className="sticky top-0 z-30 border-b border-line bg-bg/90 pt-[env(safe-area-inset-top)] backdrop-blur">
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-2 px-3 sm:gap-3 sm:px-4">
           <Link href="/" aria-label="Method V home" className="display flex shrink-0 items-center gap-1 text-[27px]">
             <PixelCoder size={38} className="mr-0.5 -mb-1" />
