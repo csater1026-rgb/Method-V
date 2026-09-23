@@ -36,6 +36,14 @@ async function run(name, viewport, fn) {
   await ctx.close();
 }
 
+// Open a page and wait until its content has replaced any loading screen
+// (Drops, Browse and Test & earn stream in behind the pixel coder).
+async function go(page, path) {
+  const res = await page.goto(BASE + path);
+  await page.waitForFunction(() => !document.querySelector('[role="status"]'));
+  return res;
+}
+
 async function noSideScroll(page, label) {
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   ok(overflow <= 0, `${label}: no horizontal scroll (overflow ${overflow}px)`);
@@ -45,7 +53,7 @@ const phone = { width: 390, height: 844 };
 const desktop = { width: 1280, height: 860 };
 
 await run("home (phone)", phone, async (page) => {
-  await page.goto(BASE + "/");
+  await go(page, "/");
   const tabs = page.getByRole("navigation", { name: "Main" });
   ok((await tabs.getByRole("link").first().textContent()) === "Home", "first tab is Home");
   ok((await tabs.getByRole("link", { name: "Home" }).getAttribute("aria-current")) === "page", "Home tab is active");
@@ -62,19 +70,19 @@ await run("home (phone)", phone, async (page) => {
 });
 
 await run("home sort + category", desktop, async (page) => {
-  await page.goto(BASE + "/?sort=popular");
+  await go(page, "/?sort=popular");
   const names = await page.locator("#projects article a.display").allTextContents();
   ok(names[0] === "PalettePal", `Popular sorts by tries (${names.join(",")})`);
   await page.getByRole("navigation", { name: "Categories" }).getByRole("link", { name: "Finance" }).click();
   await page.waitForURL(/category=finance/);
   ok((await page.locator("#projects article").count()) === 1, "category filter narrows All projects");
   ok(page.url().includes("sort=popular"), "category keeps the sort");
-  await page.goto(BASE + "/");
+  await go(page, "/");
   await page.screenshot({ path: OUT + "home-desktop.png", fullPage: true });
 });
 
 await run("feed (phone)", phone, async (page) => {
-  await page.goto(BASE + "/drops");
+  await go(page, "/drops");
   ok((await page.locator("article").count()) === 4, "feed shows 4 sample Drops");
   ok(await page.getByText("Demo mode · sample apps").isVisible(), "demo banner visible");
   const feed = page.getByTestId("drop-feed");
@@ -104,7 +112,7 @@ await run("feed (phone)", phone, async (page) => {
   const bgOf = (page, sel = "body") => page.evaluate((s) => getComputedStyle(document.querySelector(s)).backgroundColor, sel);
   const ctx = await browser.newContext({ viewport: phone, colorScheme: "light" });
   const page = await ctx.newPage();
-  await page.goto(BASE + "/");
+  await go(page, "/");
   ok((await bgOf(page)) === "rgb(243, 238, 226)", "light phone setting → cream background");
   const featuredBg = await bgOf(page, "[aria-label='Featured apps'] article [class*='@container']");
   ok(featuredBg === "rgb(25, 33, 27)", `featured poster stays dark in light mode (${featuredBg})`);
@@ -120,59 +128,59 @@ await run("feed (phone)", phone, async (page) => {
   ok((await bgOf(page)) === "rgb(243, 238, 226)", "toggle back to light is remembered");
   await page.waitForTimeout(1200); // let the entrance animation finish
   await page.screenshot({ path: OUT + "home-light-phone.png" });
-  await page.goto(BASE + "/drops");
+  await go(page, "/drops");
   await page.waitForTimeout(1200); // let the entrance animation finish
   await page.screenshot({ path: OUT + "feed-light-phone.png" });
-  await page.goto(BASE + "/apps/noteflow");
+  await go(page, "/apps/noteflow");
   await page.screenshot({ path: OUT + "app-light-phone.png", fullPage: true });
   await ctx.close();
 }
 
 await run("small phone", { width: 360, height: 740 }, async (page) => {
   for (const path of ["/", "/drops", "/browse", "/apps/noteflow", "/u/ada_builds", "/submit", "/login", "/test", "/credits"]) {
-    await page.goto(BASE + path);
+    await go(page, path);
     await noSideScroll(page, `360px ${path}`);
   }
 });
 
 await run("feed tabs + category", desktop, async (page) => {
-  await page.goto(BASE + "/drops?tab=trending");
+  await go(page, "/drops?tab=trending");
   const first = await page.locator("article").first().getAttribute("aria-label");
   ok(first === "PalettePal Drop", `trending puts most-liked first (${first})`);
   await page.getByRole("navigation", { name: "Categories" }).getByRole("link", { name: "Education" }).click();
   await page.waitForURL(/category=education/);
   ok((await page.locator("article").count()) === 1, "category filter narrows the feed");
   ok(page.url().includes("tab=trending"), "category keeps the tab");
-  await page.goto(BASE + "/drops?tab=following");
+  await go(page, "/drops?tab=following");
   ok(await page.getByText("Follow builders you like").isVisible(), "following tab asks you to sign in");
-  await page.goto(BASE + "/drops");
+  await go(page, "/drops");
   await page.screenshot({ path: OUT + "feed-desktop.png" });
 });
 
 await run("browse", desktop, async (page) => {
-  await page.goto(BASE + "/browse");
+  await go(page, "/browse");
   ok((await page.locator("main article").count()) === 4, "browse shows 4 apps");
   await page.getByLabel("Search apps").fill("palette");
   await page.getByRole("button", { name: "Apply" }).click();
   await page.waitForURL(/q=palette/);
   ok((await page.locator("main article").count()) === 1, "search finds PalettePal");
-  await page.goto(BASE + "/browse?stack=supabase&sort=tried");
+  await go(page, "/browse?stack=supabase&sort=tried");
   const names = await page.locator("main article a.display").allTextContents();
   ok(names.join(",") === "NoteFlow,QuizPop", `stack filter + most tried sort (${names.join(",")})`);
-  await page.goto(BASE + "/browse?category=finance&stage=idea");
+  await go(page, "/browse?category=finance&stage=idea");
   ok((await page.locator("main article").count()) === 1, "category + stage filter");
-  await page.goto(BASE + "/browse");
+  await go(page, "/browse");
   await page.screenshot({ path: OUT + "browse-desktop.png", fullPage: true });
 });
 
 await run("browse (phone)", phone, async (page) => {
-  await page.goto(BASE + "/browse");
+  await go(page, "/browse");
   await noSideScroll(page, "browse phone");
   await page.screenshot({ path: OUT + "browse-phone.png", fullPage: true });
 });
 
 await run("app page", desktop, async (page) => {
-  await page.goto(BASE + "/apps/noteflow");
+  await go(page, "/apps/noteflow");
   ok(await page.getByRole("heading", { name: "NoteFlow", exact: true }).isVisible(), "app heading");
   ok((await page.locator("#comments li").count()) === 2, "sample comments listed");
   ok(await page.getByText("Sign in to comment").isVisible() || (await page.getByRole("link", { name: "Sign in" }).count()) > 0, "comment asks to sign in");
@@ -181,13 +189,13 @@ await run("app page", desktop, async (page) => {
 });
 
 await run("app page (phone)", phone, async (page) => {
-  await page.goto(BASE + "/apps/palettepal");
+  await go(page, "/apps/palettepal");
   await noSideScroll(page, "app phone");
   await page.screenshot({ path: OUT + "app-phone.png", fullPage: true });
 });
 
 await run("profile", desktop, async (page) => {
-  await page.goto(BASE + "/u/ada_builds");
+  await go(page, "/u/ada_builds");
   ok(await page.getByRole("heading", { name: "Ada Park" }).isVisible(), "profile heading");
   ok(await page.getByText("Open to collab").isVisible(), "role tags shown");
   ok((await page.locator("main article").count()) === 2, "profile lists their 2 apps");
@@ -197,13 +205,13 @@ await run("profile", desktop, async (page) => {
 {
   const ctx = await browser.newContext();
   const page = await ctx.newPage();
-  const res = await page.goto(BASE + "/u/nobody_here");
+  const res = await go(page, "/u/nobody_here");
   ok(res.status() === 404, "unknown profile is 404");
   await ctx.close();
 }
 
 await run("launch days + boosts", desktop, async (page) => {
-  await page.goto(BASE + "/");
+  await go(page, "/");
   const featured = page.getByRole("region", { name: "Featured apps" });
   const labels = await featured.locator("article .tag-accent").allTextContents();
   ok(labels.some((l) => l.startsWith("Launch day")) && labels.some((l) => l.startsWith("Boosted")), `Featured row includes launch-day and boosted apps (${labels.join(" | ")})`);
@@ -213,7 +221,7 @@ await run("launch days + boosts", desktop, async (page) => {
   await page.waitForTimeout(1000);
   await page.screenshot({ path: OUT + "home-launches.png", fullPage: true });
 
-  await page.goto(BASE + "/apps/quizpop");
+  await go(page, "/apps/quizpop");
   ok(await page.getByText(/^Launching in/).first().isVisible(), "app page shows the launch countdown");
   ok(await page.locator(".tag-accent", { hasText: "Boosted" }).isVisible(), "app page shows Boosted");
   const grow = page.getByRole("region", { name: "Grow" });
@@ -223,21 +231,21 @@ await run("launch days + boosts", desktop, async (page) => {
   ok(true, "boost button explains demo mode");
   await grow.screenshot({ path: OUT + "grow-panel.png" });
 
-  await page.goto(BASE + "/apps/splitsy");
+  await go(page, "/apps/splitsy");
   ok(await page.getByRole("region", { name: "Grow" }).getByText("It's launch day!").isVisible(), "launch-day state on the app page");
-  await page.goto(BASE + "/apps/noteflow");
+  await go(page, "/apps/noteflow");
   ok(await page.getByRole("region", { name: "Grow" }).getByLabel("Launch date and time").isVisible(), "unscheduled app offers a launch date picker");
 });
 
 await run("build in public", desktop, async (page) => {
-  await page.goto(BASE + "/");
+  await go(page, "/");
   const home = page.getByRole("region", { name: "Build in public" });
   ok((await home.locator("li").count()) === 4, "Home shows everyone's latest updates");
   ok(!(await home.getByLabel("Write an update").count()), "no composer when signed out");
-  await page.goto(BASE + "/apps/noteflow");
+  await go(page, "/apps/noteflow");
   const appUpdates = page.getByRole("region", { name: "Updates" });
   ok((await appUpdates.locator("li").count()) === 1 && (await appUpdates.textContent()).includes("Google Meet"), "app page shows that app's updates");
-  await page.goto(BASE + "/u/ada_builds");
+  await go(page, "/u/ada_builds");
   ok((await page.getByRole("region", { name: "Updates" }).locator("li").count()) === 2, "profile shows the builder's updates");
 });
 
@@ -251,7 +259,7 @@ await run("build in public", desktop, async (page) => {
 
 await run("share kit", desktop, async (page) => {
   await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
-  await page.goto(BASE + "/apps/noteflow");
+  await go(page, "/apps/noteflow");
   const grow = page.getByRole("region", { name: "Grow" });
   const badge = grow.getByRole("img", { name: "Try NoteFlow on Method V" });
   await badge.scrollIntoViewIfNeeded();
@@ -264,19 +272,19 @@ await run("share kit", desktop, async (page) => {
 });
 
 await run("swaps", desktop, async (page) => {
-  await page.goto(BASE + "/apps/noteflow");
+  await go(page, "/apps/noteflow");
   const friends = page.getByRole("region", { name: "Friends of this app" });
   ok((await friends.textContent()).includes("PalettePal"), "NoteFlow shows its swap partner PalettePal");
-  await page.goto(BASE + "/apps/palettepal");
+  await go(page, "/apps/palettepal");
   ok((await page.getByRole("region", { name: "Friends of this app" }).textContent()).includes("NoteFlow"), "…and PalettePal shows NoteFlow");
-  await page.goto(BASE + "/apps/quizpop");
+  await go(page, "/apps/quizpop");
   ok((await page.getByRole("region", { name: "Friends of this app" }).count()) === 0, "no Friends section without swaps");
-  await page.goto(BASE + "/swaps");
+  await go(page, "/swaps");
   ok(await page.getByText("Swaps are off in demo mode.").isVisible(), "swaps page explains demo mode");
 });
 
 await run("pixel coder", phone, async (page) => {
-  await page.goto(BASE + "/");
+  await go(page, "/");
   const footer = page.locator("footer");
   ok(await footer.getByRole("img", { name: "A pixel builder coding at their desk" }).isVisible(), "footer masthead shows the pixel coder");
   const running = await footer.locator(".pc-dust").first().evaluate((el) => getComputedStyle(el).animationName);
@@ -285,21 +293,21 @@ await run("pixel coder", phone, async (page) => {
   await footer.scrollIntoViewIfNeeded();
   await page.waitForTimeout(2600);
   await footer.screenshot({ path: OUT + "footer-coder.png" });
-  await page.goto(BASE + "/drops");
+  await go(page, "/drops");
   ok((await page.locator("footer").count()) === 0, "no footer under the full-screen Drops feed");
 });
 
 {
   const ctx = await browser.newContext({ viewport: phone, reducedMotion: "reduce" });
   const page = await ctx.newPage();
-  await page.goto(BASE + "/");
+  await go(page, "/");
   const count = await page.locator("footer .pc-dust").first().evaluate((el) => getComputedStyle(el).animationIterationCount);
   ok(count === "1", "reduced motion: the pixel coder doesn't loop");
   await ctx.close();
 }
 
 await run("tester passport", desktop, async (page) => {
-  await page.goto(BASE + "/u/marco_ships");
+  await go(page, "/u/marco_ships");
   const passport = page.getByRole("region", { name: "Tester Passport" });
   ok(await passport.getByRole("heading", { name: "Pro Tester" }).isVisible(), "41 feedback + 17 helpful = Pro Tester");
   ok(await passport.getByText("Next: Trusted Tester").isVisible(), "shows the next rank");
@@ -307,20 +315,20 @@ await run("tester passport", desktop, async (page) => {
   await passport.scrollIntoViewIfNeeded();
   await page.waitForTimeout(800);
   await passport.screenshot({ path: OUT + "passport.png" });
-  await page.goto(BASE + "/test");
+  await go(page, "/test");
   const top = page.getByRole("region", { name: "Top testers" });
   ok((await top.locator("li").count()) === 3, "top testers board lists testers");
   ok((await top.locator("li").first().textContent()).includes("Marco"), "most helpful tester is first");
 });
 
 await run("login", phone, async (page) => {
-  await page.goto(BASE + "/login");
+  await go(page, "/login");
   ok(await page.getByRole("button", { name: "Email me a sign-in link" }).isDisabled(), "sign-in disabled in demo mode");
   await noSideScroll(page, "login");
 });
 
 await run("submit", desktop, async (page) => {
-  await page.goto(BASE + "/submit");
+  await go(page, "/submit");
   const input = page.getByLabel("Drop video");
   await input.setInputFiles(CLIPS + "clip-62s.webm");
   await page.getByText(/Drops can be up to 60 seconds/).waitFor({ timeout: 15000 });
@@ -338,7 +346,7 @@ await run("submit", desktop, async (page) => {
 });
 
 await run("test & earn", desktop, async (page) => {
-  await page.goto(BASE + "/test");
+  await go(page, "/test");
   ok(await page.getByRole("heading", { name: "Test & earn" }).isVisible(), "Test & earn page loads");
   ok((await page.locator("main article").count()) === 2, "queue shows the 2 sample apps waiting for testers");
   ok(await page.getByText("4 spots left").isVisible(), "shows spots left");
@@ -349,15 +357,15 @@ await run("test & earn", desktop, async (page) => {
 });
 
 await run("app stats", desktop, async (page) => {
-  await page.goto(BASE + "/apps/palettepal");
+  await go(page, "/apps/palettepal");
   ok(await page.getByText("87%").isVisible(), "shows % who would use it (27 of 31)");
   ok(await page.getByText("4.6★").isVisible(), "shows average rating (142 / 31)");
-  await page.goto(BASE + "/apps/splitsy");
+  await go(page, "/apps/splitsy");
   ok(await page.getByText("No feedback yet").first().isVisible(), "no-feedback state");
 });
 
 await run("test & earn (phone)", phone, async (page) => {
-  await page.goto(BASE + "/test");
+  await go(page, "/test");
   await noSideScroll(page, "test phone");
   const tabs = page.getByRole("navigation", { name: "Main" });
   ok(await tabs.isVisible(), "bottom tab bar on phones");
@@ -366,12 +374,12 @@ await run("test & earn (phone)", phone, async (page) => {
 });
 
 await run("credits", phone, async (page) => {
-  await page.goto(BASE + "/credits");
+  await go(page, "/credits");
   ok(await page.getByText("How credits work").isVisible(), "credits page explains the rules");
 });
 
 await run("submit (phone)", phone, async (page) => {
-  await page.goto(BASE + "/submit");
+  await go(page, "/submit");
   await noSideScroll(page, "submit phone");
   await page.screenshot({ path: OUT + "submit-phone.png", fullPage: true });
 });
