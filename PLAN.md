@@ -2,7 +2,7 @@
 
 **One-line pitch:** Method V is where builders show off what they've made, get real users, earn money from their apps, and find people to work with.
 
-It's not only a demo-video app. It's a launchpad, a community and a career network for web app designers, software engineers and vibe coders. The 60-second demos are how people come in the door.
+It's not only a demo-video app. It's a launchpad, a community and a career network for web app designers, software engineers and vibe coders. The 60-second demos, called **Drops**, are how people come in the door.
 
 Items marked *(suggested)* are additions to the original idea.
 
@@ -21,10 +21,13 @@ Items marked *(suggested)* are additions to the original idea.
 
 ## 2. The six pillars
 
-### Pillar 1: Demos (Reels)
+### Pillar 1: Drops (60-second demos)
 
-- A vertical, swipeable feed of demos **60 seconds or shorter**
-- A **"Try it"** button on every reel that goes straight to the live app
+A **Drop** is a short demo video of an app, like a reel or a TikTok. Upload button: **"Post a Drop"**. Tagline: **"60 seconds. Then try it."**
+
+
+- A vertical, swipeable feed of Drops, each **60 seconds or shorter**
+- A **"Try it"** button on every Drop that goes straight to the live app
 - Separate feeds: For You, New, Trending and Following
 - Filter by category
 - Likes, saves, shares and comments
@@ -32,7 +35,7 @@ Items marked *(suggested)* are additions to the original idea.
 
 ### Pillar 2: Browse (App Directory)
 
-- The main area where each app has its own page: reel, screenshots, description, tech stack, links and team
+- The main area where each app has its own page: Drop, screenshots, description, tech stack, links and team
 - **Categories:** AI tools, Productivity, Dev tools, Design, Games, Finance, Education, Social, Health and so on
 - Filters for category, tech stack (Lovable, Bolt, Replit, Next.js…), pricing (free, freemium, paid) and stage (idea, beta, launched)
 - Search, plus collections like "Staff picks" and "Built this week"
@@ -40,7 +43,7 @@ Items marked *(suggested)* are additions to the original idea.
 
 ### Pillar 3: People (Profiles and Networking)
 
-- Profiles show your apps, reels, skills, tech stack and links
+- Profiles show your apps, Drops, skills, tech stack and links
 - **Role tags:** Founder · Employee · Looking for work · Hiring · Open to collab · Freelancer
 - **Similar taste matching:** suggestions like "Builders who make things like you" to help people find work and collaborators
 - **Connect with a reason:** when you add someone, you pick why (Collaborate · Hire · Get feedback · Invest · Just a fan) and can add a short note
@@ -90,7 +93,7 @@ It works the opposite way from YouTube and Instagram: **sponsors back the app it
 - A 60-second limit enforced on upload
 - An automatic **link check** so an app can't go live if its link is dead
 - Spam and fake-account detection, and protection against people gaming credits and view counts
-- Report and block tools, plus moderation for reels, Q&A and messages
+- Report and block tools, plus moderation for Drops, Q&A and messages
 - Verified badges for real founders and teams
 - Basic legal pages: terms, privacy and content guidelines
 
@@ -100,8 +103,8 @@ It works the opposite way from YouTube and Instagram: **sponsors back the app it
 
 **Phase 1: MVP ("Show it")**
 - Sign-up, profiles and role tags
-- App submission with a 60-second reel
-- Reels feed and the category directory
+- App submission with a 60-second Drop
+- Drops feed and the category directory
 - Likes, comments and follows
 - The "Try it" button and link check
 
