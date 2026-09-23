@@ -44,7 +44,16 @@ Builder tools (launch day, boosts, share kit) live in the *Grow* panel on your o
 - **The + button** on phones opens the camera or video library straight away, then the Post screen opens with that video ready (like TikTok).
 - **Sign in only when needed:** browse and watch without an account. Liking, following, connecting, voting or posting while signed out opens a sign-in sheet over the page and brings you back to the same spot. Optional *Continue with GitHub / Google* buttons (see step 4b under "Connect Supabase").
 
-Next: Phase 4 ("Earn"): paid app-to-app sponsorships, stack sponsors, backers and Pro profiles. See the plan.
+**Phase 4 ("Earn") is built:**
+
+- **Jobs board (`/jobs`):** post a job, a gig or a "looking for work" post (free, up to 5 open, 30 days each). People apply with a short note and one of their apps. Shortlisting someone connects you both so you can message straight away. On "looking for work" posts you Connect instead.
+- **Backers:** *Back it* on any app sends the builder a one-off tip ($1–$500) through Stripe Checkout. The builder gets 95%. The app page has a backers wall with names and notes, never amounts, and backers can choose to stay off it.
+- **Boost Exchange, paid:** on another builder's app, *Make an offer* to sponsor it with one of your apps: a price per try ($0.10–$5) and a budget ($10–$1,000). When they accept, you pay the budget and a labeled **Sponsored** card for your app appears on their app page and their Drops. You're charged only for real tries: one per person, from accounts at least a day old, never either builder. The host earns 88% of each try. The deal ends when the budget runs out, or either side can end it and the unspent budget is refunded. Each app shows one sponsor at a time. Deals live on `/earn`.
+- **Challenges (`/challenges`):** sponsored prizes like "Best app built on Supabase". Builders enter their own apps (up to 3; the app must use the required stack or category). Everyone gets one vote per challenge, and new accounts can vote after their first day. The Method V team creates challenges and picks winners (see below).
+- **Earn (`/earn`):** your balance from tips and sponsored tries, *Set up payouts* (Stripe Connect Express) and *Cash out* from $5, your sponsorship deals, and history.
+- **Pro (`/pro`):** $6 for 30 days, not a subscription. You get tries per day for the last 30 days (including how many came from sponsor cards), a pinned app on your profile, boosts at ⚡5 a day instead of ⚡10, and a Pro badge.
+
+Payments are off until Stripe is connected (step 6 below). Until then offers, jobs and challenges still work, and anything that takes money says payments aren't switched on.
 
 ## Run it locally
 
@@ -65,6 +74,9 @@ Open http://localhost:3000. With no Supabase keys the site runs in **demo mode**
 4. In **Authentication → URL Configuration**, set the Site URL to your site (for local work, `http://localhost:3000`) and add `http://localhost:3000/auth/callback` (and your live `https://…/auth/callback`) to the redirect URLs.
 4b. Optional, for one-tap sign-in: turn on GitHub and/or Google under **Authentication → Providers**, then set `NEXT_PUBLIC_AUTH_PROVIDERS=github,google` (or just one).
 5. Restart `npm run dev`. Sign in with your email, set your username under **Edit profile**, and post your first Drop.
+6. Optional, for tips, sponsorships, Pro and payouts: in [Stripe](https://dashboard.stripe.com), turn on **Connect** (Express accounts). Add a webhook endpoint at `https://<your site>/api/stripe/webhook` that listens to `checkout.session.completed` and `checkout.session.async_payment_succeeded`, and also to `account.updated` from **connected accounts**. Set `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` (the endpoint's signing secret). `SUPABASE_SECRET_KEY` must be set too. Payments stay off unless all three are set. To test locally, use Stripe's test keys and `stripe listen --forward-to localhost:3000/api/stripe/webhook`.
+
+To run a challenge, add a row to the `challenges` table in the Supabase table editor: `slug`, `title`, `sponsor_name`, `prize`, `ends_at`, and optionally `body`, `sponsor_url`, `stack`, `category`, `starts_at`. To pick a winner, set `winner_entry_id` to the winning row in `challenge_entries`. Prizes are paid by the sponsor, outside Method V.
 
 To deploy, import the repo into [Vercel](https://vercel.com) and add the same environment variables there.
 
@@ -85,6 +97,10 @@ To deploy, import the repo into [Vercel](https://vercel.com) and add the same en
 | Builders like you | `src/components/Suggestions.tsx` |
 | All database reads (plus demo data when Supabase isn't set up) | `src/lib/data.ts`, `src/lib/demo.ts` |
 | Link check before an app goes live (blocks private/internal addresses) | `src/lib/link-check.ts` |
+| Jobs board `/jobs`, `/jobs/new`, `/jobs/[id]` | `src/app/jobs/`, `src/components/Jobs.tsx`, `src/components/JobCard.tsx` |
+| Back it, sponsor offers, deal rows, payouts, Pro buttons | `src/components/Earn.tsx`, `src/components/Sponsored.tsx`, `src/components/Backers.tsx` |
+| Earn `/earn`, Pro `/pro`, Challenges `/challenges` | `src/app/earn/`, `src/app/pro/`, `src/app/challenges/`, `src/components/Challenges.tsx` |
+| Stripe (REST, no SDK), webhook, refunds | `src/lib/stripe.ts`, `src/lib/stripe-core.ts`, `src/lib/payments.ts`, `src/app/api/stripe/webhook/route.ts` |
 | Database tables, security rules, counters, storage bucket | `supabase/migrations/` |
 
 A few rules the code relies on:
@@ -95,6 +111,8 @@ A few rules the code relies on:
 - **Credits only move through the database.** Balances change only through the `credit_events` ledger, which people can't write to; giving feedback, buying testers, refunds and helpful bonuses are handled by database triggers and functions (`request_testers`, `cancel_test_request`, `mark_feedback_helpful`). Feedback requires having opened the app with Try it, can't be on your own app, can't be edited or deleted, and paid feedback is capped at 10 a day.
 - **Featured apps** on Home are the ones whose `featured_until` is in the future. Set it by hand in the Supabase table editor (people can't set it on their own apps). With none picked, Home shows the most liked and tried apps from the last 30 days.
 - **Connections gate messages.** The database only accepts a message when the two people have an accepted connection. Notifications are written by database triggers (never for your own actions, and not repeated while unread); nobody can create them directly.
+- **Money only moves through the server and Stripe.** The site creates a pending payment with `prepare_payment()` as the payer, so every rule applies. Only the signed Stripe webhook, using the secret key, can complete it (`complete_payment()`, safe to repeat). Nobody can write payments, earnings, payouts, backings or sponsorship totals from the browser. Cash-outs move the whole balance into a pending payout before the Stripe transfer and put it back if the transfer fails. Unspent sponsorship budget is marked for refund in the database and refunded through Stripe. A failed refund is retried the next time the sponsor opens `/earn`.
+- **Sponsored is always labeled.** Sponsor cards always say Sponsored, and each app shows one sponsor at a time. A sponsored try only counts when it lands on the sponsor's own app.
 - **Videos live in the `drops` bucket** under a folder named after the uploader's user ID, and people can only upload into their own folder.
 
 ## Tests
@@ -102,7 +120,7 @@ A few rules the code relies on:
 ```bash
 npm run lint
 npx tsc --noEmit
-npm run test:unit   # site preview parsing, category guesses, link safety
+npm run test:unit   # site preview parsing, category guesses, link safety, Stripe signatures
 npm run test:db     # security rules against an in-memory Postgres
 npm run build && npm start   # then, in another terminal:
 npm run test:ui     # clicks through the site in Chromium (demo mode)

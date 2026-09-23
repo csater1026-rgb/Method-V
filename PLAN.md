@@ -147,11 +147,12 @@ Big brands won't sponsor small apps early on, but **small apps will sponsor each
 - Swaps and co-launches (free Boost Exchange) ✅ built
 
 **Phase 4: "Earn"**
-- Paid app-to-app sponsorships (Boost Exchange), with pay-per-try pricing
-- Stack sponsors and challenges
-- Backers and tips through Stripe Connect
-- Pro profiles
-- A jobs board
+- Paid app-to-app sponsorships (Boost Exchange), with pay-per-try pricing ✅ built
+- Stack sponsors and challenges ✅ built (challenges are created by the Method V team for a sponsor)
+- Backers and tips through Stripe Connect ✅ built
+- Pro profiles ✅ built (a $6, 30-day pass: stats, a pinned app, half-price boosts, a Pro badge)
+- A jobs board ✅ built
+- Still to come: both sides rating each other after a deal, bundles, paid featured job posts
 
 **Phase 5: "Scale"**
 - Outside brand sponsors join the Boost Exchange

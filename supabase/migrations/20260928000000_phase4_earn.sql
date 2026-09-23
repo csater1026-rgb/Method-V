@@ -684,10 +684,10 @@ begin
 end;
 $$;
 
--- Called by the /try route when someone taps a sponsor card. Charges the
--- sponsor one try's price and pays the host their share. Returns whether
--- this try counted.
-create function public.record_sponsored_try(p_id uuid)
+-- Called by the /try route when someone taps a sponsor card and lands on the
+-- sponsor's app (p_app). Charges the sponsor one try's price and pays the
+-- host their share. Returns whether this try counted.
+create function public.record_sponsored_try(p_id uuid, p_app uuid)
 returns boolean
 language plpgsql
 security definer
@@ -703,7 +703,7 @@ begin
     return false;
   end if;
   select * into s from public.sponsorships where id = p_id and status = 'active' for update;
-  if s.id is null or uid in (s.sponsor_user, s.host_user) then
+  if s.id is null or s.sponsor_app is distinct from p_app or uid in (s.sponsor_user, s.host_user) then
     return false;
   end if;
   insert into public.sponsored_tries (sponsorship_id, user_id) values (s.id, uid) on conflict do nothing;

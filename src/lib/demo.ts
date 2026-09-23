@@ -21,6 +21,9 @@ export const demoProfiles: Profile[] = [
     feedback_helpful_count: 9,
     connection_count: 12,
     reputation: 31,
+    pro_until: "2099-01-01T00:00:00.000Z",
+    pinned_app_id: "demo-app-noteflow",
+    payouts_enabled: true,
   },
   {
     id: "demo-marco",
@@ -39,6 +42,9 @@ export const demoProfiles: Profile[] = [
     feedback_helpful_count: 17,
     connection_count: 7,
     reputation: 58,
+    pro_until: null,
+    pinned_app_id: null,
+    payouts_enabled: true,
   },
   {
     id: "demo-june",
@@ -57,6 +63,9 @@ export const demoProfiles: Profile[] = [
     feedback_helpful_count: 3,
     connection_count: 24,
     reputation: 12,
+    pro_until: null,
+    pinned_app_id: null,
+    payouts_enabled: false,
   },
 ];
 
@@ -84,6 +93,7 @@ export const demoApps: App[] = [
     rating_sum: 79,
     launch_at: null,
     boosted_until: null,
+    backer_count: 12,
     created_at: ago(1),
   },
   {
@@ -105,6 +115,7 @@ export const demoApps: App[] = [
     rating_sum: 25,
     launch_at: null,
     boosted_until: null,
+    backer_count: 3,
     created_at: ago(3),
   },
   {
@@ -126,6 +137,7 @@ export const demoApps: App[] = [
     rating_sum: 142,
     launch_at: null,
     boosted_until: null,
+    backer_count: 0,
     created_at: ago(6),
   },
   {
@@ -147,6 +159,7 @@ export const demoApps: App[] = [
     rating_sum: 0,
     launch_at: null,
     boosted_until: null,
+    backer_count: 1,
     created_at: ago(9),
   },
 ];
@@ -229,3 +242,109 @@ export const demoTestRequests: Record<string, { slots_total: number; slots_fille
   "demo-app-quizpop": { slots_total: 10, slots_filled: 6 },
   "demo-app-splitsy": { slots_total: 5, slots_filled: 0 },
 };
+
+// Phase 4 samples.
+export const demoJobs: {
+  id: string;
+  user: string;
+  kind: "hiring" | "gig" | "looking";
+  title: string;
+  body: string;
+  pay: string;
+  location: string;
+  remote: boolean;
+  skills: string[];
+  app: string | null;
+  days: number;
+  applications: number;
+}[] = [
+  {
+    id: "demo-job-studio",
+    user: "demo-june",
+    kind: "hiring",
+    title: "Front-end developer for a small design studio",
+    body: "We design and ship marketing sites and small apps for indie founders. Looking for someone who cares about motion and accessibility. Part-time to start.",
+    pay: "$55–70/hr",
+    location: "Lagos or remote",
+    remote: true,
+    skills: ["React", "Tailwind", "Motion"],
+    app: "demo-app-palettepal",
+    days: 2,
+    applications: 4,
+  },
+  {
+    id: "demo-job-landing",
+    user: "demo-ada",
+    kind: "gig",
+    title: "Landing page refresh for NoteFlow",
+    body: "One-week gig: a new landing page with a short demo loop. Figma file is ready.",
+    pay: "$800 fixed",
+    location: "",
+    remote: true,
+    skills: ["Next.js", "Figma"],
+    app: "demo-app-noteflow",
+    days: 4,
+    applications: 2,
+  },
+  {
+    id: "demo-job-marco",
+    user: "demo-marco",
+    kind: "looking",
+    title: "Ex-teacher who ships edtech fast",
+    body: "Six years in classrooms, one year shipping with Lovable and Supabase. Looking for part-time work on tools for teachers or students.",
+    pay: "Open to offers",
+    location: "Madrid",
+    remote: true,
+    skills: ["Lovable", "Supabase", "Teaching"],
+    app: "demo-app-quizpop",
+    days: 1,
+    applications: 0,
+  },
+];
+
+export const demoBackers: Record<string, { user: string; note: string; days: number }[]> = {
+  "demo-app-noteflow": [
+    { user: "demo-marco", note: "Saves me every Monday standup.", days: 1 },
+    { user: "demo-june", note: "", days: 5 },
+  ],
+  "demo-app-quizpop": [{ user: "demo-ada", note: "My niece's class loves it!", days: 2 }],
+};
+
+// host app -> sponsor app
+export const demoSponsors: Record<string, string> = { "demo-app-quizpop": "demo-app-noteflow" };
+
+export const demoChallenges = [
+  {
+    id: "demo-challenge-supabase",
+    slug: "best-supabase-app",
+    title: "Best app built on Supabase",
+    body: "Ship something real on Supabase this month. Entries are ranked by community votes; the sponsor picks the winner from the top five.",
+    sponsor_name: "Method V",
+    sponsor_url: null,
+    prize: "$500 + a week on the Home spotlight",
+    stack: "Supabase",
+    category: null,
+    startsDays: -5,
+    endsDays: 9,
+    entries: [
+      { id: "demo-entry-noteflow", app: "demo-app-noteflow", votes: 23 },
+      { id: "demo-entry-quizpop", app: "demo-app-quizpop", votes: 17 },
+    ],
+  },
+  {
+    id: "demo-challenge-teachers",
+    slug: "build-for-teachers",
+    title: "Build something teachers use on Monday",
+    body: "Education tools only. Keep it simple enough for a teacher to start in under a minute.",
+    sponsor_name: "Brightboard (sample sponsor)",
+    sponsor_url: null,
+    prize: "$300 and a feature in the Brightboard newsletter",
+    stack: null,
+    category: "education",
+    startsDays: -2,
+    endsDays: 20,
+    entries: [{ id: "demo-entry-quizpop-2", app: "demo-app-quizpop", votes: 8 }],
+  },
+];
+
+export const demoDay = ago;

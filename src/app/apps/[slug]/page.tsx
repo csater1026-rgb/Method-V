@@ -3,6 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { Avatar } from "@/components/Avatar";
+import { Backers } from "@/components/Backers";
+import { BackButton, SponsorOffer } from "@/components/Earn";
+import { SponsoredBy } from "@/components/Sponsored";
 import { Comments } from "@/components/Comments";
 import { Countdown } from "@/components/Countdown";
 import { DropPlaceholder } from "@/components/DropVideo";
@@ -19,6 +22,7 @@ import { CategoryChip, Chip, PricingStage, RoleTags } from "@/components/Tags";
 import {
   appStatus,
   getApp,
+  getBackers,
   getComments,
   getFeedbackPanel,
   getMyApps,
@@ -43,7 +47,7 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
   const [app, viewer] = await Promise.all([getApp(slug), getViewer()]);
   if (!app) notFound();
 
-  const [comments, following, feedbackPanel, updates, partners, myApps, questions] = await Promise.all([
+  const [comments, following, feedbackPanel, updates, partners, myApps, questions, backers] = await Promise.all([
     app.drop ? getComments(app.drop.id) : [],
     isFollowing(viewer, app.owner_id),
     getFeedbackPanel(app, viewer),
@@ -51,6 +55,7 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
     getSwapPartners(app.id),
     viewer && viewer.id !== app.owner_id ? getMyApps(viewer) : Promise.resolve([]),
     getQuestions(app.id, viewer),
+    getBackers(app.id),
   ]);
   const wouldUse = app.feedback_count ? Math.round((app.would_use_yes_count / app.feedback_count) * 100) : null;
   const rating = app.feedback_count ? (app.rating_sum / app.feedback_count).toFixed(1) : null;
@@ -120,7 +125,10 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
             />
           )}
           <ShareButton path={`/apps/${app.slug}`} title={`${app.name} on Method V`} layout="inline" />
+          {!isOwner && <BackButton app={{ id: app.id, slug: app.slug, name: app.name }} signedIn={Boolean(viewer) || !isSupabaseConfigured} />}
         </div>
+
+        {app.sponsor && <SponsoredBy sponsor={app.sponsor} />}
 
         <dl className="grid grid-cols-2 gap-3 text-center sm:grid-cols-4">
           <Stat label="Tries" value={formatCount(app.try_count)} />
@@ -211,6 +219,16 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
         )}
 
         {myApps.length > 0 && <TeamUp target={{ id: app.id, name: app.name }} myApps={myApps} />}
+
+        {/* Boost Exchange, paid. In demo mode everyone sees it so it can be tried. */}
+        {!isOwner && (myApps.length > 0 || !isSupabaseConfigured) && (
+          <SponsorOffer
+            target={{ id: app.id, name: app.name }}
+            myApps={myApps.length > 0 ? myApps : [{ id: "demo", name: "your app" }]}
+          />
+        )}
+
+        <Backers backers={backers} count={app.backer_count} appName={app.name} />
 
         {/* Comments, Q&A and updates share one spot, one tab at a time. */}
         <section id="discuss" aria-label="Discussion" className="scroll-mt-20">

@@ -10,6 +10,7 @@ import { Avatar } from "./Avatar";
 import { DropPlaceholder } from "./DropVideo";
 import { LikeButton } from "./LikeButton";
 import { ShareButton } from "./ShareButton";
+import { SponsoredBy } from "./Sponsored";
 import { CategoryChip } from "./Tags";
 
 // Vertical, swipeable feed. Each Drop fills the screen; the one in view plays
@@ -143,6 +144,11 @@ function DropSlide({ item, first, signedIn, muted, onToggleSound }: SlideProps) 
             <CategoryChip category={app.category} />
             <span className="font-mono text-[11px] text-muted">{formatCount(app.try_count)} tries</span>
           </div>
+          {item.sponsor && (
+            <div className={`mt-2 w-fit max-w-[80%] ${reveal} delay-150`}>
+              <SponsoredBy sponsor={item.sponsor} compact />
+            </div>
+          )}
         </div>
       </div>
     </article>

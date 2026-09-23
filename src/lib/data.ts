@@ -5,6 +5,11 @@ import { cache } from "react";
 import { CATEGORIES, PRICING, STAGES, TESTER_RANKS, isOneOf, testerRank } from "./constants";
 import {
   demoApps,
+  demoBackers,
+  demoChallenges,
+  demoDay,
+  demoJobs,
+  demoSponsors,
   demoCommentDate,
   demoComments,
   demoDrops,
@@ -21,6 +26,15 @@ import { createClient } from "./supabase/server";
 import type {
   App,
   AppCard,
+  AppStat,
+  Backer,
+  Challenge,
+  ChallengeEntry,
+  Earnings,
+  Job,
+  JobApplication,
+  SponsorCard,
+  Sponsorship,
   AppDetail,
   Comment,
   Conversation,
@@ -97,6 +111,7 @@ function toApp(row: any): App {
     rating_sum: row.rating_sum ?? 0,
     launch_at: row.launch_at ?? null,
     boosted_until: row.boosted_until ?? null,
+    backer_count: row.backer_count ?? 0,
     created_at: row.created_at,
   };
 }
@@ -146,7 +161,7 @@ export async function getFeed({ tab, category }: { tab: FeedTab; category?: stri
     if (tab === "trending") drops = [...drops].sort((a, b) => b.like_count - a.like_count);
     return drops.map((d) => {
       const app = demoApps.find((a) => a.id === d.app_id)!;
-      return { ...d, app, owner: toSummary(demoProfile(d.owner_id)), liked: false };
+      return { ...d, app, owner: toSummary(demoProfile(d.owner_id)), liked: false, sponsor: demoSponsorCard(app.id) };
     });
   }
 
@@ -183,7 +198,10 @@ export async function getFeed({ tab, category }: { tab: FeedTab; category?: stri
   const { data, error } = await query;
   if (error) throw new Error(`Couldn't load Drops: ${error.message}`);
   const rows = data ?? [];
-  const liked = await likedDropIds(viewer, rows.map((r) => r.id as string));
+  const [liked, sponsors] = await Promise.all([
+    likedDropIds(viewer, rows.map((r) => r.id as string)),
+    getSponsorCards(rows.map((r) => r.app_id as string)),
+  ]);
 
   return rows.map((row) => {
     // Embedded one-to-one relations come back as objects at runtime.
@@ -193,6 +211,7 @@ export async function getFeed({ tab, category }: { tab: FeedTab; category?: stri
       app: { id: app.id, slug: app.slug, name: app.name, tagline: app.tagline, category: app.category, try_count: app.try_count },
       owner: toSummary(row.owner),
       liked: liked.has(row.id as string),
+      sponsor: sponsors.get(row.app_id as string) ?? null,
     };
   });
 }
@@ -263,6 +282,7 @@ export async function getApp(slug: string): Promise<AppDetail | null> {
       owner: toSummary(demoProfile(app.owner_id)),
       drop: demoDrops.find((d) => d.app_id === app.id) ?? null,
       liked: false,
+      sponsor: demoSponsorCard(app.id),
     };
   }
 
@@ -282,9 +302,12 @@ export async function getApp(slug: string): Promise<AppDetail | null> {
     .limit(1)
     .maybeSingle();
   const drop = dropRow ? toDrop(dropRow) : null;
-  const liked = drop ? (await likedDropIds(await getViewer(), [drop.id])).has(drop.id) : false;
+  const [liked, sponsors] = await Promise.all([
+    drop ? likedDropIds(await getViewer(), [drop.id]).then((s) => s.has(drop.id)) : false,
+    getSponsorCards([row.id]),
+  ]);
 
-  return { ...toApp(row), owner: toSummary(row.owner), drop, liked };
+  return { ...toApp(row), owner: toSummary(row.owner), drop, liked, sponsor: sponsors.get(row.id) ?? null };
 }
 
 export async function getComments(dropId: string): Promise<Comment[]> {
@@ -990,3 +1013,321 @@ export async function getSuggestions(viewer: Viewer | null): Promise<Suggestion[
     shared_skills: r.shared_skills ?? [],
   }));
 }
+
+// ---------------------------------------------------------------------------
+// Phase 4: Earn
+// ---------------------------------------------------------------------------
+
+/* eslint-disable @typescript-eslint/no-explicit-any -- rows come back untyped without generated types */
+
+// The server's clock for pages that compare against it (kept out of render
+// code for the React Compiler's purity rules).
+export function nowMs(): number {
+  return Date.now();
+}
+
+export function isPro(profile: { pro_until: string | null } | null | undefined, now = Date.now()): boolean {
+  return Boolean(profile?.pro_until && new Date(profile.pro_until).getTime() > now);
+}
+
+function demoSponsorCard(hostId: string): SponsorCard | null {
+  const sponsor = demoApps.find((a) => a.id === demoSponsors[hostId]);
+  return sponsor ? { id: sponsor.id, slug: sponsor.slug, name: sponsor.name, tagline: sponsor.tagline } : null;
+}
+
+// "Sponsored by" cards for running Boost Exchange deals, keyed by host app.
+export async function getSponsorCards(hostIds: string[]): Promise<Map<string, SponsorCard>> {
+  const out = new Map<string, SponsorCard>();
+  const ids = [...new Set(hostIds)];
+  if (ids.length === 0) return out;
+  if (!isSupabaseConfigured) {
+    for (const id of ids) {
+      const card = demoSponsorCard(id);
+      if (card) out.set(id, card);
+    }
+    return out;
+  }
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("active_sponsors", { p_hosts: ids });
+  for (const row of (data ?? []) as any[]) {
+    out.set(row.host_app, { id: row.sponsorship_id, slug: row.sponsor_slug, name: row.sponsor_name, tagline: row.sponsor_tagline });
+  }
+  return out;
+}
+
+// --- Jobs ---
+
+const JOB_SELECT = `id, kind, title, body, pay, location, remote, skills, status, application_count, expires_at, created_at,
+  user:profiles!jobs_user_id_fkey(${PROFILE_SUMMARY}), app:apps(slug, name)`;
+
+function toJob(row: any): Job {
+  return {
+    id: row.id,
+    kind: row.kind,
+    title: row.title,
+    body: row.body ?? "",
+    pay: row.pay ?? "",
+    location: row.location ?? "",
+    remote: row.remote,
+    skills: row.skills ?? [],
+    status: row.status,
+    application_count: row.application_count ?? 0,
+    expires_at: row.expires_at,
+    created_at: row.created_at,
+    user: toSummary(row.user),
+    app: row.app ? { slug: row.app.slug, name: row.app.name } : null,
+  };
+}
+
+function demoJobList(): Job[] {
+  return demoJobs.map((j) => {
+    const app = demoApps.find((a) => a.id === j.app);
+    return {
+      id: j.id,
+      kind: j.kind,
+      title: j.title,
+      body: j.body,
+      pay: j.pay,
+      location: j.location,
+      remote: j.remote,
+      skills: j.skills,
+      status: "open",
+      application_count: j.applications,
+      expires_at: new Date(Date.now() + (30 - j.days) * DAY_MS).toISOString(),
+      created_at: demoDay(j.days),
+      user: toSummary(demoProfile(j.user)),
+      app: app ? { slug: app.slug, name: app.name } : null,
+    };
+  });
+}
+
+export function isJobOpen(job: Pick<Job, "status" | "expires_at">, now = Date.now()): boolean {
+  return job.status === "open" && new Date(job.expires_at).getTime() > now;
+}
+
+export async function getJobs(filters: { kind?: string; skill?: string }): Promise<Job[]> {
+  const kind = ["hiring", "gig", "looking"].includes(filters.kind ?? "") ? filters.kind : undefined;
+  const skill = filters.skill?.trim().slice(0, 40);
+  if (!isSupabaseConfigured) {
+    return demoJobList().filter(
+      (j) => (!kind || j.kind === kind) && (!skill || j.skills.some((s) => s.toLowerCase() === skill.toLowerCase())),
+    );
+  }
+  const supabase = await createClient();
+  let query = supabase
+    .from("jobs")
+    .select(JOB_SELECT)
+    .eq("status", "open")
+    .gt("expires_at", new Date().toISOString())
+    .order("created_at", { ascending: false })
+    .limit(50);
+  if (kind) query = query.eq("kind", kind);
+  if (skill) query = query.contains("skills", [skill]);
+  const { data } = await query;
+  return (data ?? []).map(toJob);
+}
+
+export async function getMyJobs(viewer: Viewer | null): Promise<Job[]> {
+  if (!viewer) return [];
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("jobs")
+    .select(JOB_SELECT)
+    .eq("user_id", viewer.id)
+    .order("created_at", { ascending: false })
+    .limit(20);
+  return (data ?? []).map(toJob);
+}
+
+export async function getJob(
+  id: string,
+  viewer: Viewer | null,
+): Promise<{ job: Job; applications: JobApplication[]; mine: JobApplication | null } | null> {
+  if (!isSupabaseConfigured) {
+    const job = demoJobList().find((j) => j.id === id);
+    return job ? { job, applications: [], mine: null } : null;
+  }
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
+  const supabase = await createClient();
+  const { data } = await supabase.from("jobs").select(JOB_SELECT).eq("id", id).maybeSingle();
+  if (!data) return null;
+  const job = toJob(data);
+  if (!viewer) return { job, applications: [], mine: null };
+
+  // RLS returns every application to the poster, and only your own to anyone else.
+  const { data: rows } = await supabase
+    .from("job_applications")
+    .select(`id, note, status, created_at, user:profiles!job_applications_user_id_fkey(${PROFILE_SUMMARY}), app:apps(slug, name)`)
+    .eq("job_id", id)
+    .order("created_at", { ascending: false })
+    .limit(100);
+  const applications: JobApplication[] = (rows ?? []).map((r: any) => ({
+    id: r.id,
+    note: r.note,
+    status: r.status,
+    created_at: r.created_at,
+    user: toSummary(r.user),
+    app: r.app ? { slug: r.app.slug, name: r.app.name } : null,
+  }));
+  if (job.user.id === viewer.id) return { job, applications, mine: null };
+  return { job, applications: [], mine: applications.find((a) => a.user.id === viewer.id) ?? null };
+}
+
+// --- Backers ---
+
+export async function getBackers(appId: string): Promise<Backer[]> {
+  if (!isSupabaseConfigured) {
+    return (demoBackers[appId] ?? []).map((b, i) => ({
+      id: `${appId}-backer-${i}`,
+      note: b.note,
+      created_at: demoDay(b.days),
+      user: toSummary(demoProfile(b.user)),
+    }));
+  }
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("backings")
+    .select(`id, note, created_at, user:profiles!backings_user_id_fkey(${PROFILE_SUMMARY})`)
+    .eq("app_id", appId)
+    .eq("is_public", true)
+    .order("created_at", { ascending: false })
+    .limit(30);
+  return (data ?? []).map((r: any) => ({ id: r.id, note: r.note, created_at: r.created_at, user: toSummary(r.user) }));
+}
+
+// --- Sponsorships, earnings, Pro ---
+
+export async function getMySponsorships(viewer: Viewer): Promise<Sponsorship[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("sponsorships")
+    .select(
+      `id, status, price_cents, budget_cents, spent_cents, tries, message, created_at, started_at, sponsor_user,
+       sponsor:apps!sponsorships_sponsor_app_fkey(id, slug, name), host:apps!sponsorships_host_app_fkey(id, slug, name)`,
+    )
+    .order("created_at", { ascending: false })
+    .limit(50);
+  return (data ?? []).map((r: any) => ({
+    id: r.id,
+    status: r.status,
+    price_cents: r.price_cents,
+    budget_cents: r.budget_cents,
+    spent_cents: r.spent_cents,
+    tries: r.tries,
+    message: r.message ?? "",
+    created_at: r.created_at,
+    started_at: r.started_at,
+    sponsor: r.sponsor ?? null,
+    host: r.host ?? null,
+    mine: r.sponsor_user === viewer.id ? "sponsor" : "host",
+  }));
+}
+
+export async function getEarnings(viewer: Viewer): Promise<Earnings> {
+  const supabase = await createClient();
+  const [balance, events, payouts, account, profile] = await Promise.all([
+    supabase.rpc("my_earnings_balance"),
+    supabase
+      .from("earnings")
+      .select("id, delta_cents, kind, created_at, app:apps(slug, name)")
+      .order("created_at", { ascending: false })
+      .limit(50),
+    supabase.from("payouts").select("id, amount_cents, status, created_at").order("created_at", { ascending: false }).limit(10),
+    supabase.from("payout_accounts").select("payouts_enabled").eq("user_id", viewer.id).maybeSingle(),
+    supabase.from("profiles").select("pro_until").eq("id", viewer.id).maybeSingle(),
+  ]);
+  return {
+    balance: (balance.data as number | null) ?? 0,
+    events: (events.data ?? []).map((e: any) => ({
+      id: e.id,
+      delta_cents: e.delta_cents,
+      kind: e.kind,
+      created_at: e.created_at,
+      app: e.app ? { slug: e.app.slug, name: e.app.name } : null,
+    })),
+    payouts: payouts.data ?? [],
+    account: !account.data ? "none" : account.data.payouts_enabled ? "ready" : "pending",
+    pro_until: profile.data?.pro_until ?? null,
+  };
+}
+
+// Tries per day for the last 30 days (Pro, own apps only).
+export async function getAppStats(appId: string): Promise<AppStat[] | null> {
+  if (!isSupabaseConfigured) {
+    const base = Date.UTC(2026, 8, 23);
+    return Array.from({ length: 30 }, (_, i) => {
+      const wave = Math.round(8 + 6 * Math.sin(i / 3) + i / 2);
+      return { day: new Date(base - (29 - i) * DAY_MS).toISOString().slice(0, 10), tries: wave, sponsored: i > 20 ? Math.round(wave / 3) : 0 };
+    });
+  }
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("app_stats", { p_app: appId });
+  if (error) return null;
+  return (data ?? []) as AppStat[];
+}
+
+// --- Challenges ---
+
+function demoChallenge(c: (typeof demoChallenges)[number], now = Date.now()): Challenge {
+  return {
+    id: c.id,
+    slug: c.slug,
+    title: c.title,
+    body: c.body,
+    sponsor_name: c.sponsor_name,
+    sponsor_url: c.sponsor_url,
+    prize: c.prize,
+    stack: c.stack,
+    category: c.category,
+    starts_at: new Date(now + c.startsDays * DAY_MS).toISOString(),
+    ends_at: new Date(now + c.endsDays * DAY_MS).toISOString(),
+    winner_entry_id: null,
+    entry_count: c.entries.length,
+  };
+}
+
+const CHALLENGE_FIELDS = "id, slug, title, body, sponsor_name, sponsor_url, prize, stack, category, starts_at, ends_at, winner_entry_id, entry_count";
+
+export async function getChallenges(): Promise<Challenge[]> {
+  if (!isSupabaseConfigured) return demoChallenges.map((c) => demoChallenge(c));
+  const supabase = await createClient();
+  const { data } = await supabase.from("challenges").select(CHALLENGE_FIELDS).order("ends_at", { ascending: false }).limit(30);
+  return (data ?? []) as Challenge[];
+}
+
+export async function getChallenge(
+  slug: string,
+  viewer: Viewer | null,
+): Promise<{ challenge: Challenge; entries: ChallengeEntry[]; votedFor: string | null } | null> {
+  if (!isSupabaseConfigured) {
+    const c = demoChallenges.find((x) => x.slug === slug);
+    if (!c) return null;
+    const cards = demoCards();
+    const entries = c.entries
+      .map((e) => ({ id: e.id, vote_count: e.votes, app: cards.find((a) => a.id === e.app)! }))
+      .sort((a, b) => b.vote_count - a.vote_count);
+    return { challenge: demoChallenge(c), entries, votedFor: null };
+  }
+  const supabase = await createClient();
+  const { data: challenge } = await supabase.from("challenges").select(CHALLENGE_FIELDS).eq("slug", slug).maybeSingle();
+  if (!challenge) return null;
+  const [{ data: rows }, vote] = await Promise.all([
+    supabase
+      .from("challenge_entries")
+      .select(`id, vote_count, app:apps!inner(${CARD_SELECT})`)
+      .eq("challenge_id", challenge.id)
+      .order("vote_count", { ascending: false })
+      .order("created_at", { ascending: true })
+      .limit(100),
+    viewer
+      ? supabase.from("challenge_votes").select("entry_id").eq("challenge_id", challenge.id).eq("user_id", viewer.id).maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+  return {
+    challenge: challenge as Challenge,
+    entries: (rows ?? []).map((r: any) => ({ id: r.id, vote_count: r.vote_count, app: toCard(r.app) })),
+    votedFor: (vote.data as { entry_id: string } | null)?.entry_id ?? null,
+  };
+}
+
+/* eslint-enable @typescript-eslint/no-explicit-any */

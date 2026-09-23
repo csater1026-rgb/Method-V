@@ -448,6 +448,137 @@ await run("submit (phone)", phone, async (page) => {
   await page.screenshot({ path: OUT + "submit-phone.png", fullPage: true });
 });
 
+// ---------------------------------------------------------------------------
+// Phase 4: Earn
+// ---------------------------------------------------------------------------
+
+await run("jobs board (phone)", phone, async (page) => {
+  await go(page, "/jobs");
+  const cards = page.locator("main li a[href^='/jobs/demo-job']");
+  ok((await cards.count()) === 3, "three demo posts on the board");
+  await page.getByRole("navigation", { name: "Kind" }).getByRole("link", { name: "Gig" }).click();
+  await page.waitForURL(/kind=gig/);
+  ok((await page.locator("main li a[href^='/jobs/demo-job']").count()) === 1, "filter by kind");
+  await go(page, "/jobs/demo-job-studio");
+  ok((await page.getByRole("heading", { level: 1 }).textContent()).includes("Front-end developer"), "job page shows the title");
+  await page.getByRole("link", { name: "React", exact: true }).click();
+  await page.waitForURL(/skill=React/);
+  ok((await page.locator("main li a[href^='/jobs/demo-job']").count()) === 1, "skill chips filter the board");
+  await go(page, "/jobs/demo-job-studio");
+  await page.getByRole("button", { name: "Apply" }).click();
+  await page.getByLabel("Why you?").fill("I built the NoteFlow landing page.");
+  await page.getByRole("button", { name: "Send application" }).click();
+  await page.getByText(/demo mode/i).first().waitFor();
+  ok(await page.getByRole("form", { name: "Apply" }).getByText(/demo mode/i).isVisible(), "applying explains demo mode");
+  await go(page, "/jobs/demo-job-marco");
+  ok(await page.getByRole("button", { name: "Connect" }).isVisible(), "looking-for-work posts use Connect instead of Apply");
+  ok((await page.getByRole("button", { name: "Apply" }).count()) === 0, "no Apply on a looking-for-work post");
+  await go(page, "/jobs/new");
+  await page.getByRole("radio", { name: "Gig" }).click();
+  await page.getByLabel("Title").fill("Logo for my study app");
+  await page.getByRole("button", { name: "Post it" }).click();
+  await page.getByText(/demo mode/i).first().waitFor();
+  ok(true, "posting a job explains demo mode");
+  await noSideScroll(page, "jobs form");
+  await page.screenshot({ path: `${OUT}jobs-phone.png`, fullPage: true });
+});
+
+await run("back an app + sponsor (desktop)", desktop, async (page) => {
+  await go(page, "/apps/quizpop");
+  const card = page.getByRole("complementary", { name: "Sponsored" });
+  ok(await card.isVisible(), "sponsored app shows a labeled Sponsored card");
+  const href = await card.getByRole("link").getAttribute("href");
+  ok(/^\/try\/noteflow\?s=/.test(href ?? ""), `sponsor card goes through /try with the deal (${href})`);
+  const backers = page.getByRole("region", { name: "Backers" });
+  ok((await backers.locator("li").count()) === 1 && (await backers.textContent()).includes("niece"), "backers wall shows names and notes");
+  ok(!/\$\d/.test(await backers.textContent()), "backers wall never shows amounts");
+
+  await page.getByRole("button", { name: "♥ Back it" }).click();
+  const dialog = page.getByRole("dialog", { name: "Back QuizPop" });
+  ok(await dialog.isVisible(), "Back it opens the tip sheet");
+  await dialog.getByRole("radio", { name: "$10" }).click();
+  ok((await dialog.getByRole("button", { name: /Back with \$10/ }).count()) === 1, "preset amounts fill the button");
+  await dialog.getByLabel("Other amount in dollars").fill("0.5");
+  ok(await dialog.getByText("Tip between $1 and $500.").isVisible(), "too-small tips are caught before checkout");
+  await dialog.getByLabel("Other amount in dollars").fill("7");
+  await dialog.getByRole("button", { name: /Back with \$7/ }).click();
+  await dialog.getByText(/demo mode/i).waitFor();
+  ok(true, "backing explains demo mode");
+
+  const offer = page.getByRole("region", { name: "Sponsor" });
+  await offer.getByRole("button", { name: "Make an offer" }).click();
+  await offer.getByLabel("Price per try in dollars").fill("0.25");
+  await offer.getByLabel("Budget in dollars").fill("20");
+  ok(await offer.getByText("Up to 80 tries.").isVisible(), "offer shows how many tries the budget buys");
+  await offer.getByRole("button", { name: "Send offer" }).click();
+  await offer.getByText(/demo mode/i).waitFor();
+  ok(true, "sponsor offers explain demo mode");
+  await page.screenshot({ path: `${OUT}app-earn-desktop.png`, fullPage: true });
+
+  await go(page, "/apps/noteflow");
+  ok((await page.getByRole("complementary", { name: "Sponsored" }).count()) === 0, "unsponsored apps show no card");
+});
+
+await run("drops feed sponsor (phone)", phone, async (page) => {
+  await go(page, "/drops");
+  const sponsored = page.locator("article a[href^='/try/noteflow?s=']");
+  ok((await sponsored.count()) === 1, "the sponsored Drop carries one Sponsored card");
+  ok((await sponsored.textContent()).includes("Sponsored"), "the feed card is labeled Sponsored");
+});
+
+await run("earn + pro (phone)", phone, async (page) => {
+  await go(page, "/earn");
+  ok(await page.getByText(/demo mode, so there/).isVisible(), "Earn explains demo mode");
+  ok((await page.getByRole("region", { name: "Balance" }).textContent()).includes("$0"), "balance shows");
+  await go(page, "/pro");
+  ok(await page.getByText("Stats for your apps").isVisible(), "Pro lists its perks");
+  const stats = page.getByRole("figure", { name: /Tries for/ });
+  ok(await stats.isVisible(), "Pro preview shows 30-day stats");
+  ok((await stats.locator("[title]").count()) === 30, "30 days of bars");
+  await page.getByRole("button", { name: /Add 30 days|Get Pro/ }).click();
+  await page.getByText(/demo mode/i).first().waitFor();
+  ok(true, "buying Pro explains demo mode");
+  await noSideScroll(page, "pro");
+  await page.screenshot({ path: `${OUT}pro-phone.png`, fullPage: true });
+  await go(page, "/u/ada_builds");
+  ok(await page.getByTitle("Method V Pro").isVisible(), "Pro badge on a Pro profile");
+  ok((await page.locator("main").getByText("Pinned", { exact: true }).count()) === 1, "pinned app is labeled");
+  await go(page, "/u/marco_ships");
+  ok((await page.getByTitle("Method V Pro").count()) === 0, "no badge without Pro");
+});
+
+await run("challenges (desktop)", desktop, async (page) => {
+  await go(page, "/");
+  const strip = page.getByRole("region", { name: "Get paid" });
+  ok(await strip.getByRole("link", { name: /Best app built on Supabase/ }).isVisible(), "Home shows a running challenge");
+  ok(await strip.getByRole("link", { name: /3 open posts/ }).isVisible(), "Home links the jobs board");
+  ok(await page.getByRole("navigation").getByRole("link", { name: "Challenges" }).first().isVisible(), "Challenges in the desktop nav");
+  await go(page, "/challenges");
+  ok((await page.locator("main li a[href^='/challenges/']").count()) === 2, "two demo challenges");
+  await go(page, "/challenges/best-supabase-app");
+  const entries = page.getByRole("region", { name: "Entries" }).locator("ol > li");
+  ok((await entries.count()) === 2, "entries listed");
+  ok((await entries.first().textContent()).includes("NoteFlow"), "ranked by votes");
+  await entries.first().getByRole("button", { name: /▲/ }).click();
+  await page.getByText(/demo mode/i).first().waitFor();
+  ok(true, "voting explains demo mode");
+  await page.screenshot({ path: `${OUT}challenges-desktop.png`, fullPage: true });
+});
+
+await run("phase 4 pages (phone)", phone, async (page) => {
+  for (const path of ["/jobs", "/jobs/demo-job-studio", "/earn", "/pro", "/challenges", "/challenges/build-for-teachers", "/apps/quizpop"]) {
+    await go(page, path);
+    await noSideScroll(page, path);
+  }
+});
+
+ok((await fetch(BASE + "/jobs/nope")).status === 404, "unknown job is 404");
+ok((await fetch(BASE + "/challenges/nope")).status === 404, "unknown challenge is 404");
+let res = await fetch(BASE + "/api/stripe/webhook", { method: "POST", body: "{}" });
+ok(res.status === 404, `webhook is off without Stripe keys (${res.status})`);
+res = await fetch(BASE + "/try/noteflow?s=00000000-0000-0000-0000-000000000000", { redirect: "manual" });
+ok(res.status === 303, "sponsor links still redirect to the app");
+
 await browser.close();
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");
 process.exit(failures ? 1 : 0);

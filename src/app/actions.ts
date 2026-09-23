@@ -8,6 +8,9 @@ import {
   BOOST,
   CATEGORIES,
   CONNECT_REASONS,
+  EARN,
+  JOB_KINDS,
+  JOB_LIMITS,
   MAX_DROP_SECONDS,
   PRICING,
   ROLES,
@@ -19,6 +22,16 @@ import {
 import { getViewer } from "@/lib/data";
 import { parseList, slugify } from "@/lib/format";
 import { checkLink, fetchPage, parseAppUrl } from "@/lib/link-check";
+import { settleRefunds } from "@/lib/payments";
+import {
+  PAYMENTS_OFF_MESSAGE,
+  StripeError,
+  createCheckout,
+  createConnectAccount,
+  createOnboardingLink,
+  createTransfer,
+  isStripeConfigured,
+} from "@/lib/stripe";
 import { sitePreview, type SitePreview } from "@/lib/site-preview";
 import { DEMO_MODE_MESSAGE, authProviders, isSupabaseConfigured, type AuthProvider } from "@/lib/supabase/env";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
@@ -661,5 +674,339 @@ export async function deletePost(kind: "question" | "answer", id: string, appSlu
     .eq("user_id", auth.viewer.id);
   if (error) return { ok: false, error: "Couldn't delete it." };
   revalidatePath(qaPath(appSlug));
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Phase 4: jobs board
+// ---------------------------------------------------------------------------
+
+export type JobInput = {
+  kind: string;
+  title: string;
+  body: string;
+  pay: string;
+  location: string;
+  remote: boolean;
+  skills: string;
+  appId: string | null;
+};
+
+export async function postJob(input: JobInput): Promise<ActionResult & { id?: string }> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  if (!isOneOf(JOB_KINDS, input.kind)) return { ok: false, error: "Pick what kind of post this is." };
+  const title = input.title.trim();
+  if (title.length < 5 || title.length > 80) return { ok: false, error: "Give it a title (5 to 80 characters)." };
+  const body = input.body.trim();
+  if (body.length > 2000) return { ok: false, error: "Keep the details under 2,000 characters." };
+  const pay = input.pay.trim();
+  const location = input.location.trim();
+  if (pay.length > 60 || location.length > 60) return { ok: false, error: "Keep pay and location short." };
+  const skills = parseList(input.skills, JOB_LIMITS.skills);
+  if (input.appId && !UUID.test(input.appId)) return { ok: false, error: "Unknown app." };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("jobs")
+    .insert({
+      user_id: auth.viewer.id,
+      kind: input.kind,
+      title,
+      body,
+      pay,
+      location,
+      remote: Boolean(input.remote),
+      skills,
+      app_id: input.appId || null,
+    })
+    .select("id")
+    .single();
+  if (error) return { ok: false, error: rpcError(error.message, "Couldn't post that.") };
+  revalidatePath("/jobs");
+  return { ok: true, id: data.id };
+}
+
+export async function setJobOpen(jobId: string, open: boolean): Promise<ActionResult> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  if (!UUID.test(jobId)) return { ok: false, error: "Unknown post." };
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("jobs")
+    .update({ status: open ? "open" : "closed" })
+    .eq("id", jobId)
+    .eq("user_id", auth.viewer.id);
+  if (error) return { ok: false, error: rpcError(error.message, "Couldn't update the post.") };
+  revalidatePath("/jobs");
+  revalidatePath(`/jobs/${jobId}`);
+  return { ok: true };
+}
+
+export async function applyToJob(jobId: string, note: string, appId: string | null): Promise<ActionResult> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  if (!UUID.test(jobId)) return { ok: false, error: "Unknown post." };
+  const trimmed = note.trim();
+  if (!trimmed) return { ok: false, error: "Say a little about why you're a fit." };
+  if (trimmed.length > 500) return { ok: false, error: "Keep it under 500 characters." };
+  if (appId && !UUID.test(appId)) return { ok: false, error: "Unknown app." };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("job_applications")
+    .insert({ job_id: jobId, user_id: auth.viewer.id, note: trimmed, app_id: appId || null });
+  if (error?.code === "23505") return { ok: false, error: "You've already applied." };
+  if (error) return { ok: false, error: rpcError(error.message, "Couldn't send your application.") };
+  revalidatePath(`/jobs/${jobId}`);
+  return { ok: true };
+}
+
+export async function withdrawApplication(jobId: string): Promise<ActionResult> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  if (!UUID.test(jobId)) return { ok: false, error: "Unknown post." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("job_applications").delete().eq("job_id", jobId).eq("user_id", auth.viewer.id);
+  if (error) return { ok: false, error: "Couldn't withdraw." };
+  revalidatePath(`/jobs/${jobId}`);
+  return { ok: true };
+}
+
+export async function respondApplication(id: string, jobId: string, shortlist: boolean): Promise<ActionResult> {
+  const invalid = UUID.test(id) && UUID.test(jobId) ? null : "Unknown application.";
+  return callRpc("respond_application", { p_id: id, p_shortlist: shortlist }, "Couldn't update the application.", [`/jobs/${jobId}`], invalid);
+}
+
+// ---------------------------------------------------------------------------
+// Phase 4: payments (Stripe Checkout)
+// ---------------------------------------------------------------------------
+
+type CheckoutResult = { ok: true; url: string } | { ok: false; error: string };
+
+// Prepares the payment in the database as the payer (so every rule applies),
+// then hands them to Stripe Checkout. The webhook completes it.
+async function startCheckout(
+  args: { kind: "tip" | "pro" | "sponsorship"; ref: string | null; amount: number | null; note?: string; isPublic?: boolean },
+  label: string,
+  returnPath: string,
+): Promise<CheckoutResult> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  if (!isStripeConfigured || !createAdminClient()) return { ok: false, error: PAYMENTS_OFF_MESSAGE };
+
+  const supabase = await createClient();
+  const { data: paymentId, error } = await supabase.rpc("prepare_payment", {
+    p_kind: args.kind,
+    p_ref: args.ref,
+    p_amount: args.amount,
+    p_note: args.note ?? "",
+    p_public: args.isPublic ?? true,
+  });
+  if (error || !paymentId) return { ok: false, error: rpcError(error?.message, "Couldn't start the payment.") };
+  const { data: payment } = await supabase.from("payments").select("amount_cents").eq("id", paymentId).single();
+  if (!payment) return { ok: false, error: "Couldn't start the payment." };
+
+  const origin = await siteOrigin();
+  try {
+    const session = await createCheckout({
+      paymentId,
+      amountCents: payment.amount_cents,
+      name: label,
+      successUrl: `${origin}${returnPath}${returnPath.includes("?") ? "&" : "?"}paid=1`,
+      cancelUrl: `${origin}${returnPath}`,
+    });
+    return { ok: true, url: session.url };
+  } catch (e) {
+    return { ok: false, error: e instanceof StripeError ? e.message : "Couldn't reach the payment service." };
+  }
+}
+
+export async function backApp(appId: string, appSlug: string, amountCents: number, note: string, isPublic: boolean): Promise<CheckoutResult> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  if (!UUID.test(appId) || !/^[a-z0-9-]+$/.test(appSlug)) return { ok: false, error: "Unknown app." };
+  const amount = Math.round(Number(amountCents));
+  if (!Number.isFinite(amount) || amount < EARN.tip.min || amount > EARN.tip.max) return { ok: false, error: "Tip between $1 and $500." };
+  if (note.trim().length > 140) return { ok: false, error: "Keep the note under 140 characters." };
+  return startCheckout(
+    { kind: "tip", ref: appId, amount, note: note.trim(), isPublic },
+    "Back an app on Method V",
+    `/apps/${appSlug}`,
+  );
+}
+
+export async function buyPro(): Promise<CheckoutResult> {
+  return startCheckout({ kind: "pro", ref: null, amount: null }, `Method V Pro (${EARN.pro.days} days)`, "/pro");
+}
+
+export async function fundSponsorship(id: string): Promise<CheckoutResult> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  if (!UUID.test(id)) return { ok: false, error: "Unknown deal." };
+  return startCheckout({ kind: "sponsorship", ref: id, amount: null }, "Boost Exchange sponsorship budget", "/earn");
+}
+
+// ---------------------------------------------------------------------------
+// Phase 4: payouts (Stripe Connect)
+// ---------------------------------------------------------------------------
+
+export async function setUpPayouts(): Promise<CheckoutResult> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  const admin = createAdminClient();
+  if (!isStripeConfigured || !admin) return { ok: false, error: PAYMENTS_OFF_MESSAGE };
+
+  try {
+    const { data: existing } = await admin
+      .from("payout_accounts")
+      .select("stripe_account_id")
+      .eq("user_id", auth.viewer.id)
+      .maybeSingle();
+    let accountId = existing?.stripe_account_id as string | undefined;
+    if (!accountId) {
+      accountId = (await createConnectAccount(auth.viewer.id)).id;
+      const { error } = await admin.from("payout_accounts").insert({ user_id: auth.viewer.id, stripe_account_id: accountId });
+      if (error) return { ok: false, error: "Couldn't save your payout account." };
+    }
+    const origin = await siteOrigin();
+    const link = await createOnboardingLink(accountId, `${origin}/earn?setup=retry`, `${origin}/earn?setup=done`);
+    return { ok: true, url: link.url };
+  } catch (e) {
+    return { ok: false, error: e instanceof StripeError ? e.message : "Couldn't reach the payment service." };
+  }
+}
+
+export async function cashOut(): Promise<ActionResult & { amount?: number }> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  const admin = createAdminClient();
+  if (!isStripeConfigured || !admin) return { ok: false, error: PAYMENTS_OFF_MESSAGE };
+
+  const { data, error } = await admin.rpc("start_payout", { p_user: auth.viewer.id });
+  const payout = (data as { payout_id: string; amount_cents: number; stripe_account_id: string }[] | null)?.[0];
+  if (error || !payout) return { ok: false, error: rpcError(error?.message, "Couldn't start the payout.") };
+
+  // Same idempotency key both times, so a retry after a timeout can't pay twice.
+  let transferId: string | null = null;
+  for (let attempt = 0; attempt < 2 && !transferId; attempt++) {
+    try {
+      transferId = (await createTransfer(payout.payout_id, payout.amount_cents, payout.stripe_account_id)).id;
+    } catch (e) {
+      console.error("Transfer failed", payout.payout_id, e);
+    }
+  }
+  await admin.rpc("finish_payout", { p_id: payout.payout_id, p_transfer: transferId });
+  revalidatePath("/earn");
+  if (!transferId) return { ok: false, error: "The transfer didn't go through, so your balance is back. Try again later." };
+  return { ok: true, amount: payout.amount_cents };
+}
+
+// ---------------------------------------------------------------------------
+// Phase 4: Boost Exchange, paid
+// ---------------------------------------------------------------------------
+
+export async function offerSponsorship(
+  sponsorAppId: string,
+  hostAppId: string,
+  priceCents: number,
+  budgetCents: number,
+  message: string,
+): Promise<ActionResult> {
+  const price = Math.round(Number(priceCents));
+  const budget = Math.round(Number(budgetCents));
+  const invalid =
+    (UUID.test(sponsorAppId) && UUID.test(hostAppId) ? null : "Pick the app you're sponsoring with.") ??
+    (price >= EARN.sponsor.minPrice && price <= EARN.sponsor.maxPrice ? null : "Pay between $0.10 and $5 per try.") ??
+    (budget >= EARN.sponsor.minBudget && budget <= EARN.sponsor.maxBudget ? null : "Set a budget between $10 and $1,000.") ??
+    (budget >= price * EARN.sponsor.minTries ? null : "The budget should cover at least 10 tries.") ??
+    (message.trim().length <= 280 ? null : "Keep the message under 280 characters.");
+  return callRpc(
+    "offer_sponsorship",
+    { p_sponsor_app: sponsorAppId, p_host_app: hostAppId, p_price: price, p_budget: budget, p_message: message.trim() },
+    "Couldn't send the offer.",
+    ["/earn"],
+    invalid,
+  );
+}
+
+export async function respondSponsorship(id: string, accept: boolean): Promise<ActionResult> {
+  return callRpc("respond_sponsorship", { p_id: id, p_accept: accept }, "Couldn't answer the offer.", ["/earn"], UUID.test(id) ? null : "Unknown deal.");
+}
+
+export async function endSponsorship(id: string): Promise<ActionResult> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  if (!UUID.test(id)) return { ok: false, error: "Unknown deal." };
+  const supabase = await createClient();
+  const { data: refundPayment, error } = await supabase.rpc("end_sponsorship", { p_id: id });
+  if (error) return { ok: false, error: rpcError(error.message, "Couldn't end the deal.") };
+  const admin = createAdminClient();
+  if (refundPayment && admin) await settleRefunds(admin, { paymentId: refundPayment as string });
+  revalidatePath("/earn");
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Phase 4: challenges and Pro
+// ---------------------------------------------------------------------------
+
+export async function enterChallenge(challengeId: string, slug: string, appId: string): Promise<ActionResult> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  if (!UUID.test(challengeId) || !UUID.test(appId)) return { ok: false, error: "Pick one of your apps." };
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("challenge_entries")
+    .insert({ challenge_id: challengeId, app_id: appId, user_id: auth.viewer.id });
+  if (error?.code === "23505") return { ok: false, error: "That app is already entered." };
+  if (error) return { ok: false, error: rpcError(error.message, "Couldn't enter that app.") };
+  revalidatePath(`/challenges/${slug}`);
+  revalidatePath("/challenges");
+  return { ok: true };
+}
+
+export async function withdrawEntry(entryId: string, slug: string): Promise<ActionResult> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  if (!UUID.test(entryId)) return { ok: false, error: "Unknown entry." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("challenge_entries").delete().eq("id", entryId).eq("user_id", auth.viewer.id);
+  if (error) return { ok: false, error: "Couldn't withdraw that entry." };
+  revalidatePath(`/challenges/${slug}`);
+  return { ok: true };
+}
+
+// Voting for an entry replaces any earlier vote in the same challenge.
+export async function voteEntry(challengeId: string, slug: string, entryId: string | null): Promise<ActionResult> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  if (!UUID.test(challengeId) || (entryId && !UUID.test(entryId))) return { ok: false, error: "Unknown entry." };
+  const supabase = await createClient();
+  const { error: delError } = await supabase
+    .from("challenge_votes")
+    .delete()
+    .eq("challenge_id", challengeId)
+    .eq("user_id", auth.viewer.id);
+  if (delError) return { ok: false, error: "Couldn't change your vote." };
+  if (entryId) {
+    const { error } = await supabase
+      .from("challenge_votes")
+      .insert({ challenge_id: challengeId, user_id: auth.viewer.id, entry_id: entryId });
+    if (error) return { ok: false, error: rpcError(error.message, "Couldn't save your vote.") };
+  }
+  revalidatePath(`/challenges/${slug}`);
+  return { ok: true };
+}
+
+export async function pinApp(appId: string | null): Promise<ActionResult> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  if (appId && !UUID.test(appId)) return { ok: false, error: "Unknown app." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("profiles").update({ pinned_app_id: appId }).eq("id", auth.viewer.id);
+  if (error) return { ok: false, error: rpcError(error.message, "Couldn't pin that app.") };
+  revalidatePath(`/u/${auth.viewer.username}`);
   return { ok: true };
 }

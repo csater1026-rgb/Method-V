@@ -24,6 +24,10 @@ export function Footer() {
           <Link href="/browse" className="hover:text-ink">Browse</Link>
           <Link href="/test" className="hover:text-ink">Test &amp; earn</Link>
           <Link href="/credits" className="hover:text-ink">Credits</Link>
+          <Link href="/jobs" className="hover:text-ink">Jobs</Link>
+          <Link href="/challenges" className="hover:text-ink">Challenges</Link>
+          <Link href="/earn" className="hover:text-ink">Earn</Link>
+          <Link href="/pro" className="hover:text-ink">Pro</Link>
         </nav>
       </div>
     </footer>

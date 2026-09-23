@@ -5,6 +5,9 @@
 
 import { checkLink, fetchPage, isPublicAddress, parseAppUrl } from "../src/lib/link-check.ts";
 import { guessCategory, parseMeta, sitePreview } from "../src/lib/site-preview.ts";
+import { formatCents } from "../src/lib/constants.ts";
+import { formEncode, verifyStripeSignature } from "../src/lib/stripe-core.ts";
+import { createHmac } from "node:crypto";
 
 let failures = 0;
 const ok = (cond: boolean, msg: string) => {
@@ -56,6 +59,35 @@ const localPage = await fetchPage("http://127.0.0.1/");
 ok(!localPage.ok, "page fetch refuses a local address");
 const bad = await fetchPage("https://nonexistent-domain-for-method-v-test.invalid/");
 ok(!bad.ok, "page fetch fails cleanly on an unknown domain");
+
+// --- Stripe helpers ---
+const encoded = formEncode({
+  mode: "payment",
+  metadata: { payment_id: "p1" },
+  line_items: [{ quantity: 1, price_data: { unit_amount: 500, product_data: { name: "Tip & thanks" } } }],
+  skip: undefined,
+});
+ok(
+  decodeURIComponent(encoded) ===
+    "mode=payment&metadata[payment_id]=p1&line_items[0][quantity]=1&line_items[0][price_data][unit_amount]=500&line_items[0][price_data][product_data][name]=Tip & thanks",
+  `form encoding nests keys like Stripe expects (${decodeURIComponent(encoded)})`,
+);
+ok(encoded.includes("Tip%20%26%20thanks"), "form values are escaped");
+
+const secret = "whsec_test";
+const body = '{"type":"checkout.session.completed"}';
+const now = 1_800_000_000;
+const sign = (t: number, payload = body, key = secret) => createHmac("sha256", key).update(`${t}.${payload}`).digest("hex");
+ok(verifyStripeSignature(body, `t=${now},v1=${sign(now)}`, secret, now), "a correctly signed webhook passes");
+ok(verifyStripeSignature(body, `t=${now},v1=${"0".repeat(64)},v1=${sign(now)}`, secret, now), "any matching v1 signature passes (secret rotation)");
+ok(!verifyStripeSignature(body + " ", `t=${now},v1=${sign(now)}`, secret, now), "a changed body fails");
+ok(!verifyStripeSignature(body, `t=${now},v1=${sign(now, body, "whsec_other")}`, secret, now), "the wrong secret fails");
+ok(!verifyStripeSignature(body, `t=${now - 600},v1=${sign(now - 600)}`, secret, now), "an old (replayed) webhook fails");
+ok(!verifyStripeSignature(body, null, secret, now) && !verifyStripeSignature(body, "garbage", secret, now), "a missing or junk header fails");
+ok(!verifyStripeSignature(body, `t=${now},v1=${sign(now)}`, "", now), "no secret configured fails closed");
+ok(!verifyStripeSignature(body, `t=${now},v1=abc`, secret, now), "a short signature fails without throwing");
+
+ok(formatCents(500) === "$5" && formatCents(1425) === "$14.25" && formatCents(100000) === "$1,000", "money formats as dollars");
 
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");
 process.exit(failures ? 1 : 0);

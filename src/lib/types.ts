@@ -17,6 +17,10 @@ export type Profile = {
   feedback_helpful_count: number;
   connection_count: number;
   reputation: number;
+  // Phase 4. Pro while pro_until is in the future.
+  pro_until: string | null;
+  pinned_app_id: string | null;
+  payouts_enabled: boolean;
 };
 
 export type ProfileSummary = Pick<Profile, "id" | "username" | "display_name" | "roles">;
@@ -41,6 +45,7 @@ export type App = {
   // Launch day starts at launch_at and lasts 24 hours; boosted until boosted_until.
   launch_at: string | null;
   boosted_until: string | null;
+  backer_count: number;
   created_at: string;
 };
 
@@ -61,6 +66,8 @@ export type FeedItem = Drop & {
   app: Pick<App, "id" | "slug" | "name" | "tagline" | "category" | "try_count">;
   owner: ProfileSummary;
   liked: boolean;
+  // Boost Exchange: the app paying for a card on this app's Drops.
+  sponsor: SponsorCard | null;
 };
 
 export type AppCard = App & {
@@ -72,6 +79,7 @@ export type AppDetail = App & {
   owner: ProfileSummary;
   drop: Drop | null;
   liked: boolean;
+  sponsor: SponsorCard | null;
 };
 
 export type Comment = {
@@ -212,3 +220,87 @@ export type FeaturedReason = "featured" | "launch" | "boosted" | "hot";
 export type FeaturedApp = AppCard & { reason: FeaturedReason };
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
+
+// ---------------------------------------------------------------------------
+// Phase 4: Earn
+// ---------------------------------------------------------------------------
+
+export type JobKind = "hiring" | "gig" | "looking";
+
+export type Job = {
+  id: string;
+  kind: JobKind;
+  title: string;
+  body: string;
+  pay: string;
+  location: string;
+  remote: boolean;
+  skills: string[];
+  status: "open" | "closed";
+  application_count: number;
+  expires_at: string;
+  created_at: string;
+  user: ProfileSummary;
+  app: { slug: string; name: string } | null;
+};
+
+export type JobApplication = {
+  id: string;
+  note: string;
+  status: "new" | "shortlisted" | "passed";
+  created_at: string;
+  user: ProfileSummary;
+  app: { slug: string; name: string } | null;
+};
+
+// A "Sponsored by" card shown on the host app and its Drops.
+export type SponsorCard = { id: string; slug: string; name: string; tagline: string };
+
+export type SponsorshipStatus = "offered" | "accepted" | "declined" | "active" | "completed" | "ended";
+
+export type Sponsorship = {
+  id: string;
+  status: SponsorshipStatus;
+  price_cents: number;
+  budget_cents: number;
+  spent_cents: number;
+  tries: number;
+  message: string;
+  created_at: string;
+  started_at: string | null;
+  sponsor: { id: string; slug: string; name: string } | null;
+  host: { id: string; slug: string; name: string } | null;
+  mine: "sponsor" | "host";
+};
+
+export type Backer = { id: string; note: string; created_at: string; user: ProfileSummary };
+
+export type EarningEvent = { id: number; delta_cents: number; kind: string; created_at: string; app: { slug: string; name: string } | null };
+
+export type Earnings = {
+  balance: number;
+  events: EarningEvent[];
+  payouts: { id: string; amount_cents: number; status: string; created_at: string }[];
+  account: "none" | "pending" | "ready";
+  pro_until: string | null;
+};
+
+export type Challenge = {
+  id: string;
+  slug: string;
+  title: string;
+  body: string;
+  sponsor_name: string;
+  sponsor_url: string | null;
+  prize: string;
+  stack: string | null;
+  category: string | null;
+  starts_at: string;
+  ends_at: string;
+  winner_entry_id: string | null;
+  entry_count: number;
+};
+
+export type ChallengeEntry = { id: string; vote_count: number; app: AppCard };
+
+export type AppStat = { day: string; tries: number; sponsored: number };

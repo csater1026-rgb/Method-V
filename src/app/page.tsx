@@ -3,19 +3,23 @@ import Link from "next/link";
 import { AppCard } from "@/components/AppCard";
 import { Avatar } from "@/components/Avatar";
 import { Countdown } from "@/components/Countdown";
+import { challengePhase } from "@/components/ChallengeCard";
 import { FeaturedCard } from "@/components/FeaturedCard";
 import { Suggestions } from "@/components/Suggestions";
 import { Updates } from "@/components/Updates";
 import { CATEGORIES, CREDITS, isOneOf } from "@/lib/constants";
 import {
   getApps,
+  getChallenges,
   getFeatured,
+  getJobs,
   getMyApps,
   getSuggestions,
   getTestQueue,
   getUpcomingLaunches,
   getUpdates,
   getViewer,
+  nowMs,
 } from "@/lib/data";
 
 // The home feed: Featured up top, then everybody's projects.
@@ -39,7 +43,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
   const category = isOneOf(CATEGORIES, params.category) ? params.category : undefined;
 
   const viewer = await getViewer();
-  const [featured, apps, queue, upcoming, followingUpdates, myApps, suggestions] = await Promise.all([
+  const [featured, apps, queue, upcoming, followingUpdates, myApps, suggestions, challenges, jobs] = await Promise.all([
     getFeatured(),
     getApps({ category, sort: sort === "popular" ? "tried" : undefined }),
     getTestQueue(viewer),
@@ -47,7 +51,11 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
     viewer ? getUpdates({ following: viewer, limit: 5 }) : Promise.resolve([]),
     getMyApps(viewer),
     getSuggestions(viewer),
+    getChallenges(),
+    getJobs({}),
   ]);
+  const now = nowMs();
+  const challenge = challenges.find((c) => challengePhase(c, now) === "open");
   // Signed-in people see updates from who they follow; otherwise (or if that's empty) everyone's.
   const updates = followingUpdates.length > 0 ? followingUpdates : await getUpdates({ limit: 5 });
 
@@ -130,6 +138,37 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
           </span>
           <span className="font-mono text-xs font-semibold text-accent">Test &amp; earn →</span>
         </Link>
+      )}
+
+      {(challenge || jobs.length > 0) && (
+        <section aria-label="Get paid" className="mx-4 mt-5 grid gap-2 sm:grid-cols-2">
+          {challenge && (
+            <Link
+              href={`/challenges/${challenge.slug}`}
+              className="flex items-center justify-between gap-3 rounded-lg border border-line bg-surface px-4 py-3 transition hover:border-accent"
+            >
+              <span className="min-w-0 text-sm">
+                <span className="block truncate font-semibold">🏆 {challenge.title}</span>
+                <span className="block truncate text-muted">{challenge.prize}</span>
+              </span>
+              <span className="shrink-0 font-mono text-xs font-semibold text-accent">Enter →</span>
+            </Link>
+          )}
+          {jobs.length > 0 && (
+            <Link
+              href="/jobs"
+              className="flex items-center justify-between gap-3 rounded-lg border border-line bg-surface px-4 py-3 transition hover:border-accent"
+            >
+              <span className="min-w-0 text-sm">
+                <span className="block font-semibold">
+                  {jobs.length} open {jobs.length === 1 ? "post" : "posts"} on the jobs board
+                </span>
+                <span className="block truncate text-muted">Jobs, gigs and builders looking for work</span>
+              </span>
+              <span className="shrink-0 font-mono text-xs font-semibold text-accent">Jobs →</span>
+            </Link>
+          )}
+        </section>
       )}
 
       <section id="projects" className="mt-10 scroll-mt-20 px-4">

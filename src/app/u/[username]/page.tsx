@@ -9,7 +9,7 @@ import { FollowButton } from "@/components/FollowButton";
 import { PassportCard } from "@/components/Passport";
 import { Updates } from "@/components/Updates";
 import { Chip, RoleTags } from "@/components/Tags";
-import { getConnectionState, getMyApps, getPassport, getProfile, getUpdates, getViewer } from "@/lib/data";
+import { getConnectionState, getMyApps, getPassport, getProfile, getUpdates, getViewer, isPro } from "@/lib/data";
 import { formatCount } from "@/lib/format";
 
 export async function generateMetadata({ params }: PageProps<"/u/[username]">): Promise<Metadata> {
@@ -23,6 +23,10 @@ export default async function ProfilePage({ params }: PageProps<"/u/[username]">
   if (!result) notFound();
   const { profile, apps, isFollowing } = result;
   const isSelf = viewer?.id === profile.id;
+  const pro = isPro(profile);
+  // Pro builders can pin one app to the front.
+  const pinnedId = pro ? profile.pinned_app_id : null;
+  const orderedApps = pinnedId ? [...apps].sort((a, b) => Number(b.id === pinnedId) - Number(a.id === pinnedId)) : apps;
   const [passport, updates, myApps, connection] = await Promise.all([
     getPassport(profile.id),
     getUpdates({ userId: profile.id, limit: 20 }),
@@ -44,7 +48,14 @@ export default async function ProfilePage({ params }: PageProps<"/u/[username]">
         <div className="flex min-w-0 flex-1 flex-col gap-3">
           <div className="flex flex-wrap items-center gap-3">
             <div>
-              <h1 className="display text-6xl break-words">{profile.display_name || `@${profile.username}`}</h1>
+              <h1 className="display text-6xl break-words">
+                {profile.display_name || `@${profile.username}`}
+                {pro && (
+                  <span className="tag-accent ml-3 align-middle text-xs" title="Method V Pro">
+                    Pro
+                  </span>
+                )}
+              </h1>
               <p className="text-muted">@{profile.username}</p>
             </div>
             <div className="sm:ml-auto">
@@ -55,6 +66,9 @@ export default async function ProfilePage({ params }: PageProps<"/u/[username]">
                   </Link>
                   <Link href="/swaps" className="btn-ghost">
                     Swaps
+                  </Link>
+                  <Link href="/earn" className="btn-ghost">
+                    Earn
                   </Link>
                 </span>
               ) : (
@@ -143,8 +157,11 @@ export default async function ProfilePage({ params }: PageProps<"/u/[username]">
       <h2 className="display mt-12 text-4xl">Apps</h2>
       {apps.length > 0 ? (
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {apps.map((app, i) => (
-            <AppCard key={app.id} app={app} showOwner={false} index={i} />
+          {orderedApps.map((app, i) => (
+            <div key={app.id} className="relative">
+              {app.id === pinnedId && <span className="tag-accent absolute top-2 right-2 z-10">Pinned</span>}
+              <AppCard app={app} showOwner={false} index={i} />
+            </div>
           ))}
         </div>
       ) : (

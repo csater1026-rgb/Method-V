@@ -615,13 +615,14 @@ const card = (await as("anon", null, "select * from public.active_sponsors($1)",
 ok(card.length === 1 && card[0].sponsor_slug === "noteflow-pro", "paid deals show a public Sponsored-by card");
 ok((await notes(H)).some((n) => n.kind === "sponsor_started"), "host is told the sponsorship started");
 
-const tryIt = async (uid) => (await as("authenticated", uid, "select public.record_sponsored_try($1) as ok", [deal])).rows[0].ok;
+const tryIt = async (uid, app = sponsorApp) => (await as("authenticated", uid, "select public.record_sponsored_try($1, $2) as ok", [deal, app])).rows[0].ok;
 const hBefore = await bal(H);
+ok((await tryIt(F, hostApp)) === false, "a try only counts when it lands on the sponsor's app");
 ok((await tryIt(F)) === true, "a real person's try counts");
 ok((await tryIt(F)) === false, "one try per person per deal");
 ok((await tryIt(H)) === false && (await tryIt(J)) === false, "the two builders' own tries don't count");
 ok((await tryIt(N)) === false, "brand-new accounts don't count");
-ok((await as("anon", null, "select public.record_sponsored_try($1) as ok", [deal]).catch(() => ({ rows: [{ ok: false }] }))).rows[0].ok === false, "signed-out tries don't count");
+ok((await as("anon", null, "select public.record_sponsored_try($1, $2) as ok", [deal, sponsorApp]).catch(() => ({ rows: [{ ok: false }] }))).rows[0].ok === false, "signed-out tries don't count");
 ok((await bal(H)) === hBefore + 176, "host earns the try price minus 12%");
 const dealRow = async () => (await db.query("select status, spent_cents, tries from public.sponsorships where id = $1", [deal])).rows[0];
 ok((await dealRow()).spent_cents === 200 && (await dealRow()).tries === 1, "the sponsor sees honest spend and tries");
@@ -641,7 +642,7 @@ const deal2 = (await offer(100, 1000)).rows[0].id;
 await as("authenticated", H, "select public.respond_sponsorship($1, true)", [deal2]);
 const fund2 = (await prep(J, "sponsorship", deal2, 1)).rows[0].id;
 await as("service_role", null, "select public.complete_payment($1, 'cs_5', 1000, 'pi_5')", [fund2]);
-await as("authenticated", F, "select public.record_sponsored_try($1)", [deal2]);
+await as("authenticated", F, "select public.record_sponsored_try($1, $2)", [deal2, sponsorApp]);
 ok(!!(await fails("authenticated", F, "select public.end_sponsorship($1)", [deal2])), "outsiders can't end a deal");
 const refundFor = (await as("authenticated", H, "select public.end_sponsorship($1) as p", [deal2])).rows[0].p;
 ok(refundFor === fund2, "ending returns the payment to refund");

@@ -61,6 +61,20 @@ function describe(n: Notification): { text: string; href: string } {
       return { text: `wants to team up with ${app}`, href: "/swaps" };
     case "swap_accepted":
       return { text: `accepted your swap with ${app}`, href: "/swaps" };
+    case "backed":
+      return { text: `backed ${app}`, href: `${appHref}#backers` };
+    case "sponsor_offer":
+      return { text: `wants to sponsor ${app}`, href: "/earn" };
+    case "sponsor_accepted":
+      return { text: `accepted your sponsorship. Pay the budget to start.`, href: "/earn" };
+    case "sponsor_started":
+      return { text: `started sponsoring ${app}`, href: "/earn" };
+    case "sponsor_ended":
+      return { text: `ended your sponsorship deal`, href: "/earn" };
+    case "job_application":
+      return { text: "applied to your post", href: n.ref_id ? `/jobs/${n.ref_id}` : "/jobs" };
+    case "application_shortlisted":
+      return { text: "shortlisted you. Say hi!", href: n.actor ? `/inbox/${n.actor.username}` : "/inbox" };
     default:
       return { text: "did something", href: "/" };
   }
