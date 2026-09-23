@@ -12,6 +12,7 @@ import {
   demoProfiles,
   demoSchedule,
   demoTestRequests,
+  demoUpdates,
 } from "./demo";
 import { isSupabaseConfigured, publicFileUrl } from "./supabase/env";
 import { createClient } from "./supabase/server";
@@ -32,6 +33,7 @@ import type {
   QueueItem,
   TestRequest,
   TopTester,
+  Update,
   Viewer,
 } from "./types";
 
@@ -626,4 +628,64 @@ export async function getTopTesters(): Promise<TopTester[]> {
   const supabase = await createClient();
   const { data } = await supabase.rpc("top_testers", { p_limit: 10 });
   return (data ?? []).map((r: TopTester) => ({ ...r, feedback_count: Number(r.feedback_count), helpful_count: Number(r.helpful_count) }));
+}
+
+// ---------------------------------------------------------------------------
+// Build-in-public updates
+// ---------------------------------------------------------------------------
+
+type UpdateScope = { appId?: string; userId?: string; following?: Viewer | null; limit?: number };
+
+// Latest updates for an app, a builder, the people someone follows, or everyone.
+export async function getUpdates({ appId, userId, following, limit = 20 }: UpdateScope): Promise<Update[]> {
+  if (!isSupabaseConfigured) {
+    return demoUpdates
+      .filter((u) => (!appId || u.app === appId) && (!userId || u.user === userId))
+      .slice(0, limit)
+      .map((u, i) => {
+        const app = u.app ? demoApps.find((a) => a.id === u.app) : null;
+        return {
+          id: `demo-update-${i}`,
+          body: u.body,
+          created_at: new Date(Date.UTC(2026, 8, 23) - u.hours * 3600_000).toISOString(),
+          user: toSummary(demoProfile(u.user)),
+          app: app ? { slug: app.slug, name: app.name } : null,
+        };
+      });
+  }
+
+  const supabase = await createClient();
+  let query = supabase
+    .from("updates")
+    .select(`id, body, created_at, user:profiles!updates_user_id_fkey(${PROFILE_SUMMARY}), app:apps(slug, name)`)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (appId) query = query.eq("app_id", appId);
+  if (userId) query = query.eq("user_id", userId);
+  if (following) {
+    const { data: follows } = await supabase.from("follows").select("following_id").eq("follower_id", following.id);
+    const ids = [following.id, ...(follows ?? []).map((f) => f.following_id as string)];
+    query = query.in("user_id", ids);
+  }
+  const { data } = await query;
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    body: row.body,
+    created_at: row.created_at,
+    user: toSummary(row.user),
+    app: (row.app as unknown as Update["app"]) ?? null,
+  }));
+}
+
+// The signed-in builder's live apps, for "which app is this about?" pickers.
+export async function getMyApps(viewer: Viewer | null): Promise<{ id: string; slug: string; name: string }[]> {
+  if (!viewer) return [];
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("apps")
+    .select("id, slug, name")
+    .eq("owner_id", viewer.id)
+    .not("link_checked_at", "is", null)
+    .order("created_at", { ascending: false });
+  return data ?? [];
 }

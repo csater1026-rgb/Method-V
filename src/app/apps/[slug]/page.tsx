@@ -9,10 +9,11 @@ import { DropPlaceholder } from "@/components/DropVideo";
 import { FeedbackPanel } from "@/components/FeedbackPanel";
 import { FollowButton } from "@/components/FollowButton";
 import { GrowPanel } from "@/components/GrowPanel";
+import { Updates } from "@/components/Updates";
 import { LikeButton } from "@/components/LikeButton";
 import { ShareButton } from "@/components/ShareButton";
 import { CategoryChip, Chip, PricingStage, RoleTags } from "@/components/Tags";
-import { appStatus, getApp, getComments, getFeedbackPanel, getViewer, isFollowing } from "@/lib/data";
+import { appStatus, getApp, getComments, getFeedbackPanel, getUpdates, getViewer, isFollowing } from "@/lib/data";
 import { formatCount, formatDuration, timeAgo } from "@/lib/format";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
@@ -27,10 +28,11 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
   const [app, viewer] = await Promise.all([getApp(slug), getViewer()]);
   if (!app) notFound();
 
-  const [comments, following, feedbackPanel] = await Promise.all([
+  const [comments, following, feedbackPanel, updates] = await Promise.all([
     app.drop ? getComments(app.drop.id) : [],
     isFollowing(viewer, app.owner_id),
     getFeedbackPanel(app, viewer),
+    getUpdates({ appId: app.id, limit: 10 }),
   ]);
   const wouldUse = app.feedback_count ? Math.round((app.would_use_yes_count / app.feedback_count) * 100) : null;
   const rating = app.feedback_count ? (app.rating_sum / app.feedback_count).toFixed(1) : null;
@@ -153,6 +155,20 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
         )}
 
         <FeedbackPanel panel={feedbackPanel} app={{ id: app.id, slug: app.slug, name: app.name }} />
+
+        {(updates.length > 0 || isOwner) && (
+          <section aria-label="Updates">
+            <h2 className="display text-4xl">Updates</h2>
+            <div className="mt-3">
+              <Updates
+                updates={updates}
+                viewerId={viewer?.id ?? null}
+                composer={isOwner ? { apps: [{ id: app.id, name: app.name }], appId: app.id } : null}
+                emptyText={`Post what's new in ${app.name}; followers see it on their Home.`}
+              />
+            </div>
+          </section>
+        )}
 
         {app.drop && (
           <Comments dropId={app.drop.id} appSlug={app.slug} comments={comments} viewerId={viewer?.id ?? null} />

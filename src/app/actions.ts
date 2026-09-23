@@ -440,3 +440,40 @@ export async function boostApp(appId: string, appSlug: string, days: number): Pr
     unknownApp(appId) ?? ((BOOST.options as readonly number[]).includes(days) ? null : "Pick how many days to boost.");
   return callRpc("boost_app", { p_app_id: appId, p_days: days }, "Couldn't boost the app.", [`/apps/${appSlug}`], invalid);
 }
+
+// ---------------------------------------------------------------------------
+// Phase 3: build-in-public updates
+// ---------------------------------------------------------------------------
+
+export async function postUpdate(body: string, appId: string | null): Promise<ActionResult> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  const text = body.trim();
+  if (!text) return { ok: false, error: "Write something first." };
+  if (text.length > 500) return { ok: false, error: "Updates can be up to 500 characters." };
+  if (appId && !UUID.test(appId)) return { ok: false, error: "Unknown app." };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("updates")
+    .insert({ user_id: auth.viewer.id, app_id: appId || null, body: text })
+    .select("app:apps(slug)")
+    .single();
+  if (error) return { ok: false, error: "Couldn't post your update." };
+  revalidatePath("/");
+  revalidatePath(`/u/${auth.viewer.username}`);
+  const slug = (data?.app as unknown as { slug: string } | null)?.slug;
+  if (slug) revalidatePath(`/apps/${slug}`);
+  return { ok: true };
+}
+
+export async function deleteUpdate(updateId: string): Promise<ActionResult> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  if (!UUID.test(updateId)) return { ok: false, error: "Unknown update." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("updates").delete().eq("id", updateId).eq("user_id", auth.viewer.id);
+  if (error) return { ok: false, error: "Couldn't delete that update." };
+  revalidatePath("/", "layout");
+  return { ok: true };
+}

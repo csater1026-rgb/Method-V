@@ -6,8 +6,9 @@ import { AppCard } from "@/components/AppCard";
 import { Avatar } from "@/components/Avatar";
 import { FollowButton } from "@/components/FollowButton";
 import { PassportCard } from "@/components/Passport";
+import { Updates } from "@/components/Updates";
 import { Chip, RoleTags } from "@/components/Tags";
-import { getPassport, getProfile, getViewer } from "@/lib/data";
+import { getMyApps, getPassport, getProfile, getUpdates, getViewer } from "@/lib/data";
 import { formatCount } from "@/lib/format";
 
 export async function generateMetadata({ params }: PageProps<"/u/[username]">): Promise<Metadata> {
@@ -21,7 +22,11 @@ export default async function ProfilePage({ params }: PageProps<"/u/[username]">
   if (!result) notFound();
   const { profile, apps, isFollowing } = result;
   const isSelf = viewer?.id === profile.id;
-  const passport = await getPassport(profile.id);
+  const [passport, updates, myApps] = await Promise.all([
+    getPassport(profile.id),
+    getUpdates({ userId: profile.id, limit: 20 }),
+    isSelf ? getMyApps(viewer) : Promise.resolve([]),
+  ]);
 
   const links = [
     profile.website_url && { href: profile.website_url, label: hostnameOf(profile.website_url) },
@@ -100,6 +105,18 @@ export default async function ProfilePage({ params }: PageProps<"/u/[username]">
       <div className="mt-8">
         <PassportCard profile={profile} passport={passport} isSelf={isSelf} />
       </div>
+
+      <section aria-label="Updates" className="mt-12">
+        <h2 className="display text-4xl">Updates</h2>
+        <div className="mt-3">
+          <Updates
+            updates={updates}
+            viewerId={viewer?.id ?? null}
+            composer={isSelf ? { apps: myApps } : null}
+            emptyText={isSelf ? "Share your first update." : "No updates yet."}
+          />
+        </div>
+      </section>
 
       <h2 className="display mt-12 text-4xl">Apps</h2>
       {apps.length > 0 ? (

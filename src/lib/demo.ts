@@ -173,6 +173,14 @@ export const demoComments: Record<string, { user: string; body: string; days: nu
 
 export const demoCommentDate = ago;
 
+// Build-in-public updates.
+export const demoUpdates: { user: string; app: string | null; body: string; hours: number }[] = [
+  { user: "demo-ada", app: "demo-app-noteflow", body: "Shipped Google Meet import today. 3 people asked for it in the comments, so here it is.", hours: 2 },
+  { user: "demo-marco", app: "demo-app-quizpop", body: "Launch day for QuizPop is set! Spent the weekend on the class leaderboard.", hours: 9 },
+  { user: "demo-june", app: null, body: "Hiring a front-end dev for my studio. If you build with React and care about color, say hi.", hours: 26 },
+  { user: "demo-ada", app: "demo-app-splitsy", body: "Receipt scanning now works on crumpled receipts too. Tested on 40 of my own.", hours: 50 },
+];
+
 // Hand-picked for the Featured row on the home feed.
 export const demoFeaturedIds = ["demo-app-palettepal", "demo-app-noteflow"];
 

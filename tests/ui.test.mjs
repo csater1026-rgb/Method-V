@@ -229,6 +229,18 @@ await run("launch days + boosts", desktop, async (page) => {
   ok(await page.getByRole("region", { name: "Grow" }).getByLabel("Launch date and time").isVisible(), "unscheduled app offers a launch date picker");
 });
 
+await run("build in public", desktop, async (page) => {
+  await page.goto(BASE + "/");
+  const home = page.getByRole("region", { name: "Build in public" });
+  ok((await home.locator("li").count()) === 4, "Home shows everyone's latest updates");
+  ok(!(await home.getByLabel("Write an update").count()), "no composer when signed out");
+  await page.goto(BASE + "/apps/noteflow");
+  const appUpdates = page.getByRole("region", { name: "Updates" });
+  ok((await appUpdates.locator("li").count()) === 1 && (await appUpdates.textContent()).includes("Google Meet"), "app page shows that app's updates");
+  await page.goto(BASE + "/u/ada_builds");
+  ok((await page.getByRole("region", { name: "Updates" }).locator("li").count()) === 2, "profile shows the builder's updates");
+});
+
 await run("tester passport", desktop, async (page) => {
   await page.goto(BASE + "/u/marco_ships");
   const passport = page.getByRole("region", { name: "Tester Passport" });

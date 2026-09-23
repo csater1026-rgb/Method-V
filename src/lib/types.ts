@@ -132,6 +132,14 @@ export type TopTester = {
   helpful_count: number;
 };
 
+export type Update = {
+  id: string;
+  body: string;
+  created_at: string;
+  user: ProfileSummary;
+  app: { slug: string; name: string } | null;
+};
+
 export type FeaturedReason = "featured" | "launch" | "boosted" | "hot";
 export type FeaturedApp = AppCard & { reason: FeaturedReason };
 

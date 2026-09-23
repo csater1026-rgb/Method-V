@@ -4,8 +4,9 @@ import { AppCard } from "@/components/AppCard";
 import { Avatar } from "@/components/Avatar";
 import { Countdown } from "@/components/Countdown";
 import { FeaturedCard } from "@/components/FeaturedCard";
+import { Updates } from "@/components/Updates";
 import { CATEGORIES, CREDITS, isOneOf } from "@/lib/constants";
-import { getApps, getFeatured, getTestQueue, getUpcomingLaunches, getViewer } from "@/lib/data";
+import { getApps, getFeatured, getMyApps, getTestQueue, getUpcomingLaunches, getUpdates, getViewer } from "@/lib/data";
 
 // The home feed: Featured up top, then everybody's projects.
 
@@ -28,12 +29,16 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
   const category = isOneOf(CATEGORIES, params.category) ? params.category : undefined;
 
   const viewer = await getViewer();
-  const [featured, apps, queue, upcoming] = await Promise.all([
+  const [featured, apps, queue, upcoming, followingUpdates, myApps] = await Promise.all([
     getFeatured(),
     getApps({ category, sort: sort === "popular" ? "tried" : undefined }),
     getTestQueue(viewer),
     getUpcomingLaunches(),
+    viewer ? getUpdates({ following: viewer, limit: 5 }) : Promise.resolve([]),
+    getMyApps(viewer),
   ]);
+  // Signed-in people see updates from who they follow; otherwise (or if that's empty) everyone's.
+  const updates = followingUpdates.length > 0 ? followingUpdates : await getUpdates({ limit: 5 });
 
   return (
     <div className="mx-auto w-full max-w-6xl py-6">
@@ -83,6 +88,21 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
           </ul>
         </section>
       )}
+
+      <section aria-label="Build in public" className="mt-8 px-4">
+        <h2 className="display text-3xl">Build in public</h2>
+        <p className="mt-1 text-sm text-muted">
+          {followingUpdates.length > 0 ? "From you and the builders you follow." : "What builders are shipping, as it happens."}
+        </p>
+        <div className="mt-3">
+          <Updates
+            updates={updates}
+            viewerId={viewer?.id ?? null}
+            composer={viewer ? { apps: myApps } : null}
+            emptyText="No updates yet. Be the first to share what you're building."
+          />
+        </div>
+      </section>
 
       {queue.length > 0 && (
         <Link
