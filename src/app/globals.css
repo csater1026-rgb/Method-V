@@ -2,8 +2,8 @@
 
 /*
  * Method V look: drop culture meets the late-night code editor, in sage and
- * cream. Two themes: dark (deep green-black, cream ink, soft sage) and light
- * (cream paper, green-black ink, deeper sage so text and buttons stay
+ * white. Two themes: dark (deep green-black, white ink, soft sage) and light
+ * (white paper, green-black ink, deeper sage so text and buttons stay
  * readable). Video and poster areas stay dark in both (`media-dark`).
  * Big Shoulders (condensed poster caps) for display, Schibsted Grotesk for
  * reading, Martian Mono for numbers, timers, credits and tags.
@@ -17,7 +17,7 @@
   --color-surface: #19211b;
   --color-surface-2: #222c25;
   --color-line: #34413a;
-  --color-ink: #efe8d8;
+  --color-ink: #ffffff;
   --color-muted: #a3ab9d;
   --color-accent: #a8c09e;
   --color-accent-ink: #112014;
@@ -64,14 +64,14 @@
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]) {
     color-scheme: light;
-    --color-bg: #f3eee2;
-    --color-surface: #fbf8f1;
-    --color-surface-2: #e9e2d2;
-    --color-line: #d6cdb9;
+    --color-bg: #ffffff;
+    --color-surface: #ffffff;
+    --color-surface-2: #eef1ee;
+    --color-line: #dde2dd;
     --color-ink: #1e2a21;
     --color-muted: #5c6757;
     --color-accent: #4a6a4e;
-    --color-accent-ink: #f7f2e7;
+    --color-accent-ink: #ffffff;
     --color-heart: #c4533f;
     --color-danger: #b2412f;
     --accent-edge: #2c4330;
@@ -82,14 +82,14 @@
 
 :root[data-theme="light"] {
   color-scheme: light;
-  --color-bg: #f3eee2;
-  --color-surface: #fbf8f1;
-  --color-surface-2: #e9e2d2;
-  --color-line: #d6cdb9;
+  --color-bg: #ffffff;
+  --color-surface: #ffffff;
+  --color-surface-2: #eef1ee;
+  --color-line: #dde2dd;
   --color-ink: #1e2a21;
   --color-muted: #5c6757;
   --color-accent: #4a6a4e;
-  --color-accent-ink: #f7f2e7;
+  --color-accent-ink: #ffffff;
   --color-heart: #c4533f;
   --color-danger: #b2412f;
   --accent-edge: #2c4330;
@@ -104,7 +104,7 @@
   --color-surface: #19211b;
   --color-surface-2: #222c25;
   --color-line: #34413a;
-  --color-ink: #efe8d8;
+  --color-ink: #ffffff;
   --color-muted: #a3ab9d;
   --color-accent: #a8c09e;
   --color-accent-ink: #112014;

@@ -111,7 +111,7 @@ export function Button({
   );
 }
 
-const AVATAR_COLORS = ["#a8c09e", "#e6dcc4", "#d9b38c", "#9fc3cf", "#c7b6d6", "#e2a597", "#c3cf94"];
+const AVATAR_COLORS = ["#a8c09e", "#d7dfd9", "#d9b38c", "#9fc3cf", "#c7b6d6", "#e2a597", "#c3cf94"];
 
 // Same colors and letters as the website's avatars.
 export function Avatar({ username, name, size = 40 }: { username: string; name?: string; size?: number }) {

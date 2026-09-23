@@ -9,8 +9,8 @@ import { formatCount } from "@/lib/format";
 // Drop's poster. "Try it" goes through /try with ?via=embed so it's counted.
 
 const THEMES = {
-  dark: { bg: "#121814", surface: "#19211b", ink: "#efe8d8", muted: "#a3ab9d", accent: "#a8c09e", accentInk: "#112014", line: "#34413a" },
-  light: { bg: "#fbf8f1", surface: "#f3eee2", ink: "#1e2a21", muted: "#5c6757", accent: "#4a6a4e", accentInk: "#f7f2e7", line: "#d6cdb9" },
+  dark: { bg: "#121814", surface: "#19211b", ink: "#ffffff", muted: "#a3ab9d", accent: "#a8c09e", accentInk: "#112014", line: "#34413a" },
+  light: { bg: "#ffffff", surface: "#ffffff", ink: "#1e2a21", muted: "#5c6757", accent: "#4a6a4e", accentInk: "#ffffff", line: "#dde2dd" },
 };
 
 function esc(s: string) {
@@ -40,7 +40,7 @@ html,body{height:100%}
 body{background:${t.bg};color:${t.ink};font:14px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
 .card{display:flex;height:100%;min-height:150px;border:1px solid ${t.line};border-radius:12px;overflow:hidden;background:${t.surface}}
 .media{flex:0 0 34%;max-width:170px;background:#121814 ${poster ? `url("${esc(poster)}") center/cover` : `repeating-linear-gradient(135deg,#19211b 0 10px,#222c25 10px 20px)`};display:flex;align-items:flex-end;padding:10px}
-.media span{font:700 20px/1 Impact,"Arial Narrow",sans-serif;text-transform:uppercase;color:#efe8d8;${poster ? "display:none" : ""}}
+.media span{font:700 20px/1 Impact,"Arial Narrow",sans-serif;text-transform:uppercase;color:#ffffff;${poster ? "display:none" : ""}}
 .body{flex:1;min-width:0;padding:14px 16px;display:flex;flex-direction:column;gap:6px}
 .kicker{font:600 10px/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;color:${t.muted}}
 h1{font:700 26px/1 Impact,"Arial Narrow Bold","Arial Narrow",sans-serif;text-transform:uppercase;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

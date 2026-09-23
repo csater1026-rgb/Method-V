@@ -32,7 +32,7 @@ export const viewport: Viewport = {
   // Draw under the home indicator; the tab bar and header pad themselves with safe-area insets.
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f3eee2" },
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
     { media: "(prefers-color-scheme: dark)", color: "#121814" },
   ],
 };

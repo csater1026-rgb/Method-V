@@ -1,7 +1,7 @@
 // A colored circle with the builder's first letter. Photo uploads come later.
 
-// Soft tones that sit with sage and cream in both themes; the letter is always dark.
-const COLORS = ["#a8c09e", "#e6dcc4", "#d9b38c", "#9fc3cf", "#c7b6d6", "#e2a597", "#c3cf94"];
+// Soft tones that sit with sage and white in both themes; the letter is always dark.
+const COLORS = ["#a8c09e", "#d7dfd9", "#d9b38c", "#9fc3cf", "#c7b6d6", "#e2a597", "#c3cf94"];
 
 function colorFor(username: string): string {
   let hash = 0;

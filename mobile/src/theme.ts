@@ -1,6 +1,6 @@
 import { useColorScheme } from "react-native";
 
-// Same sage-and-cream palette as the website (src/app/globals.css), dark and
+// Same sage-and-white palette as the website (src/app/globals.css), dark and
 // light. The app follows the phone's setting.
 export const palettes = {
   dark: {
@@ -8,7 +8,7 @@ export const palettes = {
     surface: "#19211b",
     surface2: "#222c25",
     line: "#34413a",
-    ink: "#efe8d8",
+    ink: "#ffffff",
     muted: "#a3ab9d",
     accent: "#a8c09e",
     accentInk: "#112014",
@@ -17,14 +17,14 @@ export const palettes = {
     danger: "#f08c78",
   },
   light: {
-    bg: "#f3eee2",
-    surface: "#fbf8f1",
-    surface2: "#e9e2d2",
-    line: "#d6cdb9",
+    bg: "#ffffff",
+    surface: "#ffffff",
+    surface2: "#eef1ee",
+    line: "#dde2dd",
     ink: "#1e2a21",
     muted: "#5c6757",
     accent: "#4a6a4e",
-    accentInk: "#f7f2e7",
+    accentInk: "#ffffff",
     accentEdge: "#2f4833",
     heart: "#c4533f",
     danger: "#b2412f",
