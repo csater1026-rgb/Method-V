@@ -12,6 +12,7 @@ import { GrowPanel } from "@/components/GrowPanel";
 import { Updates } from "@/components/Updates";
 import { LikeButton } from "@/components/LikeButton";
 import { ShareButton } from "@/components/ShareButton";
+import { ShareKit } from "@/components/ShareKit";
 import { CategoryChip, Chip, PricingStage, RoleTags } from "@/components/Tags";
 import { appStatus, getApp, getComments, getFeedbackPanel, getUpdates, getViewer, isFollowing } from "@/lib/data";
 import { formatCount, formatDuration, timeAgo } from "@/lib/format";
@@ -151,7 +152,9 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
             status={status}
             credits={viewer?.credits ?? 30}
             preview={!isSupabaseConfigured}
-          />
+          >
+            <ShareKit slug={app.slug} name={app.name} tagline={app.tagline} />
+          </GrowPanel>
         )}
 
         <FeedbackPanel panel={feedbackPanel} app={{ id: app.id, slug: app.slug, name: app.name }} />

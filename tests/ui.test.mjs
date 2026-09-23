@@ -241,6 +241,28 @@ await run("build in public", desktop, async (page) => {
   ok((await page.getByRole("region", { name: "Updates" }).locator("li").count()) === 2, "profile shows the builder's updates");
 });
 
+{
+  const res = await fetch(BASE + "/badge/noteflow");
+  const svg = await res.text();
+  ok(res.headers.get("content-type").startsWith("image/svg+xml") && svg.includes("METHOD V") && svg.includes("412 tries"), "badge is an SVG with the app's tries");
+  ok((await fetch(BASE + "/badge/nope")).status === 404, "badge for an unknown app is 404");
+  ok((await (await fetch(BASE + "/badge/noteflow?theme=light")).text()).includes("#fbf8f1"), "light badge");
+}
+
+await run("share kit", desktop, async (page) => {
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.goto(BASE + "/apps/noteflow");
+  const grow = page.getByRole("region", { name: "Grow" });
+  const badge = grow.getByRole("img", { name: "Try NoteFlow on Method V" });
+  await badge.scrollIntoViewIfNeeded();
+  ok(await badge.evaluate((img) => img.complete && img.naturalWidth > 0), "badge preview loads");
+  await grow.getByRole("button", { name: "Copy Markdown" }).click();
+  const md = await page.evaluate(() => navigator.clipboard.readText());
+  ok(md.startsWith("[![Try NoteFlow on Method V](http") && md.endsWith("/apps/noteflow)"), `Markdown snippet links to the app page (${md})`);
+  ok((await grow.getByRole("link", { name: "Post on X" }).getAttribute("href")).startsWith("https://x.com/intent/post?text=NoteFlow"), "Post on X is prefilled");
+  await grow.screenshot({ path: OUT + "share-kit.png" });
+});
+
 await run("tester passport", desktop, async (page) => {
   await page.goto(BASE + "/u/marco_ships");
   const passport = page.getByRole("region", { name: "Tester Passport" });
