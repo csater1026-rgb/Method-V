@@ -47,7 +47,7 @@ const desktop = { width: 1280, height: 860 };
 await run("feed (phone)", phone, async (page) => {
   await page.goto(BASE + "/");
   ok((await page.locator("article").count()) === 4, "feed shows 4 sample Drops");
-  ok(await page.getByText("Demo mode").isVisible(), "demo banner visible");
+  ok(await page.getByText("Demo mode · sample apps").isVisible(), "demo banner visible");
   const feed = page.getByTestId("drop-feed");
   const box = await feed.boundingBox();
   const tabs = await page.getByRole("navigation", { name: "Main" }).boundingBox();
@@ -99,7 +99,7 @@ await run("browse", desktop, async (page) => {
   await page.waitForURL(/q=palette/);
   ok((await page.locator("main article").count()) === 1, "search finds PalettePal");
   await page.goto(BASE + "/browse?stack=supabase&sort=tried");
-  const names = await page.locator("main article h2, main article a.text-lg").allTextContents();
+  const names = await page.locator("main article a.display").allTextContents();
   ok(names.join(",") === "NoteFlow,QuizPop", `stack filter + most tried sort (${names.join(",")})`);
   await page.goto(BASE + "/browse?category=finance&stage=idea");
   ok((await page.locator("main article").count()) === 1, "category + stage filter");

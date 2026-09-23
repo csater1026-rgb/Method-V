@@ -16,8 +16,9 @@ export async function Nav() {
     <>
       <header className="sticky top-0 z-30 border-b border-line bg-bg/90 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-2 px-3 sm:gap-3 sm:px-4">
-          <Link href="/" className="flex shrink-0 items-center gap-1.5 text-lg font-black tracking-tight">
-            Method <span className="rounded-md bg-accent px-1.5 text-accent-ink">V</span>
+          <Link href="/" aria-label="Method V home" className="display flex shrink-0 items-center gap-1 text-[27px]">
+            Method
+            <span className="inline-block -skew-x-12 bg-accent px-1.5 pt-0.5 text-accent-ink">V</span>
           </Link>
 
           <NavLinks />

@@ -15,7 +15,7 @@ export default async function SettingsPage() {
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-8">
-      <h1 className="text-3xl font-black tracking-tight">Edit profile</h1>
+      <h1 className="display rise text-6xl">Edit profile</h1>
       <p className="mt-1 text-muted">Tell people what you build and what you&apos;re looking for.</p>
       <ProfileForm profile={profile} />
     </div>

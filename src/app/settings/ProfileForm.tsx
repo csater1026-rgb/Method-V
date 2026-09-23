@@ -32,7 +32,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
           {ROLES.map((r) => (
             <label
               key={r.slug}
-              className="flex cursor-pointer items-center gap-2 rounded-full border border-line bg-surface px-3 py-1.5 text-sm has-[:checked]:border-accent has-[:checked]:bg-accent/10"
+              className="flex cursor-pointer items-center gap-2 rounded-md border border-line bg-surface px-3 py-2 text-sm has-[:checked]:border-accent has-[:checked]:bg-accent/10"
             >
               <input
                 type="checkbox"

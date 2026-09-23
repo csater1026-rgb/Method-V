@@ -35,7 +35,7 @@ export default async function ProfilePage({ params }: PageProps<"/u/[username]">
         <div className="flex min-w-0 flex-1 flex-col gap-3">
           <div className="flex flex-wrap items-center gap-3">
             <div>
-              <h1 className="text-3xl font-black tracking-tight">{profile.display_name || `@${profile.username}`}</h1>
+              <h1 className="display text-6xl break-words">{profile.display_name || `@${profile.username}`}</h1>
               <p className="text-muted">@{profile.username}</p>
             </div>
             <div className="sm:ml-auto">
@@ -95,11 +95,11 @@ export default async function ProfilePage({ params }: PageProps<"/u/[username]">
         </div>
       </section>
 
-      <h2 className="mt-10 text-xl font-bold">Apps</h2>
+      <h2 className="display mt-12 text-4xl">Apps</h2>
       {apps.length > 0 ? (
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {apps.map((app) => (
-            <AppCard key={app.id} app={app} showOwner={false} />
+          {apps.map((app, i) => (
+            <AppCard key={app.id} app={app} showOwner={false} index={i} />
           ))}
         </div>
       ) : (

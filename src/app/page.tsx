@@ -28,14 +28,14 @@ export default async function DropsPage({ searchParams }: PageProps<"/">) {
   return (
     <div className="relative">
       <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-col items-center gap-2 p-3">
-        <nav aria-label="Feed" className="pointer-events-auto flex gap-1 rounded-full bg-black/60 p-1 backdrop-blur">
+        <nav aria-label="Feed" className="pointer-events-auto flex gap-4 drop-shadow-[0_1px_6px_rgb(0_0_0/0.7)]">
           {TABS.map((t) => (
             <Link
               key={t.slug}
               href={feedHref(t.slug, category)}
               aria-current={t.slug === tab ? "page" : undefined}
-              className={`rounded-full px-3 py-1 text-sm font-semibold ${
-                t.slug === tab ? "bg-ink text-bg" : "text-ink/80 hover:text-ink"
+              className={`display px-0.5 pb-1 text-[22px] transition ${
+                t.slug === tab ? "text-ink shadow-[inset_0_-3px_0_var(--color-accent)]" : "text-ink/55 hover:text-ink"
               }`}
             >
               {t.label}
@@ -67,8 +67,8 @@ function CategoryLink({ href, active, label }: { href: string; active: boolean; 
     <Link
       href={href}
       aria-current={active ? "page" : undefined}
-      className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium backdrop-blur ${
-        active ? "bg-accent text-accent-ink" : "bg-black/50 text-ink/80 hover:text-ink"
+      className={`shrink-0 rounded-md px-2 py-1 font-mono text-[10.5px] font-medium tracking-wide uppercase backdrop-blur ${
+        active ? "bg-accent text-accent-ink" : "bg-black/55 text-ink/80 hover:text-ink"
       }`}
     >
       {label}
@@ -95,7 +95,7 @@ function EmptyFeed({ tab, signedIn, filtered }: { tab: FeedTab; signedIn: boolea
 
   return (
     <div className="flex h-[calc(100dvh-var(--chrome)-var(--tabbar))] flex-col items-center justify-center gap-3 px-6 pt-24 text-center">
-      <h1 className="text-2xl font-black">{title}</h1>
+      <h1 className="display text-5xl">{title}</h1>
       <p className="max-w-sm text-muted">{body}</p>
       <Link href={action.href} className="btn-accent mt-2">
         {action.label}

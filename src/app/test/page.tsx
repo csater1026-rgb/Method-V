@@ -16,7 +16,7 @@ export default async function TestPage() {
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8">
-      <h1 className="text-3xl font-black tracking-tight">Test &amp; earn</h1>
+      <h1 className="display rise text-6xl sm:text-7xl">Test &amp; earn</h1>
       <p className="mt-1 max-w-2xl text-muted">
         These builders want real feedback. Try their app, tell them what worked and what didn&apos;t, and earn credits you
         can spend to get testers for your own app.
@@ -35,7 +35,7 @@ export default async function TestPage() {
       </ol>
 
       <div className="mt-8 flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-xl font-bold">Waiting for testers</h2>
+        <h2 className="display text-4xl">Waiting for testers</h2>
         {viewer ? (
           <Link href="/credits" className="text-sm text-muted hover:text-ink">
             You have <span className="font-semibold text-ink">⚡{viewer.credits}</span> · history
@@ -49,11 +49,11 @@ export default async function TestPage() {
 
       {queue.length > 0 ? (
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {queue.map((app) => (
+          {queue.map((app, i) => (
             <div key={app.id} className="flex flex-col gap-2">
-              <AppCard app={app} />
+              <AppCard app={app} index={i} />
               <div className="flex items-center justify-between gap-2 px-1 text-sm">
-                <span className="font-semibold text-accent">
+                <span className="font-mono text-xs font-semibold text-accent">
                   ⚡{CREDITS.feedbackReward} · {app.spots_left} {app.spots_left === 1 ? "spot" : "spots"} left
                 </span>
                 <Link href={`/apps/${app.slug}#feedback`} className="btn-ghost px-3 py-1.5">
@@ -80,11 +80,9 @@ export default async function TestPage() {
 
 function Step({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
   return (
-    <li className="rounded-2xl border border-line bg-surface p-4">
-      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent text-sm font-bold text-accent-ink">
-        {n}
-      </span>
-      <h3 className="mt-3 font-bold">{title}</h3>
+    <li className="rise rounded-xl border border-line bg-surface p-4" style={{ "--i": n } as React.CSSProperties}>
+      <span className="font-mono text-xs text-accent">0{n} /</span>
+      <h3 className="display mt-2 text-3xl">{title}</h3>
       <p className="mt-1 text-sm text-muted">{children}</p>
     </li>
   );

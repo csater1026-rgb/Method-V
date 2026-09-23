@@ -36,7 +36,7 @@ export default async function BrowsePage({ searchParams }: PageProps<"/browse">)
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8">
-      <h1 className="text-3xl font-black tracking-tight">Browse apps</h1>
+      <h1 className="display rise text-6xl sm:text-7xl">Browse apps</h1>
       <p className="mt-1 text-muted">Every app here has a live link and a 60-second Drop.</p>
 
       <nav aria-label="Categories" className="no-scrollbar mt-6 flex gap-1.5 overflow-x-auto pb-1">
@@ -102,8 +102,8 @@ export default async function BrowsePage({ searchParams }: PageProps<"/browse">)
 
       {apps.length > 0 ? (
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {apps.map((app) => (
-            <AppCard key={app.id} app={app} />
+          {apps.map((app, i) => (
+            <AppCard key={app.id} app={app} index={i} />
           ))}
         </div>
       ) : (
@@ -123,8 +123,8 @@ function CategoryTab({ href, active, label }: { href: string; active: boolean; l
     <Link
       href={href}
       aria-current={active ? "page" : undefined}
-      className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-medium ${
-        active ? "bg-accent text-accent-ink" : "bg-surface text-muted hover:text-ink"
+      className={`shrink-0 rounded-md border px-2.5 py-1.5 font-mono text-[11px] font-medium tracking-wide uppercase ${
+        active ? "border-accent bg-accent text-accent-ink" : "border-line bg-surface text-muted hover:text-ink"
       }`}
     >
       {label}

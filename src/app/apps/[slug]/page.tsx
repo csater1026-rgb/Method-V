@@ -36,7 +36,7 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
   return (
     <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-8 lg:grid-cols-[minmax(0,360px)_1fr]">
       <div className="mx-auto w-full max-w-[360px]">
-        <div className="relative aspect-[9/16] overflow-hidden rounded-2xl border border-line bg-surface">
+        <div className="relative aspect-[9/16] overflow-hidden rounded-xl border border-line bg-surface">
           {app.drop?.video_url ? (
             <video
               src={app.drop.video_url}
@@ -50,7 +50,7 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
             <DropPlaceholder name={app.name} category={app.category} />
           )}
           {app.drop && (
-            <span className="absolute top-3 left-3 rounded-full bg-black/50 px-2 py-0.5 font-mono text-xs backdrop-blur">
+            <span className="absolute top-3 left-3 rounded-md bg-black/55 px-2 py-0.5 font-mono text-[11px] backdrop-blur">
               {formatDuration(app.drop.duration_seconds)}
             </span>
           )}
@@ -70,7 +70,7 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
             <CategoryChip category={app.category} />
             <PricingStage pricing={app.pricing} stage={app.stage} />
           </div>
-          <h1 className="mt-3 text-4xl font-black tracking-tight">{app.name}</h1>
+          <h1 className="display mt-3 text-7xl break-words sm:text-8xl">{app.name}</h1>
           <p className="mt-1 text-lg text-muted">{app.tagline}</p>
           <p className="mt-1 text-sm text-muted">Posted {timeAgo(app.created_at)}</p>
         </div>
@@ -117,7 +117,7 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
           </div>
         )}
 
-        <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-line bg-surface p-4">
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-line bg-surface p-4">
           <Link href={`/u/${app.owner.username}`} className="flex items-center gap-3">
             <Avatar username={app.owner.username} name={app.owner.display_name} size={44} />
             <div>
@@ -143,10 +143,10 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
 
 function Stat({ label, value, note }: { label: string; value: string; note?: string }) {
   return (
-    <div className="rounded-xl border border-line bg-surface px-3 py-3">
-      <dt className="text-xs text-muted">{label}</dt>
-      <dd className="mt-0.5 text-lg font-bold">{value}</dd>
-      {note && <dd className="text-xs text-muted">{note}</dd>}
+    <div className="rounded-lg border border-line bg-surface px-3 py-3">
+      <dt className="font-mono text-[10px] tracking-wide text-muted uppercase">{label}</dt>
+      <dd className="mt-1 font-mono text-xl font-bold">{value}</dd>
+      {note && <dd className="mt-0.5 text-xs text-muted">{note}</dd>}
     </div>
   );
 }

@@ -40,7 +40,7 @@ export function Comments({ dropId, appSlug, comments, viewerId }: Props) {
 
   return (
     <section id="comments" className="scroll-mt-20">
-      <h2 className="text-lg font-bold">
+      <h2 className="display text-4xl">
         Comments <span className="text-muted">{comments.length}</span>
       </h2>
 

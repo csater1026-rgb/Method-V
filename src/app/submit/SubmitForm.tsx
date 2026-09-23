@@ -131,7 +131,7 @@ export function SubmitForm({ userId }: { userId: string | null }) {
     <form onSubmit={onSubmit} className="mt-6 grid gap-6 md:grid-cols-[240px_1fr]">
       <div className="flex flex-col gap-2">
         <span className="text-sm font-medium">Your Drop</span>
-        <label className="relative flex aspect-[9/16] cursor-pointer flex-col items-center justify-center gap-2 overflow-hidden rounded-2xl border border-dashed border-line bg-surface text-center text-sm text-muted hover:border-accent">
+        <label className="relative flex aspect-[9/16] cursor-pointer flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border border-dashed border-line bg-surface text-center text-sm text-muted hover:border-accent">
           {video ? (
             <video src={video.url} className="absolute inset-0 h-full w-full object-cover" muted playsInline autoPlay loop />
           ) : (

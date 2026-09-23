@@ -1,6 +1,6 @@
 // A colored circle with the builder's first letter. Photo uploads come later.
 
-const COLORS = ["#c8ff3d", "#7cc4ff", "#ff9f5a", "#c49bff", "#5de0b5", "#ff7aa8", "#ffd84d"];
+const COLORS = ["#ff5b1f", "#f1ece2", "#ffb347", "#7fd1b9", "#e8c547", "#ff8fab", "#9ecbff"];
 
 function colorFor(username: string): string {
   let hash = 0;
@@ -13,8 +13,8 @@ export function Avatar({ username, name, size = 40 }: { username: string; name?:
   return (
     <span
       aria-hidden
-      className="inline-flex shrink-0 items-center justify-center rounded-full font-bold text-accent-ink"
-      style={{ width: size, height: size, background: colorFor(username), fontSize: size * 0.42 }}
+      className="display inline-flex shrink-0 items-center justify-center rounded-full pt-[0.08em] text-accent-ink"
+      style={{ width: size, height: size, background: colorFor(username), fontSize: size * 0.56 }}
     >
       {letter}
     </span>

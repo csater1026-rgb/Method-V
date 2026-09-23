@@ -16,19 +16,19 @@ export default async function CreditsPage() {
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-8">
-      <h1 className="text-3xl font-black tracking-tight">Credits</h1>
+      <h1 className="display rise text-6xl">Credits</h1>
 
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-line bg-surface p-5">
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-line bg-surface p-5">
         <div>
           <p className="text-sm text-muted">Your balance</p>
-          <p className="text-4xl font-black">⚡{viewer?.credits ?? 0}</p>
+          <p className="font-mono text-5xl font-bold"><span className="text-accent">⚡</span>{viewer?.credits ?? 0}</p>
         </div>
         <Link href="/test" className="btn-accent">
           Earn more in Test &amp; earn
         </Link>
       </div>
 
-      <h2 className="mt-8 text-lg font-bold">How credits work</h2>
+      <h2 className="display mt-10 text-4xl">How credits work</h2>
       <ul className="mt-2 flex flex-col gap-1.5 text-sm text-ink/90">
         <li>• Everyone starts with ⚡{CREDITS.welcome}.</li>
         <li>
@@ -44,11 +44,11 @@ export default async function CreditsPage() {
 
       {viewer && (
         <>
-          <h2 className="mt-8 text-lg font-bold">History</h2>
+          <h2 className="display mt-10 text-4xl">History</h2>
           {history.length === 0 ? (
             <p className="mt-2 text-sm text-muted">Nothing yet.</p>
           ) : (
-            <ul className="mt-2 divide-y divide-line rounded-2xl border border-line bg-surface">
+            <ul className="mt-2 divide-y divide-line rounded-xl border border-line bg-surface">
               {history.map((e) => (
                 <li key={e.id} className="flex items-center gap-3 px-4 py-3 text-sm">
                   <div className="min-w-0 flex-1">

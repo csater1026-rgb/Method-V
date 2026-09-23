@@ -36,7 +36,7 @@ export function MobileTabs({ profileHref }: { profileHref: string }) {
               key={tab.label}
               href={tab.href}
               aria-label="Post a Drop"
-              className="flex h-9 w-12 items-center justify-center rounded-xl bg-accent text-2xl leading-none font-bold text-accent-ink"
+              className="flex h-9 w-12 -skew-x-6 items-center justify-center rounded-md bg-accent text-2xl leading-none font-bold text-accent-ink shadow-[0_3px_0_0_#9c3004] active:translate-y-px"
             >
               +
             </Link>
@@ -47,7 +47,7 @@ export function MobileTabs({ profileHref }: { profileHref: string }) {
             key={tab.label}
             href={tab.href}
             aria-current={active ? "page" : undefined}
-            className={`flex w-14 flex-col items-center gap-0.5 text-[11px] font-medium ${active ? "text-ink" : "text-muted"}`}
+            className={`flex w-14 flex-col items-center gap-0.5 text-[11px] font-semibold ${active ? "text-accent" : "text-muted"}`}
           >
             <svg
               viewBox="0 0 24 24"

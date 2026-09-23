@@ -19,11 +19,11 @@ export function FeedbackPanel({ panel, app }: { panel: Panel; app: AppRef }) {
   const open = panel.request && panel.request.slots_filled < panel.request.slots_total ? panel.request : null;
 
   return (
-    <section id="feedback" className="scroll-mt-20 rounded-2xl border border-line bg-surface p-4 sm:p-5">
+    <section id="feedback" className="scroll-mt-20 rounded-xl border border-line bg-surface p-4 sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg font-bold">Feedback</h2>
+        <h2 className="display text-4xl">Feedback</h2>
         {open && panel.mode !== "owner" && (
-          <span className="rounded-full bg-accent/15 px-2.5 py-1 text-xs font-semibold text-accent">
+          <span className="tag-accent">
             ⚡ Earn {CREDITS.feedbackReward} credits · {open.slots_total - open.slots_filled} spots left
           </span>
         )}
@@ -128,7 +128,7 @@ function FeedbackForm({ app, open }: { app: AppRef; open: TestRequest | null }) 
           {WOULD_USE.map((o) => (
             <label
               key={o.slug}
-              className="cursor-pointer rounded-full border border-line px-4 py-1.5 text-sm has-[:checked]:border-accent has-[:checked]:bg-accent has-[:checked]:text-accent-ink"
+              className="cursor-pointer rounded-md border border-line px-4 py-2 text-sm font-semibold has-[:checked]:border-accent has-[:checked]:bg-accent has-[:checked]:text-accent-ink"
             >
               <input
                 type="radio"
@@ -215,8 +215,8 @@ function OwnerView({
 
   return (
     <div className="mt-3 flex flex-col gap-5">
-      <div className="rounded-xl border border-line bg-bg/40 p-4">
-        <h3 className="font-semibold">Get testers</h3>
+      <div className="rounded-lg border border-line bg-bg/50 p-4">
+        <h3 className="display text-2xl">Get testers</h3>
         {open ? (
           <>
             <p className="mt-1 text-sm text-muted">
@@ -294,7 +294,7 @@ function FeedbackItem({ item, appSlug, canMarkHelpful }: { item: Feedback; appSl
   }
 
   return (
-    <article className="mt-3 rounded-xl border border-line bg-bg/40 p-4 text-sm">
+    <article className="mt-3 rounded-lg border border-line bg-bg/50 p-4 text-sm">
       <header className="flex flex-wrap items-center gap-2">
         <Link href={`/u/${item.user.username}`} className="flex items-center gap-2 font-semibold hover:underline">
           <Avatar username={item.user.username} name={item.user.display_name} size={24} />@{item.user.username}
@@ -303,7 +303,7 @@ function FeedbackItem({ item, appSlug, canMarkHelpful }: { item: Feedback; appSl
           {"★".repeat(item.rating)}
           <span className="text-line">{"★".repeat(5 - item.rating)}</span>
         </span>
-        <span className="rounded-full bg-surface-2 px-2 py-0.5 text-xs">Would use: {labelFor(WOULD_USE, item.would_use)}</span>
+        <span className="tag">Would use: {labelFor(WOULD_USE, item.would_use)}</span>
         <span className="ml-auto text-xs text-muted" suppressHydrationWarning>
           {timeAgo(item.created_at)}
         </span>

@@ -1,19 +1,41 @@
 @import "tailwindcss";
 
+/*
+ * Method V look: drop culture meets the late-night code editor.
+ * Warm carbon black, paper-cream ink, one safety-orange signal color.
+ * Big Shoulders (condensed poster caps) for display, Schibsted Grotesk for
+ * reading, Martian Mono for numbers, timers, credits and tags.
+ */
 @theme {
-  --color-bg: #0a0a0c;
-  --color-surface: #141418;
-  --color-surface-2: #1d1d23;
-  --color-line: #2b2b34;
-  --color-ink: #f4f4f5;
-  --color-muted: #a1a1aa;
-  --color-accent: #c8ff3d;
-  --color-accent-ink: #0a0a0c;
-  --color-heart: #ff4d6d;
-  --color-danger: #ff6b6b;
+  --color-bg: #0e0d0b;
+  --color-surface: #171613;
+  --color-surface-2: #22201c;
+  --color-line: #36322b;
+  --color-ink: #f1ece2;
+  --color-muted: #a8a194;
+  --color-accent: #ff5b1f;
+  --color-accent-ink: #140b06;
+  --color-heart: #ff3d6e;
+  --color-danger: #ff7a6b;
 
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-poster), var(--font-body), sans-serif;
+  --font-mono: var(--font-code), ui-monospace, monospace;
+
+  --animate-rise: rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  --animate-pop: pop 0.35s cubic-bezier(0.3, 1.6, 0.5, 1);
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+  }
+  @keyframes pop {
+    40% {
+      transform: scale(1.3);
+    }
+  }
 }
 
 :root {
@@ -32,28 +54,81 @@ body {
   background: var(--color-bg);
   color: var(--color-ink);
   padding-bottom: var(--tabbar);
+  -webkit-tap-highlight-color: transparent;
 }
 
-/* Shared looks for form fields and buttons. */
+/* Atmosphere: an editor-style dot grid, a signal glow up top and a little
+   grain. Drawn once on a fixed layer so scrolling stays cheap on phones. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgb(255 91 31 / 0.16), transparent 70%),
+    radial-gradient(circle at 1px 1px, rgb(241 236 226 / 0.06) 1px, transparent 0) 0 0 / 22px 22px,
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='.05'/></svg>");
+}
+
+::selection {
+  background: var(--color-accent);
+  color: var(--color-accent-ink);
+}
+
+/* Poster headline: condensed caps. */
+@utility display {
+  font-family: var(--font-display);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  line-height: 0.92;
+}
+
+/* Small mono label, like a price tag or a line of code. */
+@utility tag {
+  @apply inline-flex items-center gap-1 rounded-[4px] border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-[10.5px] font-medium tracking-wide text-muted uppercase;
+}
+
+@utility tag-accent {
+  @apply tag border-accent bg-accent text-accent-ink;
+}
+
 @utility field {
-  @apply w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink outline-none placeholder:text-muted/70 focus:border-accent;
+  @apply w-full rounded-md border border-line bg-surface px-3 py-2.5 text-[15px] text-ink outline-none placeholder:text-muted/60 focus:border-accent focus:ring-2 focus:ring-accent/25;
 }
 
 @utility btn {
-  @apply inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
+  @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-bold transition select-none active:translate-y-px disabled:cursor-not-allowed disabled:opacity-45;
 }
 
 @utility btn-accent {
-  @apply btn bg-accent text-accent-ink hover:brightness-95;
+  @apply btn bg-accent text-accent-ink shadow-[0_3px_0_0_#9c3004] hover:brightness-105 active:shadow-[0_1px_0_0_#9c3004];
 }
 
 @utility btn-ghost {
-  @apply btn border border-line bg-surface text-ink hover:bg-surface-2;
+  @apply btn border border-line bg-surface text-ink hover:border-muted/60 hover:bg-surface-2;
 }
 
 @utility no-scrollbar {
   scrollbar-width: none;
   &::-webkit-scrollbar {
     display: none;
+  }
+}
+
+/* Staggered entrance for lists: set --i on each item. */
+@utility rise {
+  animation: var(--animate-rise);
+  animation-delay: calc(var(--i, 0) * 55ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 1ms !important;
   }
 }

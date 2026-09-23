@@ -1,20 +1,16 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Big_Shoulders, Martian_Mono, Schibsted_Grotesk } from "next/font/google";
 
 import { Nav } from "@/components/Nav";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+// Poster caps for headlines, a readable grotesk for everything else, and a
+// code-editor mono for numbers, timers, credits and tags.
+const poster = Big_Shoulders({ variable: "--font-poster", subsets: ["latin"], axes: ["opsz"] });
+const body = Schibsted_Grotesk({ variable: "--font-body", subsets: ["latin"] });
+const code = Martian_Mono({ variable: "--font-code", subsets: ["latin"], axes: ["wdth"] });
 
 export const metadata: Metadata = {
   title: {
@@ -26,12 +22,12 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0a0a0c",
+  themeColor: "#0e0d0b",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+    <html lang="en" className={`${poster.variable} ${body.variable} ${code.variable} h-full antialiased`}>
       {/* --chrome is the height of everything above the page, so the Drops feed can fill the rest. */}
       <body
         className="flex min-h-full flex-col font-sans"
@@ -39,8 +35,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       >
         <Nav />
         {!isSupabaseConfigured && (
-          <p className="h-7 truncate border-b border-line bg-surface px-4 text-center text-xs leading-7 text-muted">
-            Demo mode · sample apps only. Connect Supabase to post.
+          <p className="h-7 truncate border-b border-line bg-surface/80 px-4 text-center font-mono text-[10.5px] leading-7 tracking-wide text-muted uppercase">
+            Demo mode · sample apps · connect Supabase to post
           </p>
         )}
         <main className="flex flex-1 flex-col">{children}</main>

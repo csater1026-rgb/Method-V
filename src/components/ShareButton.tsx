@@ -31,7 +31,7 @@ export function ShareButton({ path, title, layout = "rail" }: { path: string; ti
       aria-label="Share"
       className={
         layout === "rail"
-          ? "flex flex-col items-center gap-1 text-xs font-semibold text-ink drop-shadow"
+          ? "flex flex-col items-center gap-1 font-mono text-[11px] font-semibold text-ink drop-shadow"
           : "btn-ghost"
       }
     >

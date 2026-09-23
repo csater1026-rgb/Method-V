@@ -5,14 +5,7 @@ export function RoleTags({ roles, className = "" }: { roles: string[]; className
   return (
     <ul className={`flex flex-wrap gap-1.5 ${className}`}>
       {roles.map((r) => (
-        <li
-          key={r}
-          className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-            r === "hiring" || r === "looking_for_work"
-              ? "bg-accent/15 text-accent"
-              : "bg-surface-2 text-muted"
-          }`}
-        >
+        <li key={r} className={r === "hiring" || r === "looking_for_work" ? "tag border-accent/60 text-accent" : "tag"}>
           {labelFor(ROLES, r)}
         </li>
       ))}
@@ -21,15 +14,7 @@ export function RoleTags({ roles, className = "" }: { roles: string[]; className
 }
 
 export function Chip({ children, tone = "plain" }: { children: React.ReactNode; tone?: "plain" | "accent" }) {
-  return (
-    <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-        tone === "accent" ? "bg-accent text-accent-ink" : "bg-surface-2 text-muted"
-      }`}
-    >
-      {children}
-    </span>
-  );
+  return <span className={tone === "accent" ? "tag-accent" : "tag"}>{children}</span>;
 }
 
 export function CategoryChip({ category }: { category: string }) {

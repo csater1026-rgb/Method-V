@@ -1,14 +1,40 @@
 // The video area of a Drop. Sample Drops in demo mode have no video, so they
-// get a styled placeholder instead.
+// get a striped "drop poster" instead. In the feed the caption already shows
+// the name, so the poster keeps it as a faint watermark.
 
 import { CATEGORIES, labelFor } from "@/lib/constants";
 
-export function DropPlaceholder({ name, category }: { name: string; category: string }) {
+export function DropPlaceholder({
+  name,
+  category,
+  variant = "card",
+}: {
+  name: string;
+  category: string;
+  variant?: "card" | "feed";
+}) {
+  const feed = variant === "feed";
   return (
-    <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-[radial-gradient(circle_at_30%_20%,#2c3a12,transparent_55%),radial-gradient(circle_at_80%_80%,#23163f,transparent_50%)] bg-surface p-6 text-center">
-      <span className="text-xs uppercase tracking-[0.2em] text-muted">{labelFor(CATEGORIES, category)}</span>
-      <span className="text-4xl font-black tracking-tight">{name}</span>
-      <span className="rounded-full border border-line px-3 py-1 text-xs text-muted">Sample Drop · no video</span>
+    <div className="@container relative h-full w-full overflow-hidden bg-surface">
+      <div
+        aria-hidden
+        className="absolute inset-0 bg-[repeating-linear-gradient(135deg,transparent_0_14px,rgb(255_91_31/0.09)_14px_16px)]"
+      />
+      <div aria-hidden className="absolute -right-[20%] -bottom-[20%] h-[70%] w-[70%] rounded-full bg-accent/25 blur-3xl" />
+      <div className={`relative flex h-full flex-col justify-between p-4 ${feed ? "pt-36 pb-56" : ""}`}>
+        {feed ? (
+          <span />
+        ) : (
+          <div className="flex flex-wrap gap-1.5">
+            <span className="tag-accent">{labelFor(CATEGORIES, category)}</span>
+            <span className="tag bg-bg/60">Sample drop</span>
+          </div>
+        )}
+        <p aria-hidden={feed} className={`display ${feed ? "overflow-hidden text-[20cqw] whitespace-nowrap text-ink/10" : "text-[17cqw] break-words"}`}>
+          {name}
+        </p>
+        <p className="font-mono text-[10px] tracking-widest text-muted uppercase">Sample drop · no video</p>
+      </div>
     </div>
   );
 }

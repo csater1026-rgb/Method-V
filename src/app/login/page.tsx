@@ -16,7 +16,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
 
   return (
     <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center px-4 py-16">
-      <h1 className="text-3xl font-black tracking-tight">Sign in to Method V</h1>
+      <h1 className="display rise text-6xl">Sign in to Method V</h1>
       <p className="mt-2 text-muted">We&apos;ll email you a link. No password needed. New here? The same link creates your account.</p>
       {params.error === "link" && (
         <p className="mt-4 rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm">
