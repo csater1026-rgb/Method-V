@@ -6,6 +6,7 @@ import { Footer } from "@/components/Footer";
 import { ServiceWorker } from "@/components/InstallApp";
 import { Nav } from "@/components/Nav";
 import { SignInProvider } from "@/components/SignIn";
+import { TAGLINE } from "@/lib/constants";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
 import "./globals.css";
@@ -18,7 +19,7 @@ const code = Martian_Mono({ variable: "--font-code", subsets: ["latin"], axes: [
 
 export const metadata: Metadata = {
   title: {
-    default: "Method V — 60-second app demos",
+    default: `Method V — ${TAGLINE}`,
     template: "%s · Method V",
   },
   description:

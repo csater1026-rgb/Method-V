@@ -159,3 +159,6 @@ export const BRAND_LIMITS = { perPerson: 3 } as const;
 
 // Shortest password for email + password accounts (website and mobile app).
 export const MIN_PASSWORD = 8;
+
+// The Method V tagline: browser tab title, footer, install description.
+export const TAGLINE = "Real apps. Real builders. Real feedback.";

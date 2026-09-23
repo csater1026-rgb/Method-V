@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { TAGLINE } from "@/lib/constants";
+
 import { PixelCoderDetailed } from "./PixelCoder";
 
 // The masthead at the bottom of every page (except the full-screen Drops feed).
@@ -16,6 +18,7 @@ export function Footer() {
         <p className="display text-4xl">
           Method <span className="inline-block -skew-x-12 bg-accent px-1.5 text-accent-ink">V</span>
         </p>
+        <p className="font-mono text-[11px] tracking-widest text-muted uppercase">{TAGLINE}</p>
         <nav aria-label="Footer" className="mt-2 flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm text-muted">
           <Link href="/" className="hover:text-ink">Home</Link>
           <Link href="/drops" className="hover:text-ink">Drops</Link>

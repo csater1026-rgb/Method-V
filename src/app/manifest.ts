@@ -1,12 +1,14 @@
 import type { MetadataRoute } from "next";
 
+import { TAGLINE } from "@/lib/constants";
+
 // Makes Method V installable to the home screen on iPhone and Android, where
 // it opens full screen like an app.
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Method V",
     short_name: "Method V",
-    description: "60-second app demos from builders, designers and vibe coders.",
+    description: TAGLINE,
     id: "/",
     start_url: "/",
     scope: "/",

@@ -296,6 +296,8 @@ await run("pixel coder", phone, async (page) => {
   ok(running === "pc-float", "pixels drift away (animation running)");
   ok((await page.locator("header svg.pc-animated").count()) === 1, "pixel coder next to the logo");
   ok((await page.getByText(/Then try it/i).count()) === 0, "the old tagline is gone");
+  ok(await footer.getByText("Real apps. Real builders. Real feedback.").isVisible(), "the new tagline is under the footer logo");
+  ok((await page.title()).includes("Real apps. Real builders. Real feedback."), "and in the browser tab title");
   const coder = await footer.getByRole("img", { name: "A pixel builder coding at their desk" }).boundingBox();
   const pageHeight = await page.evaluate(() => document.documentElement.scrollHeight - parseFloat(getComputedStyle(document.body).paddingBottom));
   ok(coder.x < 16 && Math.abs(coder.y + coder.height - pageHeight) < 2, `big pixel coder sits in the bottom-left corner (x ${Math.round(coder.x)})`);
