@@ -132,11 +132,11 @@ Big brands won't sponsor small apps early on, but **small apps will sponsor each
 - Likes, comments and follows
 - The "Try it" button and link check
 
-**Phase 2: "Connect"**
-- Connect with a reason, then messaging
-- Q&A on each app
-- Similar-taste suggestions
-- A notifications system
+**Phase 2: "Connect"** ✅ built
+- Connect with a reason, then messaging ✅
+- Q&A on each app ✅
+- Similar-taste suggestions ✅
+- A notifications system ✅
 
 **Phase 3: "Grow"** (the difference maker)
 - Try-to-earn credits and structured feedback ✅ built

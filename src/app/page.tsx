@@ -4,9 +4,19 @@ import { AppCard } from "@/components/AppCard";
 import { Avatar } from "@/components/Avatar";
 import { Countdown } from "@/components/Countdown";
 import { FeaturedCard } from "@/components/FeaturedCard";
+import { Suggestions } from "@/components/Suggestions";
 import { Updates } from "@/components/Updates";
 import { CATEGORIES, CREDITS, isOneOf } from "@/lib/constants";
-import { getApps, getFeatured, getMyApps, getTestQueue, getUpcomingLaunches, getUpdates, getViewer } from "@/lib/data";
+import {
+  getApps,
+  getFeatured,
+  getMyApps,
+  getSuggestions,
+  getTestQueue,
+  getUpcomingLaunches,
+  getUpdates,
+  getViewer,
+} from "@/lib/data";
 
 // The home feed: Featured up top, then everybody's projects.
 
@@ -29,13 +39,14 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
   const category = isOneOf(CATEGORIES, params.category) ? params.category : undefined;
 
   const viewer = await getViewer();
-  const [featured, apps, queue, upcoming, followingUpdates, myApps] = await Promise.all([
+  const [featured, apps, queue, upcoming, followingUpdates, myApps, suggestions] = await Promise.all([
     getFeatured(),
     getApps({ category, sort: sort === "popular" ? "tried" : undefined }),
     getTestQueue(viewer),
     getUpcomingLaunches(),
     viewer ? getUpdates({ following: viewer, limit: 5 }) : Promise.resolve([]),
     getMyApps(viewer),
+    getSuggestions(viewer),
   ]);
   // Signed-in people see updates from who they follow; otherwise (or if that's empty) everyone's.
   const updates = followingUpdates.length > 0 ? followingUpdates : await getUpdates({ limit: 5 });
@@ -103,6 +114,8 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
           />
         </div>
       </section>
+
+      <Suggestions people={suggestions} signedIn={Boolean(viewer)} />
 
       {queue.length > 0 && (
         <Link

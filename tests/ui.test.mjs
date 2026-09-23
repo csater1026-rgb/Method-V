@@ -336,6 +336,14 @@ await run("q&a", desktop, async (page) => {
   await page.locator("#qa").screenshot({ path: OUT + "qa.png" });
 });
 
+await run("builders like you", phone, async (page) => {
+  await go(page, "/");
+  const s = page.getByRole("region", { name: "Builders like you" });
+  ok((await s.locator(":scope > ul > li").count()) === 2, "Home suggests builders");
+  ok((await s.locator(":scope > ul > li").first().textContent()).includes("In common: Design · React"), "cards say what you have in common");
+  await noSideScroll(page, "home with suggestions");
+});
+
 await run("tester passport", desktop, async (page) => {
   await go(page, "/u/marco_ships");
   const passport = page.getByRole("region", { name: "Tester Passport" });

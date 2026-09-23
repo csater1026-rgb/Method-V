@@ -38,6 +38,7 @@ import type {
   Profile,
   ProfileSummary,
   Question,
+  Suggestion,
   Passport,
   QueueItem,
   Swap,
@@ -966,5 +967,26 @@ export async function getQuestions(appId: string, viewer: Viewer | null): Promis
           b.vote_count - a.vote_count ||
           a.created_at.localeCompare(b.created_at),
       ),
+  }));
+}
+
+// ---------------------------------------------------------------------------
+// Builders like you
+// ---------------------------------------------------------------------------
+
+export async function getSuggestions(viewer: Viewer | null): Promise<Suggestion[]> {
+  if (!isSupabaseConfigured) {
+    return [
+      { ...toSummary(demoProfile("demo-june")), shared_categories: ["design"], shared_skills: ["React"] },
+      { ...toSummary(demoProfile("demo-marco")), shared_categories: ["education", "productivity"], shared_skills: [] },
+    ];
+  }
+  if (!viewer) return [];
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("suggest_builders", { p_limit: 8 });
+  return (data ?? []).map((r: Suggestion) => ({
+    ...toSummary(r),
+    shared_categories: r.shared_categories ?? [],
+    shared_skills: r.shared_skills ?? [],
   }));
 }

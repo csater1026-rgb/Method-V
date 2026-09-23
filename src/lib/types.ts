@@ -206,6 +206,8 @@ export type Question = {
   answers: Answer[];
 };
 
+export type Suggestion = ProfileSummary & { shared_categories: string[]; shared_skills: string[] };
+
 export type FeaturedReason = "featured" | "launch" | "boosted" | "hot";
 export type FeaturedApp = AppCard & { reason: FeaturedReason };
 
