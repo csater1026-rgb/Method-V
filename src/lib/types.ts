@@ -97,6 +97,8 @@ export type Feedback = {
   helpful_at: string | null;
   created_at: string;
   user: ProfileSummary;
+  // The tester's rank when the builder looks, so Trusted Testers show first.
+  user_rank: string;
 };
 
 export type FeedbackPanel =
@@ -112,6 +114,19 @@ export type CreditEvent = {
   reason: string;
   created_at: string;
   app: { slug: string; name: string } | null;
+};
+
+export type Passport = {
+  categories: Record<string, number>;
+  streak: number;
+};
+
+export type TopTester = {
+  user_id: string;
+  username: string;
+  display_name: string;
+  feedback_count: number;
+  helpful_count: number;
 };
 
 export type ActionResult = { ok: true } | { ok: false; error: string };

@@ -5,8 +5,9 @@ import { notFound } from "next/navigation";
 import { AppCard } from "@/components/AppCard";
 import { Avatar } from "@/components/Avatar";
 import { FollowButton } from "@/components/FollowButton";
+import { PassportCard } from "@/components/Passport";
 import { Chip, RoleTags } from "@/components/Tags";
-import { getProfile, getViewer } from "@/lib/data";
+import { getPassport, getProfile, getViewer } from "@/lib/data";
 import { formatCount } from "@/lib/format";
 
 export async function generateMetadata({ params }: PageProps<"/u/[username]">): Promise<Metadata> {
@@ -20,6 +21,7 @@ export default async function ProfilePage({ params }: PageProps<"/u/[username]">
   if (!result) notFound();
   const { profile, apps, isFollowing } = result;
   const isSelf = viewer?.id === profile.id;
+  const passport = await getPassport(profile.id);
 
   const links = [
     profile.website_url && { href: profile.website_url, label: hostnameOf(profile.website_url) },
@@ -94,6 +96,10 @@ export default async function ProfilePage({ params }: PageProps<"/u/[username]">
           )}
         </div>
       </section>
+
+      <div className="mt-8">
+        <PassportCard profile={profile} passport={passport} isSelf={isSelf} />
+      </div>
 
       <h2 className="display mt-12 text-4xl">Apps</h2>
       {apps.length > 0 ? (

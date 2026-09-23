@@ -240,5 +240,125 @@ ok(!!(await fails("authenticated", A, "update public.apps set featured_until = n
 await db.query("update public.apps set featured_until = now() + interval '7 days' where id = $1", [appId]);
 ok((await as("anon", null, "select id from public.apps where featured_until > now()")).rows.length === 1, "featured apps are public");
 
+// ---------------------------------------------------------------------------
+// Phase 3, part 2: passport, launches, boosts, updates, swaps
+// ---------------------------------------------------------------------------
+
+const rankOf = async (id) =>
+  (await db.query("select public.tester_rank(feedback_given_count, feedback_helpful_count) r from public.profiles where id = $1", [id])).rows[0].r;
+ok((await db.query("select public.tester_rank(4, 0) a, public.tester_rank(5, 0) b, public.tester_rank(15, 3) c, public.tester_rank(40, 10) d, public.tester_rank(100, 30) e, public.tester_rank(100, 29) f")).rows[0].f === "pro", "rank thresholds (100 given but 29 helpful is still Pro)");
+const r = (await db.query("select public.tester_rank(4, 0) a, public.tester_rank(5, 0) b, public.tester_rank(15, 3) c, public.tester_rank(40, 10) d, public.tester_rank(100, 30) e")).rows[0];
+ok(r.a === "new" && r.b === "scout" && r.c === "tester" && r.d === "pro" && r.e === "trusted", "ranks: new, scout, tester, pro, trusted");
+
+// A "Tester"-rank user earns 3 per paid feedback.
+const T = "66666666-6666-6666-6666-666666666666";
+await db.exec(`insert into auth.users (id) values ('${T}')`);
+await db.query("update public.profiles set feedback_given_count = 15, feedback_helpful_count = 3 where id = $1", [T]);
+ok((await rankOf(T)) === "tester", "profile reaches Tester rank");
+await as("authenticated", A, "select public.request_testers($1, 1)", [appId]);
+await as("authenticated", T, "insert into public.try_clicks (app_id, user_id) values ($1, $2)", [appId, T]);
+const before = await credits(T);
+const fbT = await as("authenticated", T, fbSql, [appId, T, "yes", 5, good, ""]);
+ok(fbT.rows[0].earned === 3 && (await credits(T)) === before + 3, "Tester rank earns 3 credits per paid feedback");
+
+// Weekly streak: 3 earlier weeks with feedback, then a 4th this week → +5.
+const S = "77777777-7777-7777-7777-777777777777";
+await db.exec(`insert into auth.users (id) values ('${S}')`);
+const makeApp = async (owner, slug) => {
+  const res = await db.query(
+    `insert into public.apps (owner_id, slug, name, tagline, url, category, link_checked_at) values ($1, $2, $2, 'x', 'https://example.com', 'games', now()) returning id`,
+    [owner, slug],
+  );
+  return res.rows[0].id;
+};
+for (let wk = 1; wk <= 3; wk++) {
+  const a = await makeApp(A, `streak-${wk}`);
+  await db.query(
+    `insert into public.feedback (app_id, user_id, would_use, rating, worked, created_at) values ($1, $2, 'yes', 4, $3, date_trunc('week', now()) - make_interval(weeks => $4) + interval '1 day')`,
+    [a, S, good, wk],
+  );
+}
+const s0 = await credits(S);
+const a4 = await makeApp(A, "streak-4");
+await as("authenticated", S, "insert into public.try_clicks (app_id, user_id) values ($1, $2)", [a4, S]);
+await as("authenticated", S, fbSql, [a4, S, "yes", 4, good, ""]);
+ok((await credits(S)) === s0 + 5, "4-week streak earns a +5 bonus");
+const a5 = await makeApp(A, "streak-5");
+await as("authenticated", S, "insert into public.try_clicks (app_id, user_id) values ($1, $2)", [a5, S]);
+await as("authenticated", S, fbSql, [a5, S, "yes", 4, good, ""]);
+ok((await credits(S)) === s0 + 5, "second feedback in the same week doesn't repeat the bonus");
+
+const passport = (await as("anon", null, "select public.tester_passport($1) p", [S])).rows[0].p;
+ok(passport.streak === 4 && passport.categories.games === 5 && passport.categories.productivity === undefined, `passport shows stamps per category and the streak (${JSON.stringify(passport)})`);
+const top = (await as("anon", null, "select * from public.top_testers(5)")).rows;
+ok(top.length > 0 && top.every((t) => !("worked" in t)), "top testers board is public and shows counts only");
+
+// Launch days
+ok(!!(await fails("authenticated", A, "select public.schedule_launch($1, now() + interval '10 minutes')", [appId])), "launch must be at least an hour away");
+ok(!!(await fails("authenticated", A, "select public.schedule_launch($1, now() + interval '40 days')", [appId])), "launch must be within 30 days");
+ok(!!(await fails("authenticated", B, "select public.schedule_launch($1, now() + interval '2 days')", [appId])), "can't schedule someone else's launch");
+await as("authenticated", A, "select public.schedule_launch($1, now() + interval '2 days')", [appId]);
+ok((await db.query("select launch_at > now() ok from public.apps where id = $1", [appId])).rows[0].ok, "builder schedules a launch day");
+ok(!!(await fails("authenticated", A, "update public.apps set launch_at = now() where id = $1", [appId])), "can't set launch_at directly");
+await as("authenticated", A, "select public.cancel_launch($1)", [appId]);
+ok((await db.query("select launch_at from public.apps where id = $1", [appId])).rows[0].launch_at === null, "upcoming launch can be cancelled");
+await db.query("update public.apps set launch_at = now() - interval '2 hours' where id = $1", [appId]);
+ok(!!(await fails("authenticated", A, "select public.schedule_launch($1, now() + interval '2 days')", [appId])), "one launch day per app");
+
+// Boosts
+await db.query("insert into public.credit_events (user_id, delta, reason) values ($1, 30, 'welcome')", [A]);
+const cA = await credits(A);
+await as("authenticated", A, "select public.boost_app($1, 2)", [appId]);
+ok((await credits(A)) === cA - 20, "boosting 2 days costs 20 credits");
+const b1 = (await db.query("select boosted_until from public.apps where id = $1", [appId])).rows[0].boosted_until;
+await as("authenticated", A, "select public.boost_app($1, 1)", [appId]);
+const b2 = (await db.query("select boosted_until from public.apps where id = $1", [appId])).rows[0].boosted_until;
+ok(Math.round((b2 - b1) / 3600000) === 24, "boosting again extends by a day");
+ok(!!(await fails("authenticated", A, "select public.boost_app($1, 7)", [appId])), "can't boost without enough credits");
+ok(!!(await fails("authenticated", B, "select public.boost_app($1, 1)", [appId])), "can't boost someone else's app");
+ok(!!(await fails("authenticated", A, "update public.apps set boosted_until = now() + interval '1 year' where id = $1", [appId])), "can't set boosted_until directly");
+
+// Updates
+await as("authenticated", A, "insert into public.updates (user_id, app_id, body) values ($1, $2, 'Shipped dark mode today')", [A, appId]);
+ok((await as("anon", null, "select body from public.updates")).rows.length === 1, "updates are public");
+ok(!!(await fails("authenticated", B, "insert into public.updates (user_id, app_id, body) values ($1, $2, 'hijack')", [B, appId])), "can't post updates on someone else's app");
+ok(!!(await fails("authenticated", B, "insert into public.updates (user_id, body) values ($1, '   ')", [B])), "empty update rejected");
+ok(!!(await fails("authenticated", B, "delete from public.updates")), "can't delete other people's updates");
+
+// Swaps and co-launches
+const appB = await makeApp(B, "b-app");
+const appC = await makeApp(C, "c-app");
+const swapId = (await as("authenticated", B, "select public.propose_swap($1, $2, 'swap') id", [appB, appId])).rows[0].id;
+ok(!!swapId, "builder proposes a swap");
+ok(!!(await fails("authenticated", B, "select public.propose_swap($1, $2, 'swap')", [appB, appId])), "no duplicate open swap for the same pair");
+ok(!!(await fails("authenticated", A, "select public.propose_swap($1, $2, 'swap')", [appId, appB])), "…in either direction");
+ok(!!(await fails("authenticated", A, "select public.propose_swap($1, $2, 'swap')", [appId, (await makeApp(A, "a-two"))])), "can't swap with your own app");
+ok((await as("authenticated", D, "select * from public.swaps")).rows.length === 0, "pending swaps are private to the two builders");
+ok(!!(await fails("authenticated", B, "select public.respond_swap($1, true)", [swapId])), "only the receiving builder can accept");
+await as("authenticated", A, "select public.respond_swap($1, true)", [swapId]);
+ok((await as("anon", null, "select status from public.swaps where id = $1", [swapId])).rows[0]?.status === "accepted", "accepted swaps are public");
+
+const coId = (await as("authenticated", B, "select public.propose_swap($1, $2, 'colaunch', now() + interval '3 days') id", [appB, appC])).rows[0].id;
+await as("authenticated", C, "select public.respond_swap($1, true)", [coId]);
+const launches = (await db.query("select launch_at from public.apps where id in ($1, $2)", [appB, appC])).rows;
+ok(launches.length === 2 && +launches[0].launch_at === +launches[1].launch_at, "accepting a co-launch gives both apps the same launch day");
+ok(!!(await fails("authenticated", B, "select public.propose_swap($1, $2, 'colaunch', now() + interval '3 days')", [appB, appId])), "can't co-launch with an app that already launched");
+
+await as("authenticated", A, "select public.end_swap($1)", [swapId]);
+ok((await db.query("select status from public.swaps where id = $1", [swapId])).rows[0].status === "ended", "either side can end a swap");
+ok(!!(await fails("authenticated", D, "select public.end_swap($1)", [coId])), "outsiders can't end a swap");
+
+// Swap partner limit (3)
+const partners = [];
+for (let i = 0; i < 3; i++) {
+  const owner = [C, D, E][i];
+  const other = await makeApp(owner, `partner-${i}`);
+  const id = (await as("authenticated", owner, "select public.propose_swap($1, $2, 'swap') id", [other, appB])).rows[0].id;
+  await as("authenticated", B, "select public.respond_swap($1, true)", [id]);
+  partners.push(other);
+}
+const extra = await makeApp(T, "partner-extra");
+ok(!!(await fails("authenticated", T, "select public.propose_swap($1, $2, 'swap')", [extra, appB])), "an app can have at most 3 swap partners");
+
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");
 process.exit(failures ? 1 : 0);

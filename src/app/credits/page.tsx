@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { CREDITS, CREDIT_REASONS } from "@/lib/constants";
+import { BOOST, CREDITS, CREDIT_REASONS, STREAK_BONUS } from "@/lib/constants";
 import { getCreditHistory, getViewer } from "@/lib/data";
 import { timeAgo } from "@/lib/format";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
@@ -38,6 +38,11 @@ export default async function CreditsPage() {
         <li>• When a builder marks your feedback helpful: +⚡{CREDITS.helpfulBonus}.</li>
         <li>• Spend ⚡{CREDITS.perTester} per tester to put your own app in the queue. Unused spots are refunded if you stop.</li>
         <li>• You can earn from up to {CREDITS.dailyPaidFeedback} feedbacks a day, so the queue stays fair.</li>
+        <li>
+          • Tester Passport perks: Testers earn ⚡3 per paid feedback, Pro Testers can earn from 20 a day, and{" "}
+          {STREAK_BONUS.weeks} weeks in a row earns a ⚡{STREAK_BONUS.credits} bonus.
+        </li>
+        <li>• Boost one of your apps into the Featured row for ⚡{BOOST.perDay} a day.</li>
       </ul>
 
       {!isSupabaseConfigured && <p className="mt-6 text-sm text-muted">Credits are off in demo mode.</p>}

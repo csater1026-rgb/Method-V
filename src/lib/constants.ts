@@ -28,7 +28,31 @@ export const CREDIT_REASONS: Record<string, string> = {
   feedback_helpful: "Feedback marked helpful",
   testers_requested: "Asked for testers",
   testers_refunded: "Unused tester spots refunded",
+  streak_bonus: "4-week testing streak",
+  boost: "Boosted an app",
 };
+
+// Tester Passport ranks. Must match public.tester_rank() in
+// supabase/migrations/*_phase3_grow.sql.
+export const TESTER_RANKS = [
+  { slug: "new", label: "New tester", given: 0, helpful: 0, perk: "Give feedback to earn stamps" },
+  { slug: "scout", label: "Scout", given: 5, helpful: 0, perk: "Scout badge on your profile" },
+  { slug: "tester", label: "Tester", given: 15, helpful: 3, perk: "Earn ⚡3 per paid feedback instead of ⚡2" },
+  { slug: "pro", label: "Pro Tester", given: 40, helpful: 10, perk: "Earn from 20 feedbacks a day instead of 10" },
+  { slug: "trusted", label: "Trusted Tester", given: 100, helpful: 30, perk: "Your feedback shows first to builders" },
+] as const;
+
+export type TesterRank = (typeof TESTER_RANKS)[number]["slug"];
+
+export function testerRank(given: number, helpful: number): TesterRank {
+  let rank: TesterRank = "new";
+  for (const r of TESTER_RANKS) if (given >= r.given && helpful >= r.helpful) rank = r.slug;
+  return rank;
+}
+
+export const STREAK_BONUS = { weeks: 4, credits: 5 } as const;
+
+export const BOOST = { perDay: 10, maxDays: 7, options: [1, 3, 7] } as const;
 
 export const CATEGORIES = [
   { slug: "ai", label: "AI tools" },

@@ -2,7 +2,7 @@ import "server-only";
 
 import { cache } from "react";
 
-import { CATEGORIES, PRICING, STAGES, isOneOf } from "./constants";
+import { CATEGORIES, PRICING, STAGES, TESTER_RANKS, isOneOf, testerRank } from "./constants";
 import {
   demoApps,
   demoCommentDate,
@@ -26,8 +26,10 @@ import type {
   FeedbackPanel,
   Profile,
   ProfileSummary,
+  Passport,
   QueueItem,
   TestRequest,
+  TopTester,
   Viewer,
 } from "./types";
 
@@ -93,6 +95,7 @@ function toFeedback(row: any): Feedback {
     helpful_at: row.helpful_at,
     created_at: row.created_at,
     user: toSummary(row.user),
+    user_rank: testerRank(row.user?.feedback_given_count ?? 0, row.user?.feedback_helpful_count ?? 0),
   };
 }
 
@@ -355,7 +358,9 @@ export async function getOwnProfile(): Promise<Profile | null> {
 // ---------------------------------------------------------------------------
 
 const FEEDBACK_FIELDS = `id, would_use, rating, worked, confusing, earned, helpful_at, created_at,
-  user:profiles!feedback_user_id_fkey(${PROFILE_SUMMARY})`;
+  user:profiles!feedback_user_id_fkey(${PROFILE_SUMMARY}, feedback_given_count, feedback_helpful_count)`;
+
+const RANK_ORDER: string[] = TESTER_RANKS.map((r) => r.slug);
 
 function openRequest(row: TestRequest | null | undefined): TestRequest | null {
   return row ? { slots_total: row.slots_total, slots_filled: row.slots_filled } : null;
@@ -381,7 +386,11 @@ export async function getFeedbackPanel(app: App, viewer: Viewer | null): Promise
       .eq("app_id", app.id)
       .order("created_at", { ascending: false })
       .limit(200);
-    return { mode: "owner", request, feedback: (data ?? []).map(toFeedback), credits: viewer.credits };
+    // Trusted and Pro testers' feedback shows first; newest first within a rank.
+    const feedback = (data ?? [])
+      .map(toFeedback)
+      .sort((a, b) => RANK_ORDER.indexOf(b.user_rank) - RANK_ORDER.indexOf(a.user_rank) || b.created_at.localeCompare(a.created_at));
+    return { mode: "owner", request, feedback, credits: viewer.credits };
   }
 
   const [{ data: mine }, { data: tried }] = await Promise.all([
@@ -498,4 +507,42 @@ export async function getFeatured(): Promise<{ apps: AppCard[]; curated: boolean
     .order("try_count", { ascending: false })
     .limit(6);
   return { apps: (hot ?? []).map(toCard), curated: false };
+}
+
+// ---------------------------------------------------------------------------
+// Tester Passport
+// ---------------------------------------------------------------------------
+
+export async function getPassport(profileId: string): Promise<Passport> {
+  if (!isSupabaseConfigured) {
+    const demo: Record<string, Passport> = {
+      "demo-ada": { categories: { productivity: 6, design: 5, "dev-tools": 4, ai: 5, finance: 3 }, streak: 3 },
+      "demo-marco": {
+        categories: { education: 9, productivity: 6, games: 5, ai: 7, design: 4, social: 5, health: 3, finance: 2 },
+        streak: 6,
+      },
+      "demo-june": { categories: { design: 5, ai: 3 }, streak: 1 },
+    };
+    return demo[profileId] ?? { categories: {}, streak: 0 };
+  }
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("tester_passport", { p_user: profileId });
+  return { categories: data?.categories ?? {}, streak: data?.streak ?? 0 };
+}
+
+export async function getTopTesters(): Promise<TopTester[]> {
+  if (!isSupabaseConfigured) {
+    return demoProfiles
+      .map((p) => ({
+        user_id: p.id,
+        username: p.username,
+        display_name: p.display_name,
+        feedback_count: Math.round(p.feedback_given_count / 3),
+        helpful_count: Math.round(p.feedback_helpful_count / 3),
+      }))
+      .sort((a, b) => b.helpful_count - a.helpful_count || b.feedback_count - a.feedback_count);
+  }
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("top_testers", { p_limit: 10 });
+  return (data ?? []).map((r: TopTester) => ({ ...r, feedback_count: Number(r.feedback_count), helpful_count: Number(r.helpful_count) }));
 }

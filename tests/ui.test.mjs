@@ -202,6 +202,21 @@ await run("profile", desktop, async (page) => {
   await ctx.close();
 }
 
+await run("tester passport", desktop, async (page) => {
+  await page.goto(BASE + "/u/marco_ships");
+  const passport = page.getByRole("region", { name: "Tester Passport" });
+  ok(await passport.getByRole("heading", { name: "Pro Tester" }).isVisible(), "41 feedback + 17 helpful = Pro Tester");
+  ok(await passport.getByText("Next: Trusted Tester").isVisible(), "shows the next rank");
+  ok((await passport.locator("li.border-accent").count()) === 8, "8 of 10 category stamps filled");
+  await passport.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(800);
+  await passport.screenshot({ path: OUT + "passport.png" });
+  await page.goto(BASE + "/test");
+  const top = page.getByRole("region", { name: "Top testers" });
+  ok((await top.locator("li").count()) === 3, "top testers board lists testers");
+  ok((await top.locator("li").first().textContent()).includes("Marco"), "most helpful tester is first");
+});
+
 await run("login", phone, async (page) => {
   await page.goto(BASE + "/login");
   ok(await page.getByRole("button", { name: "Email me a sign-in link" }).isDisabled(), "sign-in disabled in demo mode");

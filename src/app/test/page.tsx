@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { AppCard } from "@/components/AppCard";
+import { TopTesters } from "@/components/Passport";
 import { CREDITS } from "@/lib/constants";
-import { getTestQueue, getViewer } from "@/lib/data";
+import { getTestQueue, getTopTesters, getViewer } from "@/lib/data";
 
 export const metadata: Metadata = {
   title: "Test & earn",
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
 
 export default async function TestPage() {
   const viewer = await getViewer();
-  const queue = await getTestQueue(viewer);
+  const [queue, topTesters] = await Promise.all([getTestQueue(viewer), getTopTesters()]);
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8">
@@ -74,6 +75,9 @@ export default async function TestPage() {
           </Link>
         </div>
       )}
+      <div className="mt-12">
+        <TopTesters testers={topTesters} />
+      </div>
     </div>
   );
 }

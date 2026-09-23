@@ -10,6 +10,7 @@ import { timeAgo } from "@/lib/format";
 import type { Feedback, FeedbackPanel as Panel, TestRequest } from "@/lib/types";
 
 import { Avatar } from "./Avatar";
+import { RankTag } from "./Passport";
 
 type AppRef = { id: string; slug: string; name: string };
 
@@ -299,6 +300,7 @@ function FeedbackItem({ item, appSlug, canMarkHelpful }: { item: Feedback; appSl
         <Link href={`/u/${item.user.username}`} className="flex items-center gap-2 font-semibold hover:underline">
           <Avatar username={item.user.username} name={item.user.display_name} size={24} />@{item.user.username}
         </Link>
+        <RankTag rank={item.user_rank} />
         <span className="text-accent" aria-label={`${item.rating} out of 5 stars`}>
           {"★".repeat(item.rating)}
           <span className="text-line">{"★".repeat(5 - item.rating)}</span>
