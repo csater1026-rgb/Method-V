@@ -360,5 +360,120 @@ for (let i = 0; i < 3; i++) {
 const extra = await makeApp(T, "partner-extra");
 ok(!!(await fails("authenticated", T, "select public.propose_swap($1, $2, 'swap')", [extra, appB])), "an app can have at most 3 swap partners");
 
+// ---------------------------------------------------------------------------
+// Phase 2: connections, messages, Q&A, notifications, suggestions
+// ---------------------------------------------------------------------------
+
+const notes = async (id) =>
+  (await db.query("select kind, actor_id from public.notifications where user_id = $1 order by id", [id])).rows;
+
+// Notifications from earlier actions (follows, likes, feedback, swaps) exist.
+const aNotes = await notes(A);
+ok(aNotes.some((n) => n.kind === "follow" && n.actor_id === B), "A was notified when B followed");
+ok(aNotes.some((n) => n.kind === "feedback"), "A was notified about feedback");
+ok(aNotes.every((n) => n.actor_id !== A), "nobody is notified about their own actions");
+ok((await as("authenticated", B, "select * from public.notifications")).rows.every((n) => n.user_id === B), "notifications are private");
+ok(!!(await fails("authenticated", A, "insert into public.notifications (user_id, kind) values ($1, 'follow')", [B])), "can't create notifications directly");
+
+// Likes don't pile up: like, unlike, like again → one unread notification.
+const likeCount = async () => (await db.query("select count(*)::int n from public.notifications where user_id = $1 and kind = 'like'", [A])).rows[0].n;
+const l0 = await likeCount();
+await as("authenticated", C, "insert into public.likes (user_id, drop_id) values ($1, $2)", [C, dropId]);
+await as("authenticated", C, "delete from public.likes where user_id = $1 and drop_id = $2", [C, dropId]);
+await as("authenticated", C, "insert into public.likes (user_id, drop_id) values ($1, $2)", [C, dropId]);
+ok((await likeCount()) === l0 + 1, "repeat likes don't repeat the notification");
+await as("authenticated", A, "select public.mark_notifications_read()");
+ok((await db.query("select count(*)::int n from public.notifications where user_id = $1 and read_at is null", [A])).rows[0].n === 0, "mark all read");
+
+// Connections
+ok(!!(await fails("authenticated", B, "insert into public.connections (requester_id, addressee_id, reason) values ($1, $2, 'fan')", [B, A])), "can't insert connections directly");
+ok(!!(await fails("authenticated", B, "select public.request_connection($1, 'party')", [A])), "a reason is required");
+ok(!!(await fails("authenticated", B, "select public.request_connection($1, 'fan')", [B])), "can't connect with yourself");
+const r1 = (await as("authenticated", B, "select public.request_connection($1, 'hire', 'Love NoteFlow. Open to contract work?') r", [A])).rows[0].r;
+ok(r1 === "requested", "B asks A to connect (reason: hire, with a note)");
+ok((await notes(A)).some((n) => n.kind === "connection_request" && n.actor_id === B), "A is notified of the request");
+ok(!!(await fails("authenticated", B, "select public.request_connection($1, 'fan')", [A])), "no duplicate request");
+ok(!!(await fails("authenticated", B, "insert into public.messages (sender_id, recipient_id, body) values ($1, $2, 'hi')", [B, A])), "can't message before the request is accepted");
+ok((await as("authenticated", D, "select * from public.connections")).rows.length === 0, "connections are private to the two people");
+const connId = (await db.query("select id from public.connections where requester_id = $1 and addressee_id = $2", [B, A])).rows[0].id;
+ok(!!(await fails("authenticated", B, "select public.respond_connection($1, true)", [connId])), "requester can't accept their own request");
+await as("authenticated", A, "select public.respond_connection($1, true)", [connId]);
+const cc = (await db.query("select connection_count from public.profiles where id in ($1, $2) order by id", [A, B])).rows;
+ok(cc.every((r) => r.connection_count === 1), "accepting bumps both connection counts");
+ok((await notes(B)).some((n) => n.kind === "connection_accepted" && n.actor_id === A), "B is notified when A accepts");
+ok((await as("authenticated", B, "select public.request_connection($1, 'fan') r", [A]).catch((e) => ({ rows: [{ r: e.message }] }))).rows[0].r.includes("already connected"), "can't request twice once connected");
+
+// Connecting back to someone who asked you accepts it.
+await as("authenticated", C, "select public.request_connection($1, 'collaborate')", [D]);
+const r2 = (await as("authenticated", D, "select public.request_connection($1, 'fan') r", [C])).rows[0].r;
+ok(r2 === "accepted", "connecting back to a pending request accepts it");
+
+// Messages
+await as("authenticated", B, "insert into public.messages (sender_id, recipient_id, body) values ($1, $2, 'Hey! Loved your launch.')", [B, A]);
+await as("authenticated", A, "insert into public.messages (sender_id, recipient_id, body) values ($1, $2, 'Thanks! Want to team up?')", [A, B]);
+ok((await as("authenticated", A, "select * from public.messages")).rows.length === 2, "connected people can message");
+ok((await as("authenticated", D, "select * from public.messages")).rows.length === 0, "messages are private");
+ok(!!(await fails("authenticated", B, "insert into public.messages (sender_id, recipient_id, body) values ($1, $2, 'spoof')", [A, B])), "can't send as someone else");
+ok(!!(await fails("authenticated", B, "insert into public.messages (sender_id, recipient_id, body) values ($1, $2, 'hi')", [B, E])), "can't message people you aren't connected to");
+ok(!!(await fails("authenticated", B, "update public.messages set body = 'edited'")), "messages can't be edited");
+await as("authenticated", A, "select public.mark_thread_read($1)", [B]);
+ok((await db.query("select read_at from public.messages where recipient_id = $1", [A])).rows.every((m) => m.read_at), "opening a thread marks it read");
+
+// Removing the connection stops messaging.
+await as("authenticated", A, "select public.remove_connection($1)", [connId]);
+ok(!!(await fails("authenticated", B, "insert into public.messages (sender_id, recipient_id, body) values ($1, $2, 'still there?')", [B, A])), "no messaging after a connection is removed");
+ok((await db.query("select connection_count from public.profiles where id = $1", [A])).rows[0].connection_count === 0, "removing drops the count");
+
+// Declined requests can't be re-sent for 30 days.
+await as("authenticated", E, "select public.request_connection($1, 'invest')", [A]);
+const eReq = (await db.query("select id from public.connections where requester_id = $1", [E])).rows[0].id;
+await as("authenticated", A, "select public.respond_connection($1, false)", [eReq]);
+ok(!!(await fails("authenticated", E, "select public.request_connection($1, 'invest')", [A])), "can't ask again right after a decline");
+
+// Q&A
+const qid = (await as("authenticated", C, "insert into public.questions (app_id, user_id, body) values ($1, $2, 'Does it work offline?') returning id", [appId, C])).rows[0].id;
+ok(!!qid, "anyone signed in can ask on an app");
+ok((await notes(A)).some((n) => n.kind === "question" && n.actor_id === C), "builder is notified of the question");
+ok(!!(await fails("authenticated", C, "insert into public.questions (app_id, user_id, body) values ($1, $2, 'hm')", [appId, C])), "questions need at least 5 characters");
+ok(!!(await fails("authenticated", C, "insert into public.questions (app_id, user_id, body, vote_count) values ($1, $2, 'Can I fake votes?', 99)", [appId, C])), "can't set vote counts");
+
+const ans1 = (await as("authenticated", A, "insert into public.answers (question_id, user_id, body) values ($1, $2, 'Yes, fully offline since v2.') returning id", [qid, A])).rows[0].id;
+const ans2 = (await as("authenticated", D, "insert into public.answers (question_id, user_id, body) values ($1, $2, 'I use it on flights, works great.') returning id", [qid, D])).rows[0].id;
+ok((await db.query("select answer_count from public.questions where id = $1", [qid])).rows[0].answer_count === 2, "answer count updates");
+ok((await notes(C)).some((n) => n.kind === "answer"), "asker is notified of answers");
+
+const rep = async (id) => (await db.query("select reputation from public.profiles where id = $1", [id])).rows[0].reputation;
+const repD = await rep(D);
+await as("authenticated", C, "insert into public.answer_votes (user_id, answer_id) values ($1, $2)", [C, ans2]);
+await as("authenticated", B, "insert into public.answer_votes (user_id, answer_id) values ($1, $2)", [B, ans2]);
+ok((await rep(D)) === repD + 2, "each upvote on an answer is +1 reputation");
+ok(!!(await fails("authenticated", D, "insert into public.answer_votes (user_id, answer_id) values ($1, $2)", [D, ans2])), "can't upvote your own answer");
+ok(!!(await fails("authenticated", C, "insert into public.answer_votes (user_id, answer_id) values ($1, $2)", [C, ans2])), "one vote per person");
+await as("authenticated", B, "delete from public.answer_votes where user_id = $1 and answer_id = $2", [B, ans2]);
+ok((await rep(D)) === repD + 1, "taking a vote back takes the point back");
+await as("authenticated", B, "insert into public.question_votes (user_id, question_id) values ($1, $2)", [B, qid]);
+ok((await db.query("select vote_count from public.questions where id = $1", [qid])).rows[0].vote_count === 1, "questions can be upvoted too");
+
+ok(!!(await fails("authenticated", B, "select public.mark_best_answer($1, $2)", [qid, ans2])), "only the asker or builder picks the best answer");
+await as("authenticated", C, "select public.mark_best_answer($1, $2)", [qid, ans2]);
+ok((await rep(D)) === repD + 1 + 5, "best answer is +5 reputation");
+ok((await notes(D)).some((n) => n.kind === "best_answer"), "author is notified of the best answer");
+const repA = await rep(A);
+await as("authenticated", A, "select public.mark_best_answer($1, $2)", [qid, ans1]);
+ok((await rep(D)) === repD + 1 && (await rep(A)) === repA + 5, "changing the best answer moves the 5 points");
+ok(!!(await fails("authenticated", C, "select public.mark_best_answer($1, $2)", [qid, "00000000-0000-0000-0000-000000000000"])), "best answer must be on the question");
+await as("authenticated", A, "delete from public.answers where id = $1", [ans1]);
+const qAfter = (await db.query("select best_answer_id, answer_count from public.questions where id = $1", [qid])).rows[0];
+ok(qAfter.best_answer_id === null && qAfter.answer_count === 1 && (await rep(A)) === repA, "deleting the best answer clears it and its points");
+
+// Suggestions: E likes nothing yet; give E skills and a liked app to match on.
+await db.query("update public.profiles set skills = '{Next.js,Figma}' where id in ($1, $2)", [E, T]);
+const sug = (await as("authenticated", E, "select * from public.suggest_builders(10)")).rows;
+ok(sug.length > 0 && sug.every((s) => s.id !== E), "suggests builders, never yourself");
+ok(sug.some((s) => s.id === T && s.shared_skills.includes("Next.js")), "matches on shared skills");
+await as("authenticated", E, "insert into public.follows (follower_id, following_id) values ($1, $2)", [E, T]);
+ok(!(await as("authenticated", E, "select * from public.suggest_builders(10)")).rows.some((s) => s.id === T), "people you follow aren't suggested");
+ok((await as("anon", null, "select * from public.suggest_builders(10)").catch(() => ({ rows: [] }))).rows.length === 0, "no suggestions when signed out");
+
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");
 process.exit(failures ? 1 : 0);
