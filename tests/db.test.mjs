@@ -686,5 +686,67 @@ ok((await db.query("select vote_count from public.challenge_entries where id = $
 await db.query("update public.challenges set ends_at = now() - interval '1 minute', starts_at = now() - interval '7 days' where id = $1", [ch]);
 ok(!!(await fails("authenticated", H, "insert into public.challenge_votes (challenge_id, user_id, entry_id) values ($1, $2, $3)", [ch, H, entryJ])), "voting closes when the challenge ends");
 
+// ---------------------------------------------------------------------------
+// Phase 5: try sources, analytics, brands
+// ---------------------------------------------------------------------------
+
+// Try sources
+await as("anon", null, "insert into public.try_clicks (app_id, source) values ($1, 'embed')", [hostApp]);
+await as("anon", null, "insert into public.try_clicks (app_id) values ($1)", [hostApp]);
+const srcRows = (await db.query("select source from public.try_clicks where app_id = $1 and user_id is null order by id", [hostApp])).rows;
+ok(srcRows.at(-2).source === "embed" && srcRows.at(-1).source === "direct", "tries record where they came from (default direct)");
+ok(!!(await fails("anon", null, "insert into public.try_clicks (app_id, source) values ($1, 'made-up')", [hostApp])), "unknown sources are rejected");
+
+// Analytics: H owns hostApp and isn't Pro; J is Pro and owns sponsorApp.
+const daily7 = (await as("authenticated", H, "select * from public.app_daily($1, 7)", [hostApp])).rows;
+ok(daily7.length === 7, "7 days of daily numbers for everyone");
+ok(daily7.at(-1).tries >= 2, `today's tries are counted (${daily7.at(-1).tries})`);
+const srcs = (await as("authenticated", H, "select * from public.app_sources($1, 7)", [hostApp])).rows;
+ok(srcs.some((r) => r.source === "embed" && r.tries >= 1), "sources are broken down");
+ok(!!(await fails("authenticated", H, "select * from public.app_daily($1, 30)", [hostApp])), "30 days is part of Pro");
+ok(!!(await fails("authenticated", J, "select * from public.app_daily($1, 7)", [hostApp])), "only the owner sees an app's stats");
+ok(!!(await fails("anon", null, "select * from public.app_sources($1, 7)", [hostApp])), "signed-out people see no stats");
+ok(!!(await fails("authenticated", J, "select * from public.app_daily($1, 12)", [sponsorApp])), "only 7, 30 or 90 days");
+const daily90 = (await as("authenticated", J, "select * from public.app_daily($1, 90)", [sponsorApp])).rows;
+ok(daily90.length === 90, "Pro sees 90 days");
+ok(daily90.reduce((n, r) => n + r.sponsored, 0) === 11, `sponsored tries show up for the sponsor (${daily90.reduce((n, r) => n + r.sponsored, 0)})`);
+
+// Brands
+const brandSql = "insert into public.brands (owner_id, slug, name, tagline, url) values ($1, $2, 'Acme', 'Tools for builders', 'https://acme.example') returning id";
+const brand = (await as("authenticated", F, brandSql, [F, "acme"])).rows[0].id;
+ok(!!brand, "anyone can list a brand");
+ok(!!(await fails("authenticated", F, "insert into public.brands (owner_id, slug, name, tagline, url, verified_at) values ($1, 'acme2', 'A', 'B', 'https://a.example', now())", [F])), "can't verify your own brand");
+ok(!!(await fails("authenticated", F, "update public.brands set link_checked_at = now() where id = $1", [brand])), "can't mark your own link checked");
+ok(!!(await fails("authenticated", F, brandSql.replace("https://acme.example", "http://acme.example"), [F, "acme-http"])), "brand links must be https");
+ok((await as("anon", null, "select id from public.brands")).rows.length === 0, "brands stay hidden until the link check");
+await as("authenticated", F, brandSql, [F, "acme-two"]);
+await as("authenticated", F, brandSql, [F, "acme-three"]);
+ok(!!(await fails("authenticated", F, brandSql, [F, "acme-four"])), "up to 3 brands per person");
+await db.query("update public.brands set link_checked_at = now() where id = $1", [brand]); // server
+ok((await as("anon", null, "select id from public.brands")).rows.length === 1, "checked brands are public");
+
+const brandOffer = (price, budget, b = brand) =>
+  as("authenticated", F, "select public.offer_brand_sponsorship($1, $2, $3, $4, 'Builders love Acme') as id", [b, hostApp, price, budget]);
+ok(!!(await fails("authenticated", F, "select public.offer_brand_sponsorship($1, $2, 100, 2000)", [brand, hostApp])), "unverified brands can't sponsor");
+await db.query("update public.brands set verified_at = now() where id = $1", [brand]); // Method V team
+ok(!!(await fails("authenticated", J, "select public.offer_brand_sponsorship($1, $2, 100, 2000)", [brand, hostApp])), "only the brand's owner offers for it");
+ok(!!(await fails("authenticated", F, "select public.offer_brand_sponsorship($1, $2, 5, 2000)", [brand, hostApp])), "same price rules as app deals");
+const bDeal = (await brandOffer(100, 2000)).rows[0].id;
+ok(!!bDeal, "a verified brand can make an offer");
+ok(!!(await fails("authenticated", F, "select public.offer_brand_sponsorship($1, $2, 100, 2000)", [brand, hostApp])), "one open brand deal per app");
+await as("authenticated", H, "select public.respond_sponsorship($1, true)", [bDeal]);
+const bFund = (await prep(F, "sponsorship", bDeal, 1)).rows[0].id;
+await as("service_role", null, "select public.complete_payment($1, 'cs_b1', 2000, 'pi_b1')", [bFund]);
+const bCard = (await as("anon", null, "select * from public.active_sponsors($1)", [[hostApp]])).rows;
+ok(bCard.length === 1 && bCard[0].sponsor_kind === "brand" && bCard[0].sponsor_slug === "acme", "brand deals show a Sponsored card");
+ok((await as("anon", null, "select * from public.brand_sponsoring($1)", [brand])).rows.some((r) => r.app_id === hostApp), "a brand's page lists who it sponsors");
+const bTry = async (uid, target) => (await as("authenticated", uid, "select public.record_sponsored_try($1, $2) as ok", [bDeal, target])).rows[0].ok;
+ok((await bTry(extras[0], sponsorApp)) === false, "a brand try only counts when it lands on the brand");
+ok((await bTry(extras[0], brand)) === true, "a real try on the brand counts");
+ok((await bTry(F, brand)) === false, "the brand owner's own tries don't count");
+ok((await db.query("select tries, spent_cents from public.sponsorships where id = $1", [bDeal])).rows[0].spent_cents === 100, "the brand pays per try");
+ok(!!(await fails("authenticated", F, "delete from public.brands where id = $1", [brand])), "a brand with a running deal can't be deleted");
+ok(!!(await fails("anon", null, "insert into public.sponsorships (sponsor_brand, sponsor_user, host_user, price_cents, budget_cents) values ($1, $2, $3, 10, 1000)", [brand, F, H])), "can't write brand deals directly");
+
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");
 process.exit(failures ? 1 : 0);

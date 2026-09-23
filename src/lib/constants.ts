@@ -134,3 +134,24 @@ export function formatCents(cents: number): string {
   const dollars = cents / 100;
   return `$${Number.isInteger(dollars) ? dollars.toLocaleString("en-US") : dollars.toFixed(2)}`;
 }
+
+// Where a "Try it" tap came from (?via= on /try links). Must match the check
+// on public.try_clicks.source.
+export const TRY_SOURCES = [
+  { slug: "feed", label: "Drops feed" },
+  { slug: "page", label: "App page" },
+  { slug: "card", label: "Cards on Method V" },
+  { slug: "embed", label: "Embeds on other sites" },
+  { slug: "sponsor", label: "Sponsor cards" },
+  { slug: "api", label: "API" },
+  { slug: "share", label: "Shared links" },
+  { slug: "direct", label: "Direct" },
+] as const;
+
+export type TrySource = (typeof TRY_SOURCES)[number]["slug"];
+
+// Analytics ranges; more than `free` days is part of Pro.
+export const ANALYTICS_RANGES = [7, 30, 90] as const;
+export const ANALYTICS_FREE_DAYS = 7;
+
+export const BRAND_LIMITS = { perPerson: 3 } as const;
