@@ -306,6 +306,17 @@ await run("pixel coder", phone, async (page) => {
   await ctx.close();
 }
 
+await run("connect + inbox", desktop, async (page) => {
+  await go(page, "/u/june_designs");
+  ok(await page.getByText("24 connections").isVisible(), "profile shows connections");
+  ok(await page.getByText("12 reputation").isVisible(), "profile shows reputation");
+  await page.getByRole("button", { name: "Connect" }).click();
+  await page.waitForURL(/\/login\?next=%2Fu%2Fjune_designs/);
+  ok(true, "Connect while signed out goes to sign in");
+  await go(page, "/inbox");
+  ok(await page.getByText("The inbox is off in demo mode.").isVisible(), "inbox explains demo mode");
+});
+
 await run("tester passport", desktop, async (page) => {
   await go(page, "/u/marco_ships");
   const passport = page.getByRole("region", { name: "Tester Passport" });

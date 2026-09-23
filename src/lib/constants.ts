@@ -52,6 +52,15 @@ export function testerRank(given: number, helpful: number): TesterRank {
 
 export const STREAK_BONUS = { weeks: 4, credits: 5 } as const;
 
+// Why you want to connect. Must match the check on public.connections.reason.
+export const CONNECT_REASONS = [
+  { slug: "collaborate", label: "Collaborate" },
+  { slug: "hire", label: "Hire" },
+  { slug: "feedback", label: "Get feedback" },
+  { slug: "invest", label: "Invest" },
+  { slug: "fan", label: "Just a fan" },
+] as const;
+
 export const BOOST = { perDay: 10, maxDays: 7, options: [1, 3, 7] } as const;
 
 export const CATEGORIES = [

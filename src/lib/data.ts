@@ -22,12 +22,18 @@ import type {
   AppCard,
   AppDetail,
   Comment,
+  Conversation,
+  ConnectionRequest,
+  ConnectionState,
   CreditEvent,
   Drop,
   FeaturedApp,
   FeedItem,
   Feedback,
   FeedbackPanel,
+  InboxCounts,
+  Message,
+  Notification,
   Profile,
   ProfileSummary,
   Passport,
@@ -745,4 +751,141 @@ export async function getMySwaps(viewer: Viewer): Promise<Swap[]> {
     .order("created_at", { ascending: false })
     .limit(100);
   return (data ?? []).map(toSwap);
+}
+
+// ---------------------------------------------------------------------------
+// Phase 2: inbox, notifications, connections, messages
+// ---------------------------------------------------------------------------
+
+// Unread notifications, unread messages and connection requests waiting on you.
+export const getInboxCounts = cache(async (viewer: Viewer | null): Promise<InboxCounts> => {
+  if (!viewer) return { notifications: 0, messages: 0, requests: 0 };
+  const supabase = await createClient();
+  const [n, m, r] = await Promise.all([
+    supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", viewer.id).is("read_at", null),
+    supabase.from("messages").select("id", { count: "exact", head: true }).eq("recipient_id", viewer.id).is("read_at", null),
+    supabase
+      .from("connections")
+      .select("id", { count: "exact", head: true })
+      .eq("addressee_id", viewer.id)
+      .eq("status", "pending"),
+  ]);
+  return { notifications: n.count ?? 0, messages: m.count ?? 0, requests: r.count ?? 0 };
+});
+
+export async function getNotifications(viewer: Viewer): Promise<Notification[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("notifications")
+    .select(`id, kind, created_at, read_at, ref_id, actor:profiles!notifications_actor_id_fkey(${PROFILE_SUMMARY}), app:apps(slug, name)`)
+    .eq("user_id", viewer.id)
+    .order("created_at", { ascending: false })
+    .limit(60);
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    kind: row.kind,
+    created_at: row.created_at,
+    read_at: row.read_at,
+    ref_id: row.ref_id,
+    actor: row.actor ? toSummary(row.actor) : null,
+    app: (row.app as unknown as Notification["app"]) ?? null,
+  }));
+}
+
+const CONNECTION_PEOPLE = `id, reason, note, status, created_at, requester_id, addressee_id,
+  requester:profiles!connections_requester_id_fkey(${PROFILE_SUMMARY}),
+  addressee:profiles!connections_addressee_id_fkey(${PROFILE_SUMMARY})`;
+
+export async function getConnectionRequests(viewer: Viewer): Promise<{ received: ConnectionRequest[]; sent: ConnectionRequest[] }> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("connections")
+    .select(CONNECTION_PEOPLE)
+    .eq("status", "pending")
+    .or(`requester_id.eq.${viewer.id},addressee_id.eq.${viewer.id}`)
+    .order("created_at", { ascending: false });
+  const rows = data ?? [];
+  const shape = (row: (typeof rows)[number], who: "requester" | "addressee"): ConnectionRequest => ({
+    id: row.id,
+    reason: row.reason,
+    note: row.note,
+    created_at: row.created_at,
+    person: toSummary(row[who]),
+  });
+  return {
+    received: rows.filter((r) => r.addressee_id === viewer.id).map((r) => shape(r, "requester")),
+    sent: rows.filter((r) => r.requester_id === viewer.id).map((r) => shape(r, "addressee")),
+  };
+}
+
+export async function getConnectionState(viewer: Viewer | null, profileId: string): Promise<ConnectionState> {
+  if (!viewer || viewer.id === profileId || !isSupabaseConfigured) return { status: "none" };
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("connections")
+    .select("id, status, requester_id, reason, note")
+    .or(
+      `and(requester_id.eq.${viewer.id},addressee_id.eq.${profileId}),and(requester_id.eq.${profileId},addressee_id.eq.${viewer.id})`,
+    )
+    .maybeSingle();
+  if (!data) return { status: "none" };
+  if (data.status === "accepted") return { status: "connected", id: data.id };
+  if (data.status === "declined") return { status: data.requester_id === viewer.id ? "declined" : "none" };
+  return data.requester_id === viewer.id
+    ? { status: "sent", id: data.id }
+    : { status: "received", id: data.id, reason: data.reason, note: data.note };
+}
+
+/* eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped rows */
+const toMessage = (row: any, viewerId: string): Message => ({
+  id: row.id,
+  body: row.body,
+  created_at: row.created_at,
+  read_at: row.read_at,
+  mine: row.sender_id === viewerId,
+});
+
+// The latest message with each person, newest first.
+export async function getConversations(viewer: Viewer): Promise<Conversation[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("messages")
+    .select("id, body, created_at, read_at, sender_id, recipient_id")
+    .or(`sender_id.eq.${viewer.id},recipient_id.eq.${viewer.id}`)
+    .order("created_at", { ascending: false })
+    .limit(500);
+  const threads = new Map<string, { last: Message; unread: number }>();
+  for (const row of data ?? []) {
+    const other = row.sender_id === viewer.id ? row.recipient_id : row.sender_id;
+    const t = threads.get(other) ?? { last: toMessage(row, viewer.id), unread: 0 };
+    if (row.recipient_id === viewer.id && !row.read_at) t.unread++;
+    threads.set(other, t);
+  }
+  if (threads.size === 0) return [];
+  const { data: people } = await supabase.from("profiles").select(PROFILE_SUMMARY).in("id", [...threads.keys()]);
+  const byId = new Map((people ?? []).map((p) => [p.id as string, toSummary(p)]));
+  return [...threads.entries()]
+    .filter(([id]) => byId.has(id))
+    .map(([id, t]) => ({ person: byId.get(id)!, ...t }));
+}
+
+export async function getThread(
+  viewer: Viewer,
+  username: string,
+): Promise<{ person: ProfileSummary; messages: Message[]; connection: ConnectionState } | null> {
+  const supabase = await createClient();
+  const { data: person } = await supabase.from("profiles").select(PROFILE_SUMMARY).eq("username", username).maybeSingle();
+  if (!person || person.id === viewer.id) return null;
+  const [{ data }, connection] = await Promise.all([
+    supabase
+      .from("messages")
+      .select("id, body, created_at, read_at, sender_id, recipient_id")
+      .or(
+        `and(sender_id.eq.${viewer.id},recipient_id.eq.${person.id}),and(sender_id.eq.${person.id},recipient_id.eq.${viewer.id})`,
+      )
+      .order("created_at", { ascending: true })
+      .limit(300),
+    getConnectionState(viewer, person.id),
+  ]);
+  return { person: toSummary(person), messages: (data ?? []).map((r) => toMessage(r, viewer.id)), connection };
 }

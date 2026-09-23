@@ -4,11 +4,12 @@ import { notFound } from "next/navigation";
 
 import { AppCard } from "@/components/AppCard";
 import { Avatar } from "@/components/Avatar";
+import { ConnectButton } from "@/components/ConnectButton";
 import { FollowButton } from "@/components/FollowButton";
 import { PassportCard } from "@/components/Passport";
 import { Updates } from "@/components/Updates";
 import { Chip, RoleTags } from "@/components/Tags";
-import { getMyApps, getPassport, getProfile, getUpdates, getViewer } from "@/lib/data";
+import { getConnectionState, getMyApps, getPassport, getProfile, getUpdates, getViewer } from "@/lib/data";
 import { formatCount } from "@/lib/format";
 
 export async function generateMetadata({ params }: PageProps<"/u/[username]">): Promise<Metadata> {
@@ -22,10 +23,11 @@ export default async function ProfilePage({ params }: PageProps<"/u/[username]">
   if (!result) notFound();
   const { profile, apps, isFollowing } = result;
   const isSelf = viewer?.id === profile.id;
-  const [passport, updates, myApps] = await Promise.all([
+  const [passport, updates, myApps, connection] = await Promise.all([
     getPassport(profile.id),
     getUpdates({ userId: profile.id, limit: 20 }),
     isSelf ? getMyApps(viewer) : Promise.resolve([]),
+    getConnectionState(viewer, profile.id),
   ]);
 
   const links = [
@@ -56,7 +58,15 @@ export default async function ProfilePage({ params }: PageProps<"/u/[username]">
                   </Link>
                 </span>
               ) : (
-                <FollowButton profileId={profile.id} initialFollowing={isFollowing} signedIn={Boolean(viewer)} />
+                <span className="flex flex-wrap items-start gap-2">
+                  <FollowButton profileId={profile.id} initialFollowing={isFollowing} signedIn={Boolean(viewer)} />
+                  <ConnectButton
+                    profileId={profile.id}
+                    username={profile.username}
+                    initial={connection}
+                    signedIn={Boolean(viewer)}
+                  />
+                </span>
               )}
             </div>
           </div>
@@ -72,7 +82,14 @@ export default async function ProfilePage({ params }: PageProps<"/u/[username]">
               <strong className="text-ink">{formatCount(profile.following_count)}</strong> following
             </span>
             <span>
+              <strong className="text-ink">{formatCount(profile.connection_count)}</strong>{" "}
+              {profile.connection_count === 1 ? "connection" : "connections"}
+            </span>
+            <span>
               <strong className="text-ink">{apps.length}</strong> {apps.length === 1 ? "app" : "apps"}
+            </span>
+            <span title="Earned from upvoted and best answers in Q&A">
+              <strong className="text-ink">{formatCount(profile.reputation)}</strong> reputation
             </span>
             <span title="Feedback this builder has given, and how much of it builders marked helpful">
               <strong className="text-ink">{formatCount(profile.feedback_given_count)}</strong> feedback given

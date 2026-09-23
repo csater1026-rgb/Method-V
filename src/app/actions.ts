@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import {
   BOOST,
   CATEGORIES,
+  CONNECT_REASONS,
   MAX_DROP_SECONDS,
   PRICING,
   ROLES,
@@ -509,4 +510,60 @@ export async function respondSwap(swapId: string, accept: boolean): Promise<Acti
 
 export async function endSwap(swapId: string): Promise<ActionResult> {
   return callRpc("end_swap", { p_swap_id: swapId }, "Couldn't end it.", ["/swaps"], UUID.test(swapId) ? null : "Unknown request.");
+}
+
+// ---------------------------------------------------------------------------
+// Phase 2: connections, messages, notifications
+// ---------------------------------------------------------------------------
+
+export async function requestConnection(profileId: string, reason: string, note: string): Promise<ActionResult & { accepted?: boolean }> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  if (!UUID.test(profileId)) return { ok: false, error: "Unknown builder." };
+  if (!isOneOf(CONNECT_REASONS, reason)) return { ok: false, error: "Pick why you want to connect." };
+  if (note.length > 280) return { ok: false, error: "Keep the note under 280 characters." };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("request_connection", { p_to: profileId, p_reason: reason, p_note: note.trim() });
+  if (error) return { ok: false, error: rpcError(error.message, "Couldn't send the request.") };
+  revalidatePath("/", "layout");
+  return { ok: true, accepted: data === "accepted" };
+}
+
+export async function respondConnection(id: string, accept: boolean): Promise<ActionResult> {
+  return callRpc("respond_connection", { p_id: id, p_accept: accept }, "Couldn't answer the request.", ["/inbox"], UUID.test(id) ? null : "Unknown request.");
+}
+
+export async function removeConnection(id: string): Promise<ActionResult> {
+  return callRpc("remove_connection", { p_id: id }, "Couldn't remove it.", ["/inbox"], UUID.test(id) ? null : "Unknown connection.");
+}
+
+export async function sendMessage(recipientId: string, username: string, body: string): Promise<ActionResult> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  if (!UUID.test(recipientId)) return { ok: false, error: "Unknown builder." };
+  const text = body.trim();
+  if (!text) return { ok: false, error: "Write something first." };
+  if (text.length > 2000) return { ok: false, error: "Messages can be up to 2,000 characters." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("messages").insert({ sender_id: auth.viewer.id, recipient_id: recipientId, body: text });
+  if (error) {
+    if (error.code === "42501") return { ok: false, error: "You can message people once you're connected." };
+    return { ok: false, error: "Couldn't send your message." };
+  }
+  revalidatePath(`/inbox/${username}`);
+  return { ok: true };
+}
+
+export async function markThreadRead(otherId: string): Promise<void> {
+  if (!isSupabaseConfigured || !UUID.test(otherId)) return;
+  const supabase = await createClient();
+  await supabase.rpc("mark_thread_read", { p_other: otherId });
+  revalidatePath("/", "layout");
+}
+
+export async function markNotificationsRead(): Promise<void> {
+  if (!isSupabaseConfigured) return;
+  const supabase = await createClient();
+  await supabase.rpc("mark_notifications_read");
+  revalidatePath("/", "layout");
 }

@@ -15,6 +15,8 @@ export type Profile = {
   following_count: number;
   feedback_given_count: number;
   feedback_helpful_count: number;
+  connection_count: number;
+  reputation: number;
 };
 
 export type ProfileSummary = Pick<Profile, "id" | "username" | "display_name" | "roles">;
@@ -151,6 +153,38 @@ export type Swap = {
   from: SwapApp;
   to: SwapApp;
 };
+
+export type Notification = {
+  id: number;
+  kind: string;
+  created_at: string;
+  read_at: string | null;
+  ref_id: string | null;
+  actor: ProfileSummary | null;
+  app: { slug: string; name: string } | null;
+};
+
+export type ConnectionRequest = {
+  id: string;
+  reason: string;
+  note: string;
+  created_at: string;
+  person: ProfileSummary;
+};
+
+// How the viewer stands with someone.
+export type ConnectionState =
+  | { status: "none" }
+  | { status: "sent"; id: string }
+  | { status: "received"; id: string; reason: string; note: string }
+  | { status: "connected"; id: string }
+  | { status: "declined" };
+
+export type Message = { id: string; body: string; created_at: string; mine: boolean; read_at: string | null };
+
+export type Conversation = { person: ProfileSummary; last: Message; unread: number };
+
+export type InboxCounts = { notifications: number; messages: number; requests: number };
 
 export type FeaturedReason = "featured" | "launch" | "boosted" | "hot";
 export type FeaturedApp = AppCard & { reason: FeaturedReason };

@@ -19,6 +19,8 @@ export const demoProfiles: Profile[] = [
     following_count: 38,
     feedback_given_count: 23,
     feedback_helpful_count: 9,
+    connection_count: 12,
+    reputation: 31,
   },
   {
     id: "demo-marco",
@@ -35,6 +37,8 @@ export const demoProfiles: Profile[] = [
     following_count: 120,
     feedback_given_count: 41,
     feedback_helpful_count: 17,
+    connection_count: 7,
+    reputation: 58,
   },
   {
     id: "demo-june",
@@ -51,6 +55,8 @@ export const demoProfiles: Profile[] = [
     following_count: 76,
     feedback_given_count: 8,
     feedback_helpful_count: 3,
+    connection_count: 24,
+    reputation: 12,
   },
 ];
 

@@ -1,10 +1,11 @@
 import Link from "next/link";
 
 import { signOut } from "@/app/actions";
-import { getViewer } from "@/lib/data";
+import { getInboxCounts, getViewer } from "@/lib/data";
 
 import { Avatar } from "./Avatar";
 import { CreditsChip } from "./CreditsChip";
+import { InboxIcon } from "./Inbox";
 import { MobileTabs } from "./MobileTabs";
 import { NavLinks } from "./NavLinks";
 import { PixelCoder } from "./PixelCoder";
@@ -13,6 +14,7 @@ import { ThemeToggle } from "./ThemeToggle";
 // Top bar on every screen size; on phones the page links move to the bottom tab bar.
 export async function Nav() {
   const viewer = await getViewer();
+  const counts = await getInboxCounts(viewer);
 
   return (
     <>
@@ -34,6 +36,7 @@ export async function Nav() {
             {viewer ? (
               <>
                 <CreditsChip credits={viewer.credits} />
+                <InboxIcon count={counts.notifications + counts.messages + counts.requests} />
                 <Link href={`/u/${viewer.username}`} aria-label="Your profile">
                   <Avatar username={viewer.username} size={32} />
                 </Link>
