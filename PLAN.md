@@ -15,7 +15,7 @@ Items marked *(suggested)* are additions to the original idea.
 | **Builders** (founders, solo devs, vibe coders, designers) | Traction, feedback, users, income, credibility |
 | **Explorers** (early adopters, other builders) | Discover new apps, try them and follow builders |
 | **Hirers and collaborators** | Find talented people by looking at their actual work |
-| **Sponsors** (tool companies, later brands) | Get in front of builders and their users |
+| **Sponsors** (other apps on Method V, tool companies, later brands) | Get in front of builders and their users |
 
 ---
 
@@ -64,6 +64,7 @@ A **Drop** is a short demo video of an app, like a reel or a TikTok. Upload butt
 - **Boosts:** spend credits or pay to get extra reach in the feed
 - **Build in public:** post short progress updates that show up to followers
 - **Share kit:** a ready-made "Featured on Method V" badge and share links for X, TikTok and LinkedIn *(suggested)*
+- **Swaps:** two apps with similar audiences promote each other for free. See Boost Exchange below.
 
 ### Pillar 6: Earn (Revenue for Builders)
 
@@ -75,13 +76,35 @@ It works the opposite way from YouTube and Instagram: **sponsors back the app it
 - **Bounties and grants:** sponsors post challenges, e.g. "Build an AI app for teachers, $1,000 prize" *(suggested)*
 - Payouts through Stripe Connect
 
+#### Boost Exchange (apps sponsoring apps)
+
+Big brands won't sponsor small apps early on, but **small apps will sponsor each other**, because they all want the same thing: users. This is the first sponsorship model, before outside brands.
+
+**Two versions:**
+- **Paid sponsorship:** an app with some budget pays other apps on Method V to promote it. For example, a note-taking app pays a study-timer app $50 to show "Sponsored by NoteFlow." The sponsor gets targeted users, the app being paid earns money even if it's small, and Method V takes a cut.
+- **Swaps (no money):** two apps with similar audiences promote each other. Most early builders have no budget, so swaps get the most use at the start.
+
+**Ways to promote each other:**
+- **Sponsored Drops:** "This Drop is sponsored by ___," with a card linking to the sponsor
+- **"Friends of" slot:** a small section on an app page for 1–3 apps it recommends
+- **Embeddable badge or widget:** "Sponsored by ___ on Method V" on the builder's own site, which brings in traffic from outside Method V
+- **Co-launches:** two or three related apps launch together on the same launch day
+- **Bundles:** apps team up into packs like "Starter pack for freelancers"
+
+**Making it work well:**
+- **Matching:** suggest partners by category and overlapping audience ("Apps your users would also like")
+- **Pay for results:** sponsors can pay per real "Try it" click instead of a flat fee
+- **Honest stats:** sponsors see real clicks and tries
+- **Clear labels:** anything paid is marked **Sponsored** (also required in the US under FTC disclosure rules)
+- **Reviews:** both sides rate each other after a deal, so good partners build a reputation
+
 ---
 
 ## 3. How Method V makes money
 
 1. Paid **boosts** and featured slots
 2. **Pro profiles**, with analytics, extra boosts and custom profile pages
-3. A **cut of sponsorships** (around 10–15%)
+3. A **cut of sponsorships** (around 10–15%), starting with app-to-app deals on the Boost Exchange
 4. **Job and hiring posts**
 5. Sponsor-funded challenges and category takeovers
 
@@ -94,6 +117,8 @@ It works the opposite way from YouTube and Instagram: **sponsors back the app it
 - Spam and fake-account detection, and protection against people gaming credits and view counts
 - Report and block tools, plus moderation for Drops, Q&A and messages
 - Verified badges for real founders and teams
+- Sponsored content is always labeled, sponsored slots are capped so the feed doesn't fill with ads, and only apps that pass the link check can sponsor or be sponsored
+- Sponsorship stats count only verified tries from real accounts
 - Basic legal pages: terms, privacy and content guidelines
 
 ---
@@ -118,15 +143,17 @@ It works the opposite way from YouTube and Instagram: **sponsors back the app it
 - Launch days and boosts
 - Build-in-public posts
 - Share kit and badges
+- Swaps and co-launches (free Boost Exchange)
 
 **Phase 4: "Earn"**
+- Paid app-to-app sponsorships (Boost Exchange), with pay-per-try pricing
 - Stack sponsors and challenges
 - Backers and tips through Stripe Connect
 - Pro profiles
 - A jobs board
 
 **Phase 5: "Scale"**
-- Sponsor marketplace with brand deals
+- Outside brand sponsors join the Boost Exchange
 - A mobile app (iOS and Android)
 - Analytics dashboards for builders
 - An API and embeddable widgets
@@ -151,6 +178,7 @@ It works the opposite way from YouTube and Instagram: **sponsors back the app it
 - Feedback given per user
 - Connections made and messages sent
 - Builders who got a sponsor, backer or job through Method V
+- Boost Exchange deals made, and tries delivered per deal
 - How many users come back each week
 
 ---

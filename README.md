@@ -9,7 +9,7 @@ Method V is for web app designers, software engineers and vibe coders:
 - **People:** profiles with role tags (Founder, Employee, Looking for work, Hiring…) and connecting with a reason
 - **Q&A:** questions and answers about each project
 - **Reach:** tools that get builders real users and feedback, not just likes
-- **Earn:** sponsorships, backers and bounties that back the app itself
+- **Earn:** sponsorships, backers and bounties that back the app itself, including the Boost Exchange, where apps sponsor and promote each other
 
 See [PLAN.md](PLAN.md) for the full product plan and build phases.
 
