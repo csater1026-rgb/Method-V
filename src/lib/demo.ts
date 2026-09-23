@@ -76,6 +76,8 @@ export const demoApps: App[] = [
     feedback_count: 18,
     would_use_yes_count: 14,
     rating_sum: 79,
+    launch_at: null,
+    boosted_until: null,
     created_at: ago(1),
   },
   {
@@ -95,6 +97,8 @@ export const demoApps: App[] = [
     feedback_count: 6,
     would_use_yes_count: 4,
     rating_sum: 25,
+    launch_at: null,
+    boosted_until: null,
     created_at: ago(3),
   },
   {
@@ -114,6 +118,8 @@ export const demoApps: App[] = [
     feedback_count: 31,
     would_use_yes_count: 27,
     rating_sum: 142,
+    launch_at: null,
+    boosted_until: null,
     created_at: ago(6),
   },
   {
@@ -133,6 +139,8 @@ export const demoApps: App[] = [
     feedback_count: 0,
     would_use_yes_count: 0,
     rating_sum: 0,
+    launch_at: null,
+    boosted_until: null,
     created_at: ago(9),
   },
 ];
@@ -167,6 +175,18 @@ export const demoCommentDate = ago;
 
 // Hand-picked for the Featured row on the home feed.
 export const demoFeaturedIds = ["demo-app-palettepal", "demo-app-noteflow"];
+
+// Launch days and boosts, relative to now so the countdowns always make sense.
+export function demoSchedule(now = Date.now()): Record<string, { launch_at?: string; boosted_until?: string }> {
+  const h = 60 * 60 * 1000;
+  return {
+    "demo-app-splitsy": { launch_at: new Date(now - 3 * h).toISOString() },
+    "demo-app-quizpop": {
+      launch_at: new Date(now + 2 * 24 * h + 4 * h).toISOString(),
+      boosted_until: new Date(now + 2 * 24 * h).toISOString(),
+    },
+  };
+}
 
 // Apps waiting for testers in the "Test & earn" queue.
 export const demoTestRequests: Record<string, { slots_total: number; slots_filled: number }> = {

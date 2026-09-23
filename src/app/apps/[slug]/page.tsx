@@ -4,14 +4,17 @@ import { notFound } from "next/navigation";
 
 import { Avatar } from "@/components/Avatar";
 import { Comments } from "@/components/Comments";
+import { Countdown } from "@/components/Countdown";
 import { DropPlaceholder } from "@/components/DropVideo";
 import { FeedbackPanel } from "@/components/FeedbackPanel";
 import { FollowButton } from "@/components/FollowButton";
+import { GrowPanel } from "@/components/GrowPanel";
 import { LikeButton } from "@/components/LikeButton";
 import { ShareButton } from "@/components/ShareButton";
 import { CategoryChip, Chip, PricingStage, RoleTags } from "@/components/Tags";
-import { getApp, getComments, getFeedbackPanel, getViewer, isFollowing } from "@/lib/data";
+import { appStatus, getApp, getComments, getFeedbackPanel, getViewer, isFollowing } from "@/lib/data";
 import { formatCount, formatDuration, timeAgo } from "@/lib/format";
+import { isSupabaseConfigured } from "@/lib/supabase/env";
 
 export async function generateMetadata({ params }: PageProps<"/apps/[slug]">): Promise<Metadata> {
   const app = await getApp((await params).slug);
@@ -32,6 +35,7 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
   const wouldUse = app.feedback_count ? Math.round((app.would_use_yes_count / app.feedback_count) * 100) : null;
   const rating = app.feedback_count ? (app.rating_sum / app.feedback_count).toFixed(1) : null;
   const isOwner = viewer?.id === app.owner_id;
+  const status = appStatus(app);
 
   return (
     <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-8 lg:grid-cols-[minmax(0,360px)_1fr]">
@@ -69,6 +73,13 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
           <div className="flex flex-wrap items-center gap-2">
             <CategoryChip category={app.category} />
             <PricingStage pricing={app.pricing} stage={app.stage} />
+            {status.launch === "live" && <span className="tag-accent">Launch day</span>}
+            {status.launch === "upcoming" && (
+              <span className="tag border-accent/60 text-accent">
+                Launching in <Countdown to={app.launch_at!} />
+              </span>
+            )}
+            {status.boostedUntil && <span className="tag-accent">Boosted</span>}
           </div>
           <h1 className="display mt-3 text-7xl break-words sm:text-8xl">{app.name}</h1>
           <p className="mt-1 text-lg text-muted">{app.tagline}</p>
@@ -130,6 +141,16 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
             <FollowButton profileId={app.owner.id} initialFollowing={following} signedIn={Boolean(viewer)} />
           )}
         </div>
+
+        {/* Builder tools. In demo mode everyone sees a preview so the features can be tried out. */}
+        {((isOwner && viewer) || !isSupabaseConfigured) && (
+          <GrowPanel
+            app={{ id: app.id, slug: app.slug, name: app.name, launch_at: app.launch_at }}
+            status={status}
+            credits={viewer?.credits ?? 30}
+            preview={!isSupabaseConfigured}
+          />
+        )}
 
         <FeedbackPanel panel={feedbackPanel} app={{ id: app.id, slug: app.slug, name: app.name }} />
 

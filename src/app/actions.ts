@@ -4,7 +4,17 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { CATEGORIES, MAX_DROP_SECONDS, PRICING, ROLES, STAGES, TESTER_PACKS, WOULD_USE, isOneOf } from "@/lib/constants";
+import {
+  BOOST,
+  CATEGORIES,
+  MAX_DROP_SECONDS,
+  PRICING,
+  ROLES,
+  STAGES,
+  TESTER_PACKS,
+  WOULD_USE,
+  isOneOf,
+} from "@/lib/constants";
 import { getViewer } from "@/lib/data";
 import { parseList, slugify } from "@/lib/format";
 import { checkLink, parseAppUrl } from "@/lib/link-check";
@@ -382,4 +392,51 @@ export async function markHelpful(feedbackId: string, appSlug: string): Promise<
   if (error) return { ok: false, error: rpcError(error.message, "Couldn't mark that as helpful.") };
   revalidatePath(`/apps/${appSlug}`);
   return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Phase 3: launch days and boosts
+// ---------------------------------------------------------------------------
+
+// Signed-in check first (so demo mode explains itself), then input checks, then the database function.
+async function callRpc(
+  fn: string,
+  args: Record<string, unknown>,
+  fallback: string,
+  paths: string[],
+  invalid: string | null = null,
+): Promise<ActionResult> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  if (invalid) return { ok: false, error: invalid };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc(fn, args);
+  if (error) return { ok: false, error: rpcError(error.message, fallback) };
+  for (const path of paths) revalidatePath(path);
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+const unknownApp = (id: string) => (UUID.test(id) ? null : "Unknown app.");
+
+export async function scheduleLaunch(appId: string, appSlug: string, at: string): Promise<ActionResult> {
+  const when = new Date(at);
+  const invalid = unknownApp(appId) ?? (Number.isNaN(when.getTime()) ? "Pick a date and time." : null);
+  return callRpc(
+    "schedule_launch",
+    { p_app_id: appId, p_at: invalid ? null : when.toISOString() },
+    "Couldn't schedule the launch.",
+    [`/apps/${appSlug}`],
+    invalid,
+  );
+}
+
+export async function cancelLaunch(appId: string, appSlug: string): Promise<ActionResult> {
+  return callRpc("cancel_launch", { p_app_id: appId }, "Couldn't cancel the launch.", [`/apps/${appSlug}`], unknownApp(appId));
+}
+
+export async function boostApp(appId: string, appSlug: string, days: number): Promise<ActionResult> {
+  const invalid =
+    unknownApp(appId) ?? ((BOOST.options as readonly number[]).includes(days) ? null : "Pick how many days to boost.");
+  return callRpc("boost_app", { p_app_id: appId, p_days: days }, "Couldn't boost the app.", [`/apps/${appSlug}`], invalid);
 }

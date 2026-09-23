@@ -10,6 +10,7 @@ import {
   demoDrops,
   demoFeaturedIds,
   demoProfiles,
+  demoSchedule,
   demoTestRequests,
 } from "./demo";
 import { isSupabaseConfigured, publicFileUrl } from "./supabase/env";
@@ -21,6 +22,7 @@ import type {
   Comment,
   CreditEvent,
   Drop,
+  FeaturedApp,
   FeedItem,
   Feedback,
   FeedbackPanel,
@@ -80,6 +82,8 @@ function toApp(row: any): App {
     feedback_count: row.feedback_count ?? 0,
     would_use_yes_count: row.would_use_yes_count ?? 0,
     rating_sum: row.rating_sum ?? 0,
+    launch_at: row.launch_at ?? null,
+    boosted_until: row.boosted_until ?? null,
     created_at: row.created_at,
   };
 }
@@ -238,8 +242,9 @@ export async function getApps(filters: BrowseFilters): Promise<AppCard[]> {
 
 export async function getApp(slug: string): Promise<AppDetail | null> {
   if (!isSupabaseConfigured) {
-    const app = demoApps.find((a) => a.slug === slug);
-    if (!app) return null;
+    const found = demoApps.find((a) => a.slug === slug);
+    if (!found) return null;
+    const app = { ...found, ...demoSchedule()[found.id] };
     return {
       ...app,
       owner: toSummary(demoProfile(app.owner_id)),
@@ -465,48 +470,124 @@ export async function getCreditHistory(viewer: Viewer): Promise<CreditEvent[]> {
 }
 
 // ---------------------------------------------------------------------------
-// Home feed: Featured
+// Home feed: Featured and upcoming launches
 // ---------------------------------------------------------------------------
 
 const HOT_WINDOW_DAYS = 30;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
-// Hand-picked apps (featured_until in the future). When none are picked, the
-// most liked and tried apps from the last few weeks fill the row instead.
-export async function getFeatured(): Promise<{ apps: AppCard[]; curated: boolean }> {
+const CARD_SELECT = `*, owner:profiles!apps_owner_id_fkey(${PROFILE_SUMMARY}), drops(poster_path, created_at)`;
+
+/* eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped rows */
+function toCard(row: any): AppCard {
+  const latest = [...(row.drops ?? [])].sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
+  return { ...toApp(row), owner: toSummary(row.owner), poster_url: publicFileUrl(latest?.poster_path ?? null) };
+}
+
+function demoCards(): AppCard[] {
+  const schedule = demoSchedule();
+  return demoApps.map((a) => ({
+    ...a,
+    ...schedule[a.id],
+    owner: toSummary(demoProfile(a.owner_id)),
+    poster_url: null,
+  }));
+}
+
+export function isLaunchLive(app: Pick<App, "launch_at">, now = Date.now()): boolean {
+  if (!app.launch_at) return false;
+  const start = new Date(app.launch_at).getTime();
+  return start <= now && now < start + DAY_MS;
+}
+
+export type AppStatus = {
+  launch: "none" | "upcoming" | "live" | "done";
+  launchEnds: string | null;
+  boostedUntil: string | null;
+};
+
+export function appStatus(app: Pick<App, "launch_at" | "boosted_until">, now = Date.now()): AppStatus {
+  const start = app.launch_at ? new Date(app.launch_at).getTime() : null;
+  const launch =
+    start === null ? "none" : now < start ? "upcoming" : now < start + DAY_MS ? "live" : "done";
+  return {
+    launch,
+    launchEnds: start === null ? null : new Date(start + DAY_MS).toISOString(),
+    boostedUntil: app.boosted_until && new Date(app.boosted_until).getTime() > now ? app.boosted_until : null,
+  };
+}
+
+// The Featured row, in this order: hand-picked apps, apps on their launch
+// day, then boosted apps. With none of those, the hottest recent apps.
+export async function getFeatured(): Promise<{ apps: FeaturedApp[]; curated: boolean }> {
+  const now = Date.now();
+  let picked: AppCard[];
+  let launching: AppCard[];
+  let boosted: AppCard[];
+
   if (!isSupabaseConfigured) {
-    const apps = demoFeaturedIds
-      .map((id) => demoApps.find((a) => a.id === id)!)
-      .map((a) => ({ ...a, owner: toSummary(demoProfile(a.owner_id)), poster_url: null }));
-    return { apps, curated: true };
+    const cards = demoCards();
+    picked = demoFeaturedIds.map((id) => cards.find((a) => a.id === id)!);
+    launching = cards.filter((a) => isLaunchLive(a, now));
+    boosted = cards.filter((a) => a.boosted_until && new Date(a.boosted_until).getTime() > now);
+  } else {
+    const supabase = await createClient();
+    const nowIso = new Date(now).toISOString();
+    const base = () => supabase.from("apps").select(CARD_SELECT).not("link_checked_at", "is", null);
+    const [p, l, b] = await Promise.all([
+      base().gt("featured_until", nowIso).order("featured_until", { ascending: false }).limit(8),
+      base().lte("launch_at", nowIso).gt("launch_at", new Date(now - DAY_MS).toISOString()).order("launch_at").limit(8),
+      base().gt("boosted_until", nowIso).order("boosted_until", { ascending: false }).limit(8),
+    ]);
+    picked = (p.data ?? []).map(toCard);
+    launching = (l.data ?? []).map(toCard);
+    boosted = (b.data ?? []).map(toCard);
   }
 
-  const supabase = await createClient();
-  const select = `*, owner:profiles!apps_owner_id_fkey(${PROFILE_SUMMARY}), drops(poster_path, created_at)`;
-  /* eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped rows */
-  const toCard = (row: any): AppCard => {
-    const latest = [...(row.drops ?? [])].sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
-    return { ...toApp(row), owner: toSummary(row.owner), poster_url: publicFileUrl(latest?.poster_path ?? null) };
+  const seen = new Set<string>();
+  const apps: FeaturedApp[] = [];
+  const add = (list: AppCard[], reason: FeaturedApp["reason"]) => {
+    for (const a of list) {
+      if (seen.has(a.id) || apps.length >= 12) continue;
+      seen.add(a.id);
+      apps.push({ ...a, reason });
+    }
   };
+  add(picked, "featured");
+  add(launching, "launch");
+  add(boosted, "boosted");
+  if (apps.length > 0) return { apps, curated: true };
 
-  const { data: picked } = await supabase
-    .from("apps")
-    .select(select)
-    .not("link_checked_at", "is", null)
-    .gt("featured_until", new Date().toISOString())
-    .order("featured_until", { ascending: false })
-    .limit(8);
-  if (picked && picked.length > 0) return { apps: picked.map(toCard), curated: true };
-
-  const since = new Date(Date.now() - HOT_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  const supabase = await createClient();
   const { data: hot } = await supabase
     .from("apps")
-    .select(select)
+    .select(CARD_SELECT)
     .not("link_checked_at", "is", null)
-    .gte("created_at", since)
+    .gte("created_at", new Date(now - HOT_WINDOW_DAYS * DAY_MS).toISOString())
     .order("like_count", { ascending: false })
     .order("try_count", { ascending: false })
     .limit(6);
-  return { apps: (hot ?? []).map(toCard), curated: false };
+  return { apps: (hot ?? []).map((row) => ({ ...toCard(row), reason: "hot" as const })), curated: false };
+}
+
+// Launches in the next 7 days, soonest first.
+export async function getUpcomingLaunches(): Promise<AppCard[]> {
+  const now = Date.now();
+  if (!isSupabaseConfigured) {
+    return demoCards()
+      .filter((a) => a.launch_at && new Date(a.launch_at).getTime() > now)
+      .sort((a, b) => a.launch_at!.localeCompare(b.launch_at!));
+  }
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("apps")
+    .select(CARD_SELECT)
+    .not("link_checked_at", "is", null)
+    .gt("launch_at", new Date(now).toISOString())
+    .lt("launch_at", new Date(now + 7 * DAY_MS).toISOString())
+    .order("launch_at")
+    .limit(10);
+  return (data ?? []).map(toCard);
 }
 
 // ---------------------------------------------------------------------------

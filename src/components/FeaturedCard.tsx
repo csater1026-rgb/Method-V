@@ -1,14 +1,21 @@
 import Link from "next/link";
 
 import { formatCount } from "@/lib/format";
-import type { AppCard } from "@/lib/types";
+import type { FeaturedApp } from "@/lib/types";
 
 import { Avatar } from "./Avatar";
 import { DropPlaceholder } from "./DropVideo";
 import { CategoryChip } from "./Tags";
 
+const LABELS: Record<FeaturedApp["reason"], string> = {
+  featured: "★ Featured",
+  launch: "Launch day",
+  boosted: "Boosted",
+  hot: "Hot",
+};
+
 // Big card for the Featured row on the home feed.
-export function FeaturedCard({ app, rank, label }: { app: AppCard; rank: number; label: string }) {
+export function FeaturedCard({ app, rank }: { app: FeaturedApp; rank: number }) {
   return (
     <article
       className="rise media-dark relative flex aspect-[4/5] w-[82vw] max-w-[340px] shrink-0 snap-start overflow-hidden rounded-xl border border-line bg-surface sm:aspect-[4/5]"
@@ -24,7 +31,7 @@ export function FeaturedCard({ app, rank, label }: { app: AppCard; rank: number;
       </Link>
 
       <span className="tag-accent absolute top-3 left-3">
-        ★ {label} · {String(rank + 1).padStart(2, "0")}
+        {LABELS[app.reason]} · {String(rank + 1).padStart(2, "0")}
       </span>
 
       <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 via-black/70 to-transparent p-4 pt-24">

@@ -50,7 +50,7 @@ await run("home (phone)", phone, async (page) => {
   ok((await tabs.getByRole("link").first().textContent()) === "Home", "first tab is Home");
   ok((await tabs.getByRole("link", { name: "Home" }).getAttribute("aria-current")) === "page", "Home tab is active");
   const featured = page.getByRole("region", { name: "Featured apps" });
-  ok((await featured.locator("article").count()) === 2, "Featured row shows the 2 picked apps");
+  ok((await featured.locator("article").count()) === 4, "Featured row: 2 picked apps, then launch day and boosted");
   ok((await featured.locator("article").first().getAttribute("class")).includes("snap-start"), "Featured row swipes sideways");
   ok(await page.getByText("2 apps need testers.").isVisible(), "needs-testers strip links to Test & earn");
   ok((await page.locator("#projects article").count()) === 4, "All projects lists everyone's apps");
@@ -173,7 +173,7 @@ await run("browse (phone)", phone, async (page) => {
 
 await run("app page", desktop, async (page) => {
   await page.goto(BASE + "/apps/noteflow");
-  ok(await page.getByRole("heading", { name: "NoteFlow" }).isVisible(), "app heading");
+  ok(await page.getByRole("heading", { name: "NoteFlow", exact: true }).isVisible(), "app heading");
   ok((await page.locator("#comments li").count()) === 2, "sample comments listed");
   ok(await page.getByText("Sign in to comment").isVisible() || (await page.getByRole("link", { name: "Sign in" }).count()) > 0, "comment asks to sign in");
   ok(await page.getByRole("link", { name: "Next.js" }).isVisible(), "tech stack chips link to browse");
@@ -201,6 +201,33 @@ await run("profile", desktop, async (page) => {
   ok(res.status() === 404, "unknown profile is 404");
   await ctx.close();
 }
+
+await run("launch days + boosts", desktop, async (page) => {
+  await page.goto(BASE + "/");
+  const featured = page.getByRole("region", { name: "Featured apps" });
+  const labels = await featured.locator("article .tag-accent").allTextContents();
+  ok(labels.some((l) => l.startsWith("Launch day")) && labels.some((l) => l.startsWith("Boosted")), `Featured row includes launch-day and boosted apps (${labels.join(" | ")})`);
+  const soon = page.getByRole("region", { name: "Upcoming launches" });
+  ok((await soon.locator("li").count()) === 1 && (await soon.textContent()).includes("QuizPop"), "Launching soon lists QuizPop");
+  ok(/2d [34]h/.test(await soon.locator("time").textContent()), `countdown shows days and hours (${await soon.locator("time").textContent()})`);
+  await page.waitForTimeout(1000);
+  await page.screenshot({ path: OUT + "home-launches.png", fullPage: true });
+
+  await page.goto(BASE + "/apps/quizpop");
+  ok(await page.getByText(/^Launching in/).first().isVisible(), "app page shows the launch countdown");
+  ok(await page.locator(".tag-accent", { hasText: "Boosted" }).isVisible(), "app page shows Boosted");
+  const grow = page.getByRole("region", { name: "Grow" });
+  ok(await grow.getByText("Builder tools · preview in demo mode").isVisible(), "Grow panel preview in demo mode");
+  await grow.getByRole("button", { name: /3 days/ }).click();
+  await grow.getByText("Method V is running in demo mode").waitFor({ timeout: 5000 });
+  ok(true, "boost button explains demo mode");
+  await grow.screenshot({ path: OUT + "grow-panel.png" });
+
+  await page.goto(BASE + "/apps/splitsy");
+  ok(await page.getByRole("region", { name: "Grow" }).getByText("It's launch day!").isVisible(), "launch-day state on the app page");
+  await page.goto(BASE + "/apps/noteflow");
+  ok(await page.getByRole("region", { name: "Grow" }).getByLabel("Launch date and time").isVisible(), "unscheduled app offers a launch date picker");
+});
 
 await run("tester passport", desktop, async (page) => {
   await page.goto(BASE + "/u/marco_ships");

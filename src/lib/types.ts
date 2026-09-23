@@ -36,6 +36,9 @@ export type App = {
   feedback_count: number;
   would_use_yes_count: number;
   rating_sum: number;
+  // Launch day starts at launch_at and lasts 24 hours; boosted until boosted_until.
+  launch_at: string | null;
+  boosted_until: string | null;
   created_at: string;
 };
 
@@ -128,5 +131,8 @@ export type TopTester = {
   feedback_count: number;
   helpful_count: number;
 };
+
+export type FeaturedReason = "featured" | "launch" | "boosted" | "hot";
+export type FeaturedApp = AppCard & { reason: FeaturedReason };
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
