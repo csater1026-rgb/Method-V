@@ -567,3 +567,74 @@ export async function markNotificationsRead(): Promise<void> {
   await supabase.rpc("mark_notifications_read");
   revalidatePath("/", "layout");
 }
+
+// ---------------------------------------------------------------------------
+// Phase 2: Q&A
+// ---------------------------------------------------------------------------
+
+function qaPath(appSlug: string) {
+  return `/apps/${appSlug}`;
+}
+
+export async function askQuestion(appId: string, appSlug: string, body: string): Promise<ActionResult> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  if (!UUID.test(appId)) return { ok: false, error: "Unknown app." };
+  const text = body.trim();
+  if (text.length < 5) return { ok: false, error: "Ask a bit more (at least 5 characters)." };
+  if (text.length > 500) return { ok: false, error: "Questions can be up to 500 characters." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("questions").insert({ app_id: appId, user_id: auth.viewer.id, body: text });
+  if (error) return { ok: false, error: "Couldn't post your question." };
+  revalidatePath(qaPath(appSlug));
+  return { ok: true };
+}
+
+export async function answerQuestion(questionId: string, appSlug: string, body: string): Promise<ActionResult> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  if (!UUID.test(questionId)) return { ok: false, error: "Unknown question." };
+  const text = body.trim();
+  if (!text) return { ok: false, error: "Write an answer first." };
+  if (text.length > 1000) return { ok: false, error: "Answers can be up to 1,000 characters." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("answers").insert({ question_id: questionId, user_id: auth.viewer.id, body: text });
+  if (error) return { ok: false, error: "Couldn't post your answer." };
+  revalidatePath(qaPath(appSlug));
+  return { ok: true };
+}
+
+export async function setVote(kind: "question" | "answer", id: string, on: boolean): Promise<ActionResult> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  if (!UUID.test(id)) return { ok: false, error: "Unknown post." };
+  const supabase = await createClient();
+  const table = kind === "question" ? "question_votes" : "answer_votes";
+  const column = kind === "question" ? "question_id" : "answer_id";
+  const { error } = on
+    ? await supabase.from(table).insert({ user_id: auth.viewer.id, [column]: id })
+    : await supabase.from(table).delete().eq("user_id", auth.viewer.id).eq(column, id);
+  if (error?.code === "42501") return { ok: false, error: "You can't vote on your own post." };
+  if (error && error.code !== "23505") return { ok: false, error: "Couldn't save your vote." };
+  return { ok: true };
+}
+
+export async function markBestAnswer(questionId: string, answerId: string, appSlug: string): Promise<ActionResult> {
+  const invalid = UUID.test(questionId) && UUID.test(answerId) ? null : "Unknown answer.";
+  return callRpc("mark_best_answer", { p_question: questionId, p_answer: answerId }, "Couldn't mark the best answer.", [qaPath(appSlug)], invalid);
+}
+
+export async function deletePost(kind: "question" | "answer", id: string, appSlug: string): Promise<ActionResult> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  if (!UUID.test(id)) return { ok: false, error: "Unknown post." };
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from(kind === "question" ? "questions" : "answers")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", auth.viewer.id);
+  if (error) return { ok: false, error: "Couldn't delete it." };
+  revalidatePath(qaPath(appSlug));
+  return { ok: true };
+}

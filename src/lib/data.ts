@@ -10,6 +10,7 @@ import {
   demoDrops,
   demoFeaturedIds,
   demoProfiles,
+  demoQuestions,
   demoSchedule,
   demoSwaps,
   demoTestRequests,
@@ -36,6 +37,7 @@ import type {
   Notification,
   Profile,
   ProfileSummary,
+  Question,
   Passport,
   QueueItem,
   Swap,
@@ -888,4 +890,81 @@ export async function getThread(
     getConnectionState(viewer, person.id),
   ]);
   return { person: toSummary(person), messages: (data ?? []).map((r) => toMessage(r, viewer.id)), connection };
+}
+
+// ---------------------------------------------------------------------------
+// Q&A
+// ---------------------------------------------------------------------------
+
+// Questions on an app, most upvoted first; answers with the best one first.
+export async function getQuestions(appId: string, viewer: Viewer | null): Promise<Question[]> {
+  if (!isSupabaseConfigured) {
+    return (demoQuestions[appId] ?? []).map((q, qi) => {
+      const answers = q.answers.map((a, ai) => ({
+        id: `demo-a-${qi}-${ai}`,
+        body: a.body,
+        created_at: demoCommentDate(1 - ai * 0.2),
+        vote_count: a.votes,
+        voted: false,
+        user: toSummary(demoProfile(a.user)),
+      }));
+      const best = q.answers.findIndex((a) => a.best);
+      return {
+        id: `demo-q-${qi}`,
+        body: q.body,
+        created_at: demoCommentDate(2 - qi),
+        vote_count: q.votes,
+        voted: false,
+        best_answer_id: best >= 0 ? answers[best].id : null,
+        user: toSummary(demoProfile(q.user)),
+        answers,
+      };
+    });
+  }
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("questions")
+    .select(
+      `id, body, created_at, vote_count, best_answer_id, user:profiles!questions_user_id_fkey(${PROFILE_SUMMARY}),
+       answers(id, body, created_at, vote_count, user:profiles!answers_user_id_fkey(${PROFILE_SUMMARY}))`,
+    )
+    .eq("app_id", appId)
+    .order("vote_count", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(50);
+  const rows = data ?? [];
+
+  let votedQ = new Set<string>();
+  let votedA = new Set<string>();
+  if (viewer && rows.length > 0) {
+    const qIds = rows.map((r) => r.id as string);
+    const aIds = rows.flatMap((r) => (r.answers ?? []).map((a: { id: string }) => a.id));
+    const [qv, av] = await Promise.all([
+      supabase.from("question_votes").select("question_id").eq("user_id", viewer.id).in("question_id", qIds),
+      aIds.length
+        ? supabase.from("answer_votes").select("answer_id").eq("user_id", viewer.id).in("answer_id", aIds)
+        : Promise.resolve({ data: [] as { answer_id: string }[] }),
+    ]);
+    votedQ = new Set((qv.data ?? []).map((v) => v.question_id as string));
+    votedA = new Set((av.data ?? []).map((v) => v.answer_id as string));
+  }
+
+  return rows.map((q) => ({
+    id: q.id,
+    body: q.body,
+    created_at: q.created_at,
+    vote_count: q.vote_count,
+    voted: votedQ.has(q.id),
+    best_answer_id: q.best_answer_id,
+    user: toSummary(q.user),
+    answers: ((q.answers ?? []) as unknown as { id: string; body: string; created_at: string; vote_count: number; user: unknown }[])
+      .map((a) => ({ ...a, voted: votedA.has(a.id), user: toSummary(a.user) }))
+      .sort(
+        (a, b) =>
+          Number(b.id === q.best_answer_id) - Number(a.id === q.best_answer_id) ||
+          b.vote_count - a.vote_count ||
+          a.created_at.localeCompare(b.created_at),
+      ),
+  }));
 }

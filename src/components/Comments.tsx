@@ -14,9 +14,11 @@ type Props = {
   appSlug: string;
   comments: Comment[];
   viewerId: string | null;
+  // Inside the app page's tabs the tab already says "Comments".
+  bare?: boolean;
 };
 
-export function Comments({ dropId, appSlug, comments, viewerId }: Props) {
+export function Comments({ dropId, appSlug, comments, viewerId, bare = false }: Props) {
   const formRef = useRef<HTMLFormElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -40,9 +42,11 @@ export function Comments({ dropId, appSlug, comments, viewerId }: Props) {
 
   return (
     <section id="comments" className="scroll-mt-20">
-      <h2 className="display text-4xl">
-        Comments <span className="text-muted">{comments.length}</span>
-      </h2>
+      {!bare && (
+        <h2 className="display text-4xl">
+          Comments <span className="text-muted">{comments.length}</span>
+        </h2>
+      )}
 
       {viewerId ? (
         <form ref={formRef} action={submit} className="mt-3 flex gap-2">

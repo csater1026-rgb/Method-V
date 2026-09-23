@@ -187,6 +187,25 @@ export const demoUpdates: { user: string; app: string | null; body: string; hour
   { user: "demo-ada", app: "demo-app-splitsy", body: "Receipt scanning now works on crumpled receipts too. Tested on 40 of my own.", hours: 50 },
 ];
 
+// Q&A on apps.
+export const demoQuestions: Record<
+  string,
+  { user: string; body: string; votes: number; answers: { user: string; body: string; votes: number; best?: boolean }[] }[]
+> = {
+  "demo-app-noteflow": [
+    {
+      user: "demo-marco",
+      body: "Does it work with Google Meet recordings, or only Zoom?",
+      votes: 6,
+      answers: [
+        { user: "demo-ada", body: "Both! Meet import shipped this week. Drop the recording link in and it does the rest.", votes: 4, best: true },
+        { user: "demo-june", body: "Can confirm, used it on a Meet call yesterday.", votes: 1 },
+      ],
+    },
+    { user: "demo-june", body: "Is there a way to export the to-dos to Linear?", votes: 3, answers: [] },
+  ],
+};
+
 // Accepted shoutout swaps between apps.
 export const demoSwaps: [string, string][] = [["demo-app-noteflow", "demo-app-palettepal"]];
 

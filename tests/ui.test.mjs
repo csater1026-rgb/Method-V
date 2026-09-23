@@ -242,9 +242,9 @@ await run("build in public", desktop, async (page) => {
   const home = page.getByRole("region", { name: "Build in public" });
   ok((await home.locator("li").count()) === 4, "Home shows everyone's latest updates");
   ok(!(await home.getByLabel("Write an update").count()), "no composer when signed out");
-  await go(page, "/apps/noteflow");
-  const appUpdates = page.getByRole("region", { name: "Updates" });
-  ok((await appUpdates.locator("li").count()) === 1 && (await appUpdates.textContent()).includes("Google Meet"), "app page shows that app's updates");
+  await go(page, "/apps/noteflow?tab=updates");
+  const appUpdates = page.getByRole("region", { name: "Discussion" });
+  ok((await appUpdates.locator("li").count()) === 1 && (await appUpdates.textContent()).includes("Google Meet"), "app page Updates tab shows that app's updates");
   await go(page, "/u/ada_builds");
   ok((await page.getByRole("region", { name: "Updates" }).locator("li").count()) === 2, "profile shows the builder's updates");
 });
@@ -315,6 +315,25 @@ await run("connect + inbox", desktop, async (page) => {
   ok(true, "Connect while signed out goes to sign in");
   await go(page, "/inbox");
   ok(await page.getByText("The inbox is off in demo mode.").isVisible(), "inbox explains demo mode");
+});
+
+await run("q&a", desktop, async (page) => {
+  await go(page, "/apps/noteflow");
+  const discussion = page.getByRole("region", { name: "Discussion" });
+  ok((await discussion.getByRole("link", { name: /Comments/ }).getAttribute("aria-current")) === "page", "Comments is the default tab");
+  await discussion.getByRole("link", { name: /Q&A/ }).click();
+  await page.waitForURL(/tab=qa/);
+  await page.locator("#qa").waitFor();
+  ok((await page.locator("#qa > div > ul > li").count()) === 2 || (await page.locator("#qa li[id^='q-']").count()) === 2, "Q&A tab lists the app's questions");
+  ok(await page.locator("#qa").getByText("✓ Best answer").isVisible(), "best answer is marked");
+  ok(await page.locator("#qa .tag", { hasText: "Builder" }).first().isVisible(), "builder's answers are labeled");
+  ok((await page.locator("#qa").textContent()).indexOf("Both! Meet import") < (await page.locator("#qa").textContent()).indexOf("Can confirm"), "best answer is listed first");
+  ok(await page.locator("#qa").getByText("Sign in").isVisible(), "signed-out visitors are asked to sign in");
+  await page.locator("#qa").getByRole("button", { name: "Upvote" }).first().click();
+  await page.waitForURL(/\/login/);
+  ok(true, "voting while signed out goes to sign in");
+  await go(page, "/apps/noteflow?tab=qa");
+  await page.locator("#qa").screenshot({ path: OUT + "qa.png" });
 });
 
 await run("tester passport", desktop, async (page) => {

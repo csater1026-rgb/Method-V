@@ -186,6 +186,26 @@ export type Conversation = { person: ProfileSummary; last: Message; unread: numb
 
 export type InboxCounts = { notifications: number; messages: number; requests: number };
 
+export type Answer = {
+  id: string;
+  body: string;
+  created_at: string;
+  vote_count: number;
+  voted: boolean;
+  user: ProfileSummary;
+};
+
+export type Question = {
+  id: string;
+  body: string;
+  created_at: string;
+  vote_count: number;
+  voted: boolean;
+  best_answer_id: string | null;
+  user: ProfileSummary;
+  answers: Answer[];
+};
+
 export type FeaturedReason = "featured" | "launch" | "boosted" | "hot";
 export type FeaturedApp = AppCard & { reason: FeaturedReason };
 

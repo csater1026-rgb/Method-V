@@ -8,6 +8,7 @@ import { Countdown } from "@/components/Countdown";
 import { DropPlaceholder } from "@/components/DropVideo";
 import { FeedbackPanel } from "@/components/FeedbackPanel";
 import { FollowButton } from "@/components/FollowButton";
+import { QandA } from "@/components/QandA";
 import { GrowPanel } from "@/components/GrowPanel";
 import { Updates } from "@/components/Updates";
 import { LikeButton } from "@/components/LikeButton";
@@ -21,6 +22,7 @@ import {
   getComments,
   getFeedbackPanel,
   getMyApps,
+  getQuestions,
   getSwapPartners,
   getUpdates,
   getViewer,
@@ -36,17 +38,19 @@ export async function generateMetadata({ params }: PageProps<"/apps/[slug]">): P
 
 export default async function AppPage({ params, searchParams }: PageProps<"/apps/[slug]">) {
   const { slug } = await params;
-  const { posted } = await searchParams;
+  const { posted, tab: tabParam } = await searchParams;
+  const tab = tabParam === "qa" || tabParam === "updates" ? tabParam : "comments";
   const [app, viewer] = await Promise.all([getApp(slug), getViewer()]);
   if (!app) notFound();
 
-  const [comments, following, feedbackPanel, updates, partners, myApps] = await Promise.all([
+  const [comments, following, feedbackPanel, updates, partners, myApps, questions] = await Promise.all([
     app.drop ? getComments(app.drop.id) : [],
     isFollowing(viewer, app.owner_id),
     getFeedbackPanel(app, viewer),
     getUpdates({ appId: app.id, limit: 10 }),
     getSwapPartners(app.id),
     viewer && viewer.id !== app.owner_id ? getMyApps(viewer) : Promise.resolve([]),
+    getQuestions(app.id, viewer),
   ]);
   const wouldUse = app.feedback_count ? Math.round((app.would_use_yes_count / app.feedback_count) * 100) : null;
   const rating = app.feedback_count ? (app.rating_sum / app.feedback_count).toFixed(1) : null;
@@ -208,23 +212,55 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
 
         {myApps.length > 0 && <TeamUp target={{ id: app.id, name: app.name }} myApps={myApps} />}
 
-        {(updates.length > 0 || isOwner) && (
-          <section aria-label="Updates">
-            <h2 className="display text-4xl">Updates</h2>
-            <div className="mt-3">
+        {/* Comments, Q&A and updates share one spot, one tab at a time. */}
+        <section id="discuss" aria-label="Discussion" className="scroll-mt-20">
+          <nav aria-label="Discussion" className="flex gap-5 border-b border-line">
+            {(
+              [
+                ["comments", "Comments", comments.length],
+                ["qa", "Q&A", questions.length],
+                ["updates", "Updates", updates.length],
+              ] as const
+            ).map(([slug, label, count]) => (
+              <Link
+                key={slug}
+                href={`/apps/${app.slug}${slug === "comments" ? "" : `?tab=${slug}`}#discuss`}
+                scroll={false}
+                aria-current={tab === slug ? "page" : undefined}
+                className={`display pb-2 text-3xl ${
+                  tab === slug ? "text-ink shadow-[inset_0_-3px_0_var(--color-accent)]" : "text-muted hover:text-ink"
+                }`}
+              >
+                {label} <span className="font-mono text-sm text-muted">{count}</span>
+              </Link>
+            ))}
+          </nav>
+          <div className="mt-4">
+            {tab === "comments" &&
+              (app.drop ? (
+                <Comments dropId={app.drop.id} appSlug={app.slug} comments={comments} viewerId={viewer?.id ?? null} bare />
+              ) : (
+                <p className="text-sm text-muted">Comments open once there&apos;s a Drop.</p>
+              ))}
+            {tab === "qa" && (
+              <div id="qa" className="scroll-mt-20">
+                <QandA
+                  app={{ id: app.id, slug: app.slug, name: app.name, owner_id: app.owner_id }}
+                  questions={questions}
+                  viewerId={viewer?.id ?? null}
+                />
+              </div>
+            )}
+            {tab === "updates" && (
               <Updates
                 updates={updates}
                 viewerId={viewer?.id ?? null}
                 composer={isOwner ? { apps: [{ id: app.id, name: app.name }], appId: app.id } : null}
-                emptyText={`Post what's new in ${app.name}; followers see it on their Home.`}
+                emptyText={`No updates on ${app.name} yet.`}
               />
-            </div>
-          </section>
-        )}
-
-        {app.drop && (
-          <Comments dropId={app.drop.id} appSlug={app.slug} comments={comments} viewerId={viewer?.id ?? null} />
-        )}
+            )}
+          </div>
+        </section>
       </div>
     </div>
   );
