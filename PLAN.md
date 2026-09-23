@@ -140,6 +140,7 @@ Big brands won't sponsor small apps early on, but **small apps will sponsor each
 
 **Phase 3: "Grow"** (the difference maker)
 - Try-to-earn credits and structured feedback ✅ built
+- Tester Passport: stamps, tester ranks with perks, category badges, weekly streaks and a monthly top-testers board (see README)
 - Launch days and boosts
 - Build-in-public posts
 - Share kit and badges

@@ -19,7 +19,28 @@ See [PLAN.md](PLAN.md) for the full product plan and build phases.
 
 **Phase 3 ("Grow"), part 1 is built:** try-to-earn credits and structured feedback. Everyone starts with ⚡10. Builders spend ⚡2 per tester to put an app in the **Test & earn** queue (`/test`); people who open the app with Try it and leave feedback (would you use it, a rating, what worked, what confused you) earn ⚡2, plus ⚡1 when the builder marks it helpful. Feedback is private to the tester and builder; app pages show the totals (testers, % who'd use it, average rating). Balance and history are at `/credits`.
 
-Next: the rest of Phase 3 (launch days, boosts, build-in-public posts, share badges, swaps), then Phase 2 (see the plan).
+Next: the rest of Phase 3 (the Tester Passport below, launch days, boosts, build-in-public posts, share badges, swaps), then Phase 2 (see the plan).
+
+## Coming later: Tester Passport
+
+A reward for testing more and more apps. Every app you give feedback on adds a **stamp** to your passport, and stamps plus feedback that builders mark helpful move you up tester ranks:
+
+| Rank | Unlocks at | Perk |
+|---|---|---|
+| **Scout** | 5 feedbacks | Badge on your profile |
+| **Tester** | 15 feedbacks, 3 helpful | Earn ⚡3 per feedback instead of ⚡2 |
+| **Pro Tester** | 40 feedbacks, 10 helpful | Higher daily earning cap, early access to new apps before they hit the feed |
+| **Trusted Tester** | 100 feedbacks, 30 helpful | Your feedback shows first to builders, and your own app gets a free Featured spot once a month |
+
+Extra rewards:
+
+- **Category stamps:** test an app in every category for an "All-rounder" badge, so people try things outside their usual lane.
+- **Weekly streaks:** give feedback 4 weeks in a row for a bonus (weekly, not daily, so it never feels like a chore).
+- **Top testers of the month:** a leaderboard on Test & earn, which also helps testers get noticed for work.
+
+Keeping it honest: helpful marks count more than raw numbers, so low-effort feedback doesn't get you far; the existing rules still apply (you must open the app with Try it first, and paid feedback is capped at 10 a day); and ranks never drop, so taking a break isn't punished.
+
+It builds on what's already tracked: every profile already counts feedback given and feedback marked helpful.
 
 ## Run it locally
 
