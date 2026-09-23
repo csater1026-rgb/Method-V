@@ -80,7 +80,7 @@ Open http://localhost:3000. With no Supabase keys the site runs in **demo mode**
 ## Connect Supabase (to go live)
 
 1. Create a project at [supabase.com](https://supabase.com).
-2. In the project's **SQL Editor**, run each file in `supabase/migrations/` in order (oldest first). They create the tables, the security rules, the counters, the credits system and the `drops` storage bucket for videos. (If you use the Supabase CLI, `supabase db push` does the same.)
+2. In the project's **SQL Editor**, open a new query, paste all of `supabase/setup.sql` and press **Run**. That one file creates every table, security rule, counter and function, plus the `drops` storage bucket for videos. (It's all of `supabase/migrations/` joined together. For a project that's already set up, run just the newer migration files instead. The Supabase CLI's `supabase db push` also works.)
 3. Copy `.env.example` to `.env.local` and fill in the URL and keys from **Project Settings → API**.
 4. In **Authentication → URL Configuration**, set the Site URL to your site (for local work, `http://localhost:3000`) and add `http://localhost:3000/auth/callback` (and your live `https://…/auth/callback`) to the redirect URLs.
 4b. Optional, for one-tap sign-in: turn on Google, Apple and/or GitHub under **Authentication → Providers**, then list them in `NEXT_PUBLIC_AUTH_PROVIDERS`, e.g. `google,apple`. Email + password needs no setup (it's on by default in Supabase).
@@ -89,7 +89,11 @@ Open http://localhost:3000. With no Supabase keys the site runs in **demo mode**
 
 To run a challenge, add a row to the `challenges` table in the Supabase table editor: `slug`, `title`, `sponsor_name`, `prize`, `ends_at`, and optionally `body`, `sponsor_url`, `stack`, `category`, `starts_at`. To pick a winner, set `winner_entry_id` to the winning row in `challenge_entries`. Prizes are paid by the sponsor, outside Method V.
 
-To deploy, import the repo into [Vercel](https://vercel.com) and add the same environment variables there.
+To deploy, import the repo into [Vercel](https://vercel.com) and add the same environment variables there. After it deploys, open `https://<your site>/api/health`. It says whether the keys, database and secret key are working, and what to fix if not (it never shows the keys themselves).
+
+**Video size on Supabase's free plan:** uploads are capped at 50 MB per file (Storage → Settings), while Method V allows Drops up to 100 MB. On the free plan, bigger videos fail to upload. Either keep Drops under 50 MB, or move to Supabase Pro and raise the limit to 100 MB.
+
+**Sign-in emails:** Supabase's built-in email is only for testing (a few emails an hour). Before real people sign up, add your own email sender under Authentication → Emails → SMTP Settings (e.g. Resend, Postmark or SendGrid).
 
 ## How it works
 

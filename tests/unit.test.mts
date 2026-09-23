@@ -10,6 +10,7 @@ import { formEncode, verifyStripeSignature } from "../src/lib/stripe-core.ts";
 import { createHmac } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { PIXEL_ICON_SVG } from "../src/lib/pixel-icon.ts";
+import { bundle } from "../scripts/bundle-migrations.mjs";
 
 let failures = 0;
 const ok = (cond: boolean, msg: string) => {
@@ -90,6 +91,8 @@ ok(!verifyStripeSignature(body, `t=${now},v1=${sign(now)}`, "", now), "no secret
 ok(!verifyStripeSignature(body, `t=${now},v1=abc`, secret, now), "a short signature fails without throwing");
 
 ok(PIXEL_ICON_SVG === readFileSync(new URL("../src/app/icon.svg", import.meta.url), "utf8").trim(), "home-screen icon matches the favicon");
+
+ok(readFileSync(new URL("../supabase/setup.sql", import.meta.url), "utf8") === bundle(), "supabase/setup.sql matches the migrations (run npm run db:bundle)");
 
 ok(formatCents(500) === "$5" && formatCents(1425) === "$14.25" && formatCents(100000) === "$1,000", "money formats as dollars");
 

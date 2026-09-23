@@ -698,6 +698,9 @@ await run("developers + install (phone)", phone, async (page) => {
     const r = await fetch(BASE + path, { method: "POST", headers: { Authorization: "Bearer fake" }, body: "{}" });
     ok(r.status === 503 && /demo mode/.test((await r.json()).error), `${path} explains demo mode`);
   }
+  const health = await (await fetch(BASE + "/api/health")).json();
+  ok(health.ready === false && health.checks.supabase_keys.ok === false, "setup check says what's missing in demo mode");
+  ok(!JSON.stringify(health).match(/sb_(secret|publishable)_|eyJ/), "setup check never shows keys");
   const csv = await fetch(BASE + "/dashboard/export?app=noteflow&days=30");
   const csvText = await csv.text();
   ok(csv.headers.get("content-type")?.startsWith("text/csv") && csvText.trim().split("\n").length === 31, "CSV export has a header and 30 days");
