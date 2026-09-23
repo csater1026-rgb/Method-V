@@ -13,13 +13,15 @@ export const DEMO_MODE_MESSAGE =
 export const DROPS_BUCKET = "drops";
 
 // One-tap sign-in providers turned on in Supabase (Authentication → Providers),
-// listed in NEXT_PUBLIC_AUTH_PROVIDERS, e.g. "github,google".
-export const SUPPORTED_PROVIDERS = ["github", "google"] as const;
+// listed in NEXT_PUBLIC_AUTH_PROVIDERS, e.g. "google,apple,github".
+export const SUPPORTED_PROVIDERS = ["google", "apple", "github"] as const;
 export type AuthProvider = (typeof SUPPORTED_PROVIDERS)[number];
 export const authProviders: AuthProvider[] = (process.env.NEXT_PUBLIC_AUTH_PROVIDERS ?? "")
   .split(",")
   .map((s) => s.trim().toLowerCase())
-  .filter((s): s is AuthProvider => (SUPPORTED_PROVIDERS as readonly string[]).includes(s));
+  .filter((s): s is AuthProvider => (SUPPORTED_PROVIDERS as readonly string[]).includes(s))
+  // Always in the same order: Google, Apple, GitHub.
+  .sort((a, b) => SUPPORTED_PROVIDERS.indexOf(a) - SUPPORTED_PROVIDERS.indexOf(b));
 
 export function publicFileUrl(path: string | null): string | null {
   if (!path || !isSupabaseConfigured) return null;

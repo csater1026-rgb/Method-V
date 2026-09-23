@@ -66,6 +66,8 @@ function SignInSheet({ reason, next, onClose }: { reason: string; next: string; 
 }
 
 // "Continue with GitHub / Google", when they're turned on.
+const PROVIDER_NAMES = { google: "Google", apple: "Apple", github: "GitHub" } as const;
+
 export function ProviderButtons({ next }: { next: string }) {
   if (!isSupabaseConfigured || authProviders.length === 0) return null;
   return (
@@ -73,7 +75,7 @@ export function ProviderButtons({ next }: { next: string }) {
       <input type="hidden" name="next" value={next} />
       {authProviders.map((p) => (
         <button key={p} name="provider" value={p} className="btn-ghost w-full py-2.5">
-          Continue with {p === "github" ? "GitHub" : "Google"}
+          Continue with {PROVIDER_NAMES[p]}
         </button>
       ))}
       <p className="mt-1 text-center font-mono text-[10.5px] tracking-widest text-muted uppercase">or use your email</p>

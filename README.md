@@ -62,7 +62,7 @@ Builder tools (launch day, boosts, share kit) live in the *Grow* panel on your o
 
 **Native app (in progress):** the iPhone and Android app lives in [`mobile/`](mobile/README.md) and is built with Expo. It has Home, the Drops feed, posting with the camera, Browse, app pages, profiles and sign-in. Store builds run on EAS, so no Mac is needed. See `mobile/README.md` to run it or ship it.
 
-**Sign in, on the website and in the app:** email and password (sign in or create an account), optional Google/GitHub on the website and Google/Apple in the app, or an emailed link or code. The emailed option is also "forgot password", and you can set a new password under Edit profile. It's one account everywhere.
+**Sign in, on the website and in the app:** email and password (sign in or create an account), Google and Apple (plus GitHub on the website), or an emailed link or code. The emailed option is also "forgot password", and you can set a new password under Edit profile. It's one account everywhere.
 
 Payments are off until Stripe is connected (step 6 below). Until then offers, jobs and challenges still work, and anything that takes money says payments aren't switched on.
 
@@ -83,7 +83,7 @@ Open http://localhost:3000. With no Supabase keys the site runs in **demo mode**
 2. In the project's **SQL Editor**, run each file in `supabase/migrations/` in order (oldest first). They create the tables, the security rules, the counters, the credits system and the `drops` storage bucket for videos. (If you use the Supabase CLI, `supabase db push` does the same.)
 3. Copy `.env.example` to `.env.local` and fill in the URL and keys from **Project Settings → API**.
 4. In **Authentication → URL Configuration**, set the Site URL to your site (for local work, `http://localhost:3000`) and add `http://localhost:3000/auth/callback` (and your live `https://…/auth/callback`) to the redirect URLs.
-4b. Optional, for one-tap sign-in: turn on GitHub and/or Google under **Authentication → Providers**, then set `NEXT_PUBLIC_AUTH_PROVIDERS=github,google` (or just one).
+4b. Optional, for one-tap sign-in: turn on Google, Apple and/or GitHub under **Authentication → Providers**, then list them in `NEXT_PUBLIC_AUTH_PROVIDERS`, e.g. `google,apple`. Email + password needs no setup (it's on by default in Supabase).
 5. Restart `npm run dev`. Sign in with your email, set your username under **Edit profile**, and post your first Drop.
 6. Optional, for tips, sponsorships, Pro and payouts: in [Stripe](https://dashboard.stripe.com), turn on **Connect** (Express accounts). Add a webhook endpoint at `https://<your site>/api/stripe/webhook` that listens to `checkout.session.completed` and `checkout.session.async_payment_succeeded`, and also to `account.updated` from **connected accounts**. Set `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` (the endpoint's signing secret). `SUPABASE_SECRET_KEY` must be set too. Payments stay off unless all three are set. To test locally, use Stripe's test keys and `stripe listen --forward-to localhost:3000/api/stripe/webhook`.
 
