@@ -165,6 +165,9 @@ export const demoComments: Record<string, { user: string; body: string; days: nu
 
 export const demoCommentDate = ago;
 
+// Hand-picked for the Featured row on the home feed.
+export const demoFeaturedIds = ["demo-app-palettepal", "demo-app-noteflow"];
+
 // Apps waiting for testers in the "Test & earn" queue.
 export const demoTestRequests: Record<string, { slots_total: number; slots_filled: number }> = {
   "demo-app-quizpop": { slots_total: 10, slots_filled: 6 },

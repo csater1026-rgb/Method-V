@@ -21,7 +21,7 @@ export default async function SubmitPage() {
         <p className="mt-4 rounded-lg border border-line bg-surface px-3 py-2 text-sm text-muted">
           You&apos;re in demo mode, so posting is off. You can still fill the form in to see how it works.{" "}
           <Link href="/" className="underline">
-            Back to Drops
+            Back to Home
           </Link>
         </p>
       )}

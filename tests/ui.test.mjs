@@ -44,8 +44,37 @@ async function noSideScroll(page, label) {
 const phone = { width: 390, height: 844 };
 const desktop = { width: 1280, height: 860 };
 
-await run("feed (phone)", phone, async (page) => {
+await run("home (phone)", phone, async (page) => {
   await page.goto(BASE + "/");
+  const tabs = page.getByRole("navigation", { name: "Main" });
+  ok((await tabs.getByRole("link").first().textContent()) === "Home", "first tab is Home");
+  ok((await tabs.getByRole("link", { name: "Home" }).getAttribute("aria-current")) === "page", "Home tab is active");
+  const featured = page.getByRole("region", { name: "Featured apps" });
+  ok((await featured.locator("article").count()) === 2, "Featured row shows the 2 picked apps");
+  ok((await featured.locator("article").first().getAttribute("class")).includes("snap-start"), "Featured row swipes sideways");
+  ok(await page.getByText("2 apps need testers.").isVisible(), "needs-testers strip links to Test & earn");
+  ok((await page.locator("#projects article").count()) === 4, "All projects lists everyone's apps");
+  await noSideScroll(page, "home");
+  await page.screenshot({ path: OUT + "home-phone.png", fullPage: true });
+  await page.getByRole("link", { name: "Search apps" }).click();
+  await page.waitForURL(/\/browse/);
+  ok(true, "search button opens Browse");
+});
+
+await run("home sort + category", desktop, async (page) => {
+  await page.goto(BASE + "/?sort=popular");
+  const names = await page.locator("#projects article a.display").allTextContents();
+  ok(names[0] === "PalettePal", `Popular sorts by tries (${names.join(",")})`);
+  await page.getByRole("navigation", { name: "Categories" }).getByRole("link", { name: "Finance" }).click();
+  await page.waitForURL(/category=finance/);
+  ok((await page.locator("#projects article").count()) === 1, "category filter narrows All projects");
+  ok(page.url().includes("sort=popular"), "category keeps the sort");
+  await page.goto(BASE + "/");
+  await page.screenshot({ path: OUT + "home-desktop.png", fullPage: true });
+});
+
+await run("feed (phone)", phone, async (page) => {
+  await page.goto(BASE + "/drops");
   ok((await page.locator("article").count()) === 4, "feed shows 4 sample Drops");
   ok(await page.getByText("Demo mode · sample apps").isVisible(), "demo banner visible");
   const feed = page.getByTestId("drop-feed");
@@ -67,27 +96,27 @@ await run("feed (phone)", phone, async (page) => {
   // Liking while signed out goes to sign-in.
   await page.locator("article").nth(1).getByRole("button", { name: "Like" }).click();
   await page.waitForURL(/\/login\?next=/);
-  ok(page.url().includes("/login?next=%2F"), "like while signed out → sign in");
+  ok(page.url().includes("/login?next=%2Fdrops"), "like while signed out → sign in");
 });
 
 await run("small phone", { width: 360, height: 740 }, async (page) => {
-  for (const path of ["/", "/browse", "/apps/noteflow", "/u/ada_builds", "/submit", "/login", "/test", "/credits"]) {
+  for (const path of ["/", "/drops", "/browse", "/apps/noteflow", "/u/ada_builds", "/submit", "/login", "/test", "/credits"]) {
     await page.goto(BASE + path);
     await noSideScroll(page, `360px ${path}`);
   }
 });
 
 await run("feed tabs + category", desktop, async (page) => {
-  await page.goto(BASE + "/?tab=trending");
+  await page.goto(BASE + "/drops?tab=trending");
   const first = await page.locator("article").first().getAttribute("aria-label");
   ok(first === "PalettePal Drop", `trending puts most-liked first (${first})`);
   await page.getByRole("navigation", { name: "Categories" }).getByRole("link", { name: "Education" }).click();
   await page.waitForURL(/category=education/);
   ok((await page.locator("article").count()) === 1, "category filter narrows the feed");
   ok(page.url().includes("tab=trending"), "category keeps the tab");
-  await page.goto(BASE + "/?tab=following");
+  await page.goto(BASE + "/drops?tab=following");
   ok(await page.getByText("Follow builders you like").isVisible(), "following tab asks you to sign in");
-  await page.goto(BASE + "/");
+  await page.goto(BASE + "/drops");
   await page.screenshot({ path: OUT + "feed-desktop.png" });
 });
 

@@ -46,7 +46,7 @@ To deploy, import the repo into [Vercel](https://vercel.com) and add the same en
 
 | Part | Where |
 |---|---|
-| Pages: Drops feed `/`, Browse `/browse`, app `/apps/[slug]`, profile `/u/[username]`, Post `/submit`, Edit profile `/settings`, Sign in `/login` | `src/app/` |
+| Pages: Home feed with Featured and all projects `/`, Drops feed `/drops`, Browse `/browse`, app `/apps/[slug]`, profile `/u/[username]`, Post `/submit`, Edit profile `/settings`, Sign in `/login` | `src/app/` |
 | Likes, comments, follows, profile edits, posting | `src/app/actions.ts` (server actions) |
 | "Try it" button: records the try, then sends people to the app | `src/app/try/[slug]/route.ts` |
 | Test & earn queue `/test`, credits `/credits`, feedback on app pages | `src/app/test/`, `src/app/credits/`, `src/components/FeedbackPanel.tsx` |
@@ -60,6 +60,7 @@ A few rules the code relies on:
 - **An app only appears once its link has loaded.** The server checks the link, and only the server (with the secret key) can mark it as checked.
 - **Counts can't be faked from the browser.** Likes, comments, followers and tries are kept by database triggers, and people can't write those numbers directly. Each signed-in person counts once per app for tries.
 - **Credits only move through the database.** Balances change only through the `credit_events` ledger, which people can't write to; giving feedback, buying testers, refunds and helpful bonuses are handled by database triggers and functions (`request_testers`, `cancel_test_request`, `mark_feedback_helpful`). Feedback requires having opened the app with Try it, can't be on your own app, can't be edited or deleted, and paid feedback is capped at 10 a day.
+- **Featured apps** on Home are the ones whose `featured_until` is in the future. Set it by hand in the Supabase table editor (people can't set it on their own apps). With none picked, Home shows the most liked and tried apps from the last 30 days.
 - **Videos live in the `drops` bucket** under a folder named after the uploader's user ID, and people can only upload into their own folder.
 
 ## Tests

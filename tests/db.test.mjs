@@ -235,5 +235,10 @@ try {
 }
 ok(overdraft, "balances can never go negative");
 
+// Featured apps
+ok(!!(await fails("authenticated", A, "update public.apps set featured_until = now() + interval '7 days' where id = $1", [appId])), "builders can't feature their own app");
+await db.query("update public.apps set featured_until = now() + interval '7 days' where id = $1", [appId]);
+ok((await as("anon", null, "select id from public.apps where featured_until > now()")).rows.length === 1, "featured apps are public");
+
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");
 process.exit(failures ? 1 : 0);

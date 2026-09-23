@@ -80,7 +80,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
           <span className="text-sm text-accent">
             Saved.{" "}
             <Link href="/" className="underline">
-              Back to Drops
+              Back to Home
             </Link>
           </span>
         )}

@@ -1,63 +1,120 @@
 import Link from "next/link";
 
-import { DropFeed } from "@/components/DropFeed";
-import { CATEGORIES, isOneOf } from "@/lib/constants";
-import { getFeed, getViewer, type FeedTab } from "@/lib/data";
+import { AppCard } from "@/components/AppCard";
+import { FeaturedCard } from "@/components/FeaturedCard";
+import { CATEGORIES, CREDITS, isOneOf } from "@/lib/constants";
+import { getApps, getFeatured, getTestQueue, getViewer } from "@/lib/data";
 
-const TABS: { slug: FeedTab; label: string }[] = [
-  { slug: "new", label: "New" },
-  { slug: "trending", label: "Trending" },
-  { slug: "following", label: "Following" },
-];
+// The home feed: Featured up top, then everybody's projects.
 
-function feedHref(tab: FeedTab, category?: string) {
+const SORTS = [
+  { slug: "latest", label: "Latest" },
+  { slug: "popular", label: "Popular" },
+] as const;
+
+function homeHref(sort: string, category?: string) {
   const params = new URLSearchParams();
-  if (tab !== "new") params.set("tab", tab);
+  if (sort !== "latest") params.set("sort", sort);
   if (category) params.set("category", category);
   const qs = params.toString();
-  return qs ? `/?${qs}` : "/";
+  return qs ? `/?${qs}#projects` : "/#projects";
 }
 
-export default async function DropsPage({ searchParams }: PageProps<"/">) {
+export default async function HomePage({ searchParams }: PageProps<"/">) {
   const params = await searchParams;
-  const tab: FeedTab = TABS.some((t) => t.slug === params.tab) ? (params.tab as FeedTab) : "new";
+  const sort = params.sort === "popular" ? "popular" : "latest";
   const category = isOneOf(CATEGORIES, params.category) ? params.category : undefined;
 
-  const [items, viewer] = await Promise.all([getFeed({ tab, category }), getViewer()]);
+  const viewer = await getViewer();
+  const [featured, apps, queue] = await Promise.all([
+    getFeatured(),
+    getApps({ category, sort: sort === "popular" ? "tried" : undefined }),
+    getTestQueue(viewer),
+  ]);
+  const featuredLabel = featured.curated ? "Featured" : "Hot";
 
   return (
-    <div className="relative">
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-col items-center gap-2 p-3">
-        <nav aria-label="Feed" className="pointer-events-auto flex gap-4 drop-shadow-[0_1px_6px_rgb(0_0_0/0.7)]">
-          {TABS.map((t) => (
-            <Link
-              key={t.slug}
-              href={feedHref(t.slug, category)}
-              aria-current={t.slug === tab ? "page" : undefined}
-              className={`display px-0.5 pb-1 text-[22px] transition ${
-                t.slug === tab ? "text-ink shadow-[inset_0_-3px_0_var(--color-accent)]" : "text-ink/55 hover:text-ink"
-              }`}
-            >
-              {t.label}
-            </Link>
-          ))}
-        </nav>
-        <nav
-          aria-label="Categories"
-          className="no-scrollbar pointer-events-auto flex max-w-full gap-1.5 overflow-x-auto px-1"
-        >
-          <CategoryLink href={feedHref(tab)} active={!category} label="All" />
-          {CATEGORIES.map((c) => (
-            <CategoryLink key={c.slug} href={feedHref(tab, c.slug)} active={category === c.slug} label={c.label} />
-          ))}
-        </nav>
-      </div>
+    <div className="mx-auto w-full max-w-6xl py-6">
+      <header className="flex items-end justify-between gap-3 px-4">
+        <div>
+          <p className="font-mono text-[11px] tracking-widest text-accent uppercase">What builders shipped</p>
+          <h1 className="display rise mt-1 text-6xl sm:text-7xl">{featured.curated ? "Featured" : "Hot right now"}</h1>
+        </div>
+        <Link href="/browse" className="btn-ghost shrink-0 px-3" aria-label="Search apps">
+          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+            <circle cx="11" cy="11" r="7" />
+            <path d="m20 20-3.5-3.5" strokeLinecap="round" />
+          </svg>
+          <span className="hidden sm:inline">Search</span>
+        </Link>
+      </header>
 
-      {items.length > 0 ? (
-        <DropFeed items={items} signedIn={Boolean(viewer)} />
+      {featured.apps.length > 0 ? (
+        <section aria-label="Featured apps" className="no-scrollbar mt-5 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-2">
+          {featured.apps.map((app, i) => (
+            <FeaturedCard key={app.id} app={app} rank={i} label={featuredLabel} />
+          ))}
+        </section>
       ) : (
-        <EmptyFeed tab={tab} signedIn={Boolean(viewer)} filtered={Boolean(category)} />
+        <p className="mt-4 px-4 text-muted">Nothing featured yet. Post a Drop and be the first.</p>
       )}
+
+      {queue.length > 0 && (
+        <Link
+          href="/test"
+          className="mx-4 mt-5 flex items-center justify-between gap-3 rounded-lg border border-accent/50 bg-accent/10 px-4 py-3 transition hover:bg-accent/15"
+        >
+          <span className="text-sm">
+            <span className="font-semibold">
+              {queue.length} {queue.length === 1 ? "app needs" : "apps need"} testers.
+            </span>{" "}
+            <span className="text-muted">Try one, earn ⚡{CREDITS.feedbackReward}.</span>
+          </span>
+          <span className="font-mono text-xs font-semibold text-accent">Test &amp; earn →</span>
+        </Link>
+      )}
+
+      <section id="projects" className="mt-10 scroll-mt-20 px-4">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <h2 className="display text-5xl">All projects</h2>
+          <nav aria-label="Sort" className="flex gap-4">
+            {SORTS.map((s) => (
+              <Link
+                key={s.slug}
+                href={homeHref(s.slug, category)}
+                aria-current={s.slug === sort ? "page" : undefined}
+                className={`display pb-1 text-2xl transition ${
+                  s.slug === sort ? "text-ink shadow-[inset_0_-3px_0_var(--color-accent)]" : "text-muted hover:text-ink"
+                }`}
+              >
+                {s.label}
+              </Link>
+            ))}
+          </nav>
+        </div>
+
+        <nav aria-label="Categories" className="no-scrollbar -mx-4 mt-4 flex gap-1.5 overflow-x-auto px-4 pb-1">
+          <CategoryLink href={homeHref(sort)} active={!category} label="All" />
+          {CATEGORIES.map((c) => (
+            <CategoryLink key={c.slug} href={homeHref(sort, c.slug)} active={category === c.slug} label={c.label} />
+          ))}
+        </nav>
+
+        {apps.length > 0 ? (
+          <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {apps.map((app, i) => (
+              <AppCard key={app.id} app={app} index={i} />
+            ))}
+          </div>
+        ) : (
+          <div className="mt-12 flex flex-col items-center gap-3 text-center">
+            <p className="text-lg font-semibold">No projects here yet.</p>
+            <Link href="/submit" className="btn-accent">
+              Post yours
+            </Link>
+          </div>
+        )}
+      </section>
     </div>
   );
 }
@@ -67,39 +124,11 @@ function CategoryLink({ href, active, label }: { href: string; active: boolean; 
     <Link
       href={href}
       aria-current={active ? "page" : undefined}
-      className={`shrink-0 rounded-md px-2 py-1 font-mono text-[10.5px] font-medium tracking-wide uppercase backdrop-blur ${
-        active ? "bg-accent text-accent-ink" : "bg-black/55 text-ink/80 hover:text-ink"
+      className={`shrink-0 rounded-md border px-2.5 py-1.5 font-mono text-[11px] font-medium tracking-wide uppercase ${
+        active ? "border-accent bg-accent text-accent-ink" : "border-line bg-surface text-muted hover:text-ink"
       }`}
     >
       {label}
     </Link>
-  );
-}
-
-function EmptyFeed({ tab, signedIn, filtered }: { tab: FeedTab; signedIn: boolean; filtered: boolean }) {
-  let title = "No Drops yet";
-  let body = "Be the first to post a 60-second demo of what you built.";
-  let action = { href: "/submit", label: "Post a Drop" };
-
-  if (tab === "following" && !signedIn) {
-    title = "Follow builders you like";
-    body = "Sign in to see Drops from the people you follow.";
-    action = { href: "/login?next=%2F%3Ftab%3Dfollowing", label: "Sign in" };
-  } else if (tab === "following") {
-    title = "Nothing here yet";
-    body = "Follow builders from their profiles and their new Drops show up here.";
-    action = { href: "/browse", label: "Find builders" };
-  } else if (filtered) {
-    title = "No Drops in this category yet";
-  }
-
-  return (
-    <div className="flex h-[calc(100dvh-var(--chrome)-var(--tabbar))] flex-col items-center justify-center gap-3 px-6 pt-24 text-center">
-      <h1 className="display text-5xl">{title}</h1>
-      <p className="max-w-sm text-muted">{body}</p>
-      <Link href={action.href} className="btn-accent mt-2">
-        {action.label}
-      </Link>
-    </div>
   );
 }

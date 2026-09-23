@@ -3,7 +3,15 @@ import "server-only";
 import { cache } from "react";
 
 import { CATEGORIES, PRICING, STAGES, isOneOf } from "./constants";
-import { demoApps, demoCommentDate, demoComments, demoDrops, demoProfiles, demoTestRequests } from "./demo";
+import {
+  demoApps,
+  demoCommentDate,
+  demoComments,
+  demoDrops,
+  demoFeaturedIds,
+  demoProfiles,
+  demoTestRequests,
+} from "./demo";
 import { isSupabaseConfigured, publicFileUrl } from "./supabase/env";
 import { createClient } from "./supabase/server";
 import type {
@@ -445,4 +453,49 @@ export async function getCreditHistory(viewer: Viewer): Promise<CreditEvent[]> {
     created_at: row.created_at,
     app: (row.app as unknown as CreditEvent["app"]) ?? null,
   }));
+}
+
+// ---------------------------------------------------------------------------
+// Home feed: Featured
+// ---------------------------------------------------------------------------
+
+const HOT_WINDOW_DAYS = 30;
+
+// Hand-picked apps (featured_until in the future). When none are picked, the
+// most liked and tried apps from the last few weeks fill the row instead.
+export async function getFeatured(): Promise<{ apps: AppCard[]; curated: boolean }> {
+  if (!isSupabaseConfigured) {
+    const apps = demoFeaturedIds
+      .map((id) => demoApps.find((a) => a.id === id)!)
+      .map((a) => ({ ...a, owner: toSummary(demoProfile(a.owner_id)), poster_url: null }));
+    return { apps, curated: true };
+  }
+
+  const supabase = await createClient();
+  const select = `*, owner:profiles!apps_owner_id_fkey(${PROFILE_SUMMARY}), drops(poster_path, created_at)`;
+  /* eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped rows */
+  const toCard = (row: any): AppCard => {
+    const latest = [...(row.drops ?? [])].sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
+    return { ...toApp(row), owner: toSummary(row.owner), poster_url: publicFileUrl(latest?.poster_path ?? null) };
+  };
+
+  const { data: picked } = await supabase
+    .from("apps")
+    .select(select)
+    .not("link_checked_at", "is", null)
+    .gt("featured_until", new Date().toISOString())
+    .order("featured_until", { ascending: false })
+    .limit(8);
+  if (picked && picked.length > 0) return { apps: picked.map(toCard), curated: true };
+
+  const since = new Date(Date.now() - HOT_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  const { data: hot } = await supabase
+    .from("apps")
+    .select(select)
+    .not("link_checked_at", "is", null)
+    .gte("created_at", since)
+    .order("like_count", { ascending: false })
+    .order("try_count", { ascending: false })
+    .limit(6);
+  return { apps: (hot ?? []).map(toCard), curated: false };
 }
