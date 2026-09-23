@@ -295,6 +295,11 @@ await run("pixel coder", phone, async (page) => {
   const running = await footer.locator(".pc-dust").first().evaluate((el) => getComputedStyle(el).animationName);
   ok(running === "pc-float", "pixels drift away (animation running)");
   ok((await page.locator("header svg.pc-animated").count()) === 1, "pixel coder next to the logo");
+  ok((await page.getByText(/Then try it/i).count()) === 0, "the old tagline is gone");
+  const coder = await footer.getByRole("img", { name: "A pixel builder coding at their desk" }).boundingBox();
+  const pageHeight = await page.evaluate(() => document.documentElement.scrollHeight - parseFloat(getComputedStyle(document.body).paddingBottom));
+  ok(coder.x < 16 && Math.abs(coder.y + coder.height - pageHeight) < 2, `big pixel coder sits in the bottom-left corner (x ${Math.round(coder.x)})`);
+  ok(coder.width >= 200, `and it's big (${Math.round(coder.width)}px wide)`);
   await footer.scrollIntoViewIfNeeded();
   await page.waitForTimeout(2600);
   await footer.screenshot({ path: OUT + "footer-coder.png" });

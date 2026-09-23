@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     template: "%s · Method V",
   },
   description:
-    "Where builders show off what they've made, get real users, earn from their apps and find people to work with. 60 seconds. Then try it.",
+    "Where builders show off what they've made, get real users, earn from their apps and find people to work with.",
   applicationName: "Method V",
   // Opens full screen when added to an iPhone home screen.
   appleWebApp: { capable: true, title: "Method V", statusBarStyle: "default" },

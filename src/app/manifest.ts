@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Method V",
     short_name: "Method V",
-    description: "60-second app demos. Then try it.",
+    description: "60-second app demos from builders, designers and vibe coders.",
     id: "/",
     start_url: "/",
     scope: "/",
