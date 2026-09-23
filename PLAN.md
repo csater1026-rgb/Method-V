@@ -159,7 +159,8 @@ Big brands won't sponsor small apps early on, but **small apps will sponsor each
 - A mobile app (iOS and Android): the installable app is ✅ built (home-screen install on iPhone and Android, full screen, offline page). Native App Store and Google Play apps are still to come; the installable app is the step before them.
 - Analytics dashboards for builders ✅ built (7 days free; 30 and 90 days, and CSV export, with Pro)
 - An API and embeddable widgets ✅ built (read-only public API, embeddable app card, badge)
-- Still to come: native store apps, push notifications, write access to the API with keys
+- Native iPhone and Android app: 🚧 in progress (`mobile/`, Expo): Home, Drops, posting, Browse, app pages, profiles, and sign-in with email + password, Google and Apple. Next: inbox and messages, Test & earn, push notifications.
+- Still to come: push notifications, write access to the API with keys
 
 ---
 

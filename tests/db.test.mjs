@@ -696,6 +696,8 @@ await as("anon", null, "insert into public.try_clicks (app_id) values ($1)", [ho
 const srcRows = (await db.query("select source from public.try_clicks where app_id = $1 and user_id is null order by id", [hostApp])).rows;
 ok(srcRows.at(-2).source === "embed" && srcRows.at(-1).source === "direct", "tries record where they came from (default direct)");
 ok(!!(await fails("anon", null, "insert into public.try_clicks (app_id, source) values ($1, 'made-up')", [hostApp])), "unknown sources are rejected");
+await as("anon", null, "insert into public.try_clicks (app_id, source) values ($1, 'app')", [hostApp]);
+ok(true, "the mobile app records its own source");
 
 // Analytics: H owns hostApp and isn't Pro; J is Pro and owns sponsorApp.
 const daily7 = (await as("authenticated", H, "select * from public.app_daily($1, 7)", [hostApp])).rows;

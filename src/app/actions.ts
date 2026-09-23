@@ -6,15 +6,12 @@ import { redirect } from "next/navigation";
 
 import {
   BOOST,
-  CATEGORIES,
   CONNECT_REASONS,
   EARN,
   JOB_KINDS,
+  MIN_PASSWORD,
   JOB_LIMITS,
-  MAX_DROP_SECONDS,
-  PRICING,
   ROLES,
-  STAGES,
   TESTER_PACKS,
   WOULD_USE,
   isOneOf,
@@ -22,6 +19,7 @@ import {
 import { getViewer } from "@/lib/data";
 import { parseList, slugify } from "@/lib/format";
 import { checkLink, fetchPage, parseAppUrl } from "@/lib/link-check";
+import { publishApp, type NewApp } from "@/lib/publish";
 import { settleRefunds } from "@/lib/payments";
 import {
   PAYMENTS_OFF_MESSAGE,
@@ -57,7 +55,11 @@ function text(formData: FormData, key: string): string {
 // Sign in / out
 // ---------------------------------------------------------------------------
 
-export type SignInState = { status: "idle" } | { status: "sent"; email: string } | { status: "error"; error: string };
+export type SignInState =
+  | { status: "idle" }
+  | { status: "sent"; email: string }
+  | { status: "confirm"; email: string }
+  | { status: "error"; error: string };
 
 function safeNext(value: string): string {
   return value.startsWith("/") && !value.startsWith("//") && !value.startsWith("/\\") ? value : "/";
@@ -86,6 +88,55 @@ export async function signIn(_prev: SignInState, formData: FormData): Promise<Si
   });
   if (error) return { status: "error", error: error.message };
   return { status: "sent", email };
+}
+
+// Email + password: "signin" or "signup" (the form's mode field). New
+// accounts confirm their email first when Supabase asks for it (the default).
+export async function passwordAuth(_prev: SignInState, formData: FormData): Promise<SignInState> {
+  if (!isSupabaseConfigured) return { status: "error", error: DEMO_MODE_MESSAGE };
+  const email = text(formData, "email").toLowerCase();
+  const password = String(formData.get("password") ?? "");
+  const mode = text(formData, "mode") === "signup" ? "signup" : "signin";
+  const next = safeNext(text(formData, "next"));
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
+    return { status: "error", error: "Enter a valid email address." };
+  }
+  const supabase = await createClient();
+  if (mode === "signin") {
+    if (!password) return { status: "error", error: "Enter your password." };
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      return {
+        status: "error",
+        error: /confirm/i.test(error.message)
+          ? "Confirm your email first: check your inbox for the link."
+          : "That email and password don't match. Try again, or email yourself a sign-in link.",
+      };
+    }
+  } else {
+    if (password.length < MIN_PASSWORD) return { status: "error", error: `Use at least ${MIN_PASSWORD} characters for your password.` };
+    if (password.length > 72) return { status: "error", error: "Keep your password under 72 characters." };
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: `${await siteOrigin()}/auth/callback?next=${encodeURIComponent(next)}` },
+    });
+    if (error) return { status: "error", error: rpcError(error.message, "Couldn't create your account. Try again.") };
+    if (!data.session) return { status: "confirm", email };
+  }
+  revalidatePath("/", "layout");
+  redirect(next);
+}
+
+export async function setPassword(password: string): Promise<ActionResult> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  if (password.length < MIN_PASSWORD) return { ok: false, error: `Use at least ${MIN_PASSWORD} characters.` };
+  if (password.length > 72) return { ok: false, error: "Keep it under 72 characters." };
+  const supabase = await createClient();
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) return { ok: false, error: rpcError(error.message, "Couldn't save your password.") };
+  return { ok: true };
 }
 
 // "Continue with GitHub/Google": off to the provider, back via /auth/callback.
@@ -247,98 +298,15 @@ export async function previewLink(url: string): Promise<{ ok: true; preview: Sit
   return { ok: true, preview: sitePreview(page.html ?? "", page.finalUrl) };
 }
 
-export type NewApp = {
-  name: string;
-  tagline: string;
-  description: string;
-  url: string;
-  category: string;
-  techStack: string;
-  pricing: string;
-  stage: string;
-  caption: string;
-  videoPath: string;
-  posterPath: string | null;
-  durationSeconds: number;
-};
+export type { NewApp } from "@/lib/publish";
 
 export async function createApp(input: NewApp): Promise<ActionResult> {
   const auth = await requireViewer();
   if ("error" in auth) return { ok: false, error: auth.error };
   const { viewer } = auth;
-
-  const name = input.name.trim();
-  const tagline = input.tagline.trim();
-  if (!name || name.length > 60) return { ok: false, error: "App name is required (up to 60 characters)." };
-  if (!tagline || tagline.length > 120) return { ok: false, error: "Tagline is required (up to 120 characters)." };
-  if (input.description.length > 2000) return { ok: false, error: "Description can be up to 2,000 characters." };
-  if (input.caption.length > 300) return { ok: false, error: "Caption can be up to 300 characters." };
-  if (!isOneOf(CATEGORIES, input.category)) return { ok: false, error: "Pick a category." };
-  if (!isOneOf(PRICING, input.pricing)) return { ok: false, error: "Pick a pricing option." };
-  if (!isOneOf(STAGES, input.stage)) return { ok: false, error: "Pick a stage." };
-  const duration = Number(input.durationSeconds);
-  if (!Number.isFinite(duration) || duration <= 0 || duration > MAX_DROP_SECONDS) {
-    return { ok: false, error: `Drops can be up to ${MAX_DROP_SECONDS} seconds.` };
-  }
-  const ownFile = (p: string) => p.startsWith(`${viewer.id}/`) && !p.includes("..") && p.length < 200;
-  if (!ownFile(input.videoPath) || (input.posterPath && !ownFile(input.posterPath))) {
-    return { ok: false, error: "Upload the video again." };
-  }
-
-  const admin = createAdminClient();
-  if (!admin) {
-    return { ok: false, error: "The server is missing SUPABASE_SECRET_KEY, so it can't verify links yet." };
-  }
-
-  const link = await checkLink(input.url);
-  if (!link.ok) return { ok: false, error: `Link check failed: ${link.reason}` };
-
-  const supabase = await createClient();
-  const base = slugify(name);
-  let app: { id: string; slug: string } | null = null;
-  for (let attempt = 0; attempt < 5 && !app; attempt++) {
-    const slug = attempt === 0 ? base : `${base}-${Math.random().toString(36).slice(2, 6)}`;
-    const { data, error } = await supabase
-      .from("apps")
-      .insert({
-        owner_id: viewer.id,
-        slug,
-        name,
-        tagline,
-        description: input.description.trim(),
-        url: input.url.trim(),
-        category: input.category,
-        tech_stack: parseList(input.techStack, 12),
-        pricing: input.pricing,
-        stage: input.stage,
-      })
-      .select("id, slug")
-      .single();
-    if (data) app = data;
-    else if (error?.code !== "23505") return { ok: false, error: "Couldn't save your app." };
-  }
-  if (!app) return { ok: false, error: "Couldn't pick a link for your app. Try a slightly different name." };
-
-  const { error: markError } = await admin
-    .from("apps")
-    .update({ link_checked_at: new Date().toISOString() })
-    .eq("id", app.id);
-
-  const { error: dropError } = markError
-    ? { error: markError }
-    : await supabase.from("drops").insert({
-        app_id: app.id,
-        owner_id: viewer.id,
-        video_path: input.videoPath,
-        poster_path: input.posterPath,
-        duration_seconds: Math.round(duration * 100) / 100,
-        caption: input.caption.trim(),
-      });
-
-  if (dropError) {
-    await supabase.from("apps").delete().eq("id", app.id);
-    return { ok: false, error: "Couldn't save your Drop." };
-  }
+  const result = await publishApp(await createClient(), viewer.id, input);
+  if (!result.ok) return result;
+  const app = { slug: result.slug };
 
   revalidatePath("/");
   revalidatePath("/browse");

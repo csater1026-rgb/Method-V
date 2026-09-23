@@ -60,6 +60,10 @@ Builder tools (launch day, boosts, share kit) live in the *Grow* panel on your o
 - **Public API (`/api/v1`) and embeds:** read-only JSON for apps, builders, jobs and challenges, open to any site. There's an embeddable app card (`/embed/<app>`, an iframe with a Try it button) and the badge. Builders get the embed snippet in their Share kit, and the docs are at `/developers`.
 - **Brand sponsors (`/brands`):** companies outside Method V list a brand (its site is link-checked). Once the Method V team verifies it, the brand can make pay-per-try offers on any app, with the same rules and labels as app-to-app deals. To verify a brand, set `verified_at` on its row in the `brands` table.
 
+**Native app (in progress):** the iPhone and Android app lives in [`mobile/`](mobile/README.md) and is built with Expo. It has Home, the Drops feed, posting with the camera, Browse, app pages, profiles and sign-in. Store builds run on EAS, so no Mac is needed. See `mobile/README.md` to run it or ship it.
+
+**Sign in, on the website and in the app:** email and password (sign in or create an account), optional Google/GitHub on the website and Google/Apple in the app, or an emailed link or code. The emailed option is also "forgot password", and you can set a new password under Edit profile. It's one account everywhere.
+
 Payments are off until Stripe is connected (step 6 below). Until then offers, jobs and challenges still work, and anything that takes money says payments aren't switched on.
 
 ## Run it locally
@@ -110,6 +114,7 @@ To deploy, import the repo into [Vercel](https://vercel.com) and add the same en
 | Stats dashboard and CSV export | `src/app/dashboard/`, `src/lib/dashboard.ts`, `src/components/StatsChart.tsx` |
 | Public API, embed card, developer docs | `src/app/api/v1/`, `src/lib/api.ts`, `src/app/embed/[slug]/route.ts`, `src/app/developers/` |
 | Installable app: manifest, icons, service worker, install page | `src/app/manifest.ts`, `src/app/app-icon/`, `src/app/apple-icon.tsx`, `public/sw.js`, `src/components/InstallApp.tsx`, `src/app/app/` |
+| Mobile app (Expo) and the endpoints it posts through | `mobile/`, `src/app/api/mobile/`, `src/lib/publish.ts`, `src/lib/supabase/bearer.ts` |
 | Brands and brand links | `src/app/brands/`, `src/components/Brands.tsx`, `src/app/go/[slug]/route.ts` |
 | Stripe (REST, no SDK), webhook, refunds | `src/lib/stripe.ts`, `src/lib/stripe-core.ts`, `src/lib/payments.ts`, `src/app/api/stripe/webhook/route.ts` |
 | Database tables, security rules, counters, storage bucket | `supabase/migrations/` |

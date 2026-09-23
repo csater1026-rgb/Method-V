@@ -366,7 +366,15 @@ await run("tester passport", desktop, async (page) => {
 
 await run("login", phone, async (page) => {
   await go(page, "/login");
-  ok(await page.getByRole("button", { name: "Email me a sign-in link" }).isDisabled(), "sign-in disabled in demo mode");
+  ok(await page.getByLabel("Password", { exact: true }).isVisible(), "sign in with email and password");
+  ok(await page.getByRole("button", { name: "Sign in", exact: true }).isDisabled(), "sign-in disabled in demo mode");
+  await page.getByRole("tab", { name: "Create account" }).click();
+  ok((await page.getByRole("tab", { name: "Create account" }).getAttribute("aria-selected")) === "true", "switch to Create account");
+  ok((await page.getByLabel("Password", { exact: true }).getAttribute("autocomplete")) === "new-password", "new accounts get a new-password field");
+  ok(await page.getByRole("button", { name: "Create account", exact: true }).isVisible(), "Create account button");
+  await page.getByRole("button", { name: "Forgot your password? Email me a sign-in link" }).click();
+  ok(await page.getByRole("button", { name: "Email me a sign-in link" }).isDisabled(), "emailed link is still there as the fallback");
+  ok((await page.getByLabel("Password", { exact: true }).count()) === 0, "the link option needs no password");
   await noSideScroll(page, "login");
 });
 
@@ -686,6 +694,10 @@ await run("developers + install (phone)", phone, async (page) => {
   ok(pre.status === 204 && pre.headers.get("access-control-allow-methods")?.includes("GET"), "CORS preflight");
   ok((await fetch(BASE + "/go/pixelhost", { redirect: "manual" })).status === 303, "brand links redirect");
   ok((await fetch(BASE + "/go/nope", { redirect: "manual" })).status === 404, "unknown brand is 404");
+  for (const path of ["/api/mobile/apps", "/api/mobile/preview"]) {
+    const r = await fetch(BASE + path, { method: "POST", headers: { Authorization: "Bearer fake" }, body: "{}" });
+    ok(r.status === 503 && /demo mode/.test((await r.json()).error), `${path} explains demo mode`);
+  }
   const csv = await fetch(BASE + "/dashboard/export?app=noteflow&days=30");
   const csvText = await csv.text();
   ok(csv.headers.get("content-type")?.startsWith("text/csv") && csvText.trim().split("\n").length === 31, "CSV export has a header and 30 days");

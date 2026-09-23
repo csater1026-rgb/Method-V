@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { getOwnProfile } from "@/lib/data";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
+import { PasswordForm } from "./PasswordForm";
 import { ProfileForm } from "./ProfileForm";
 
 export const metadata: Metadata = { title: "Edit profile" };
@@ -18,6 +19,7 @@ export default async function SettingsPage() {
       <h1 className="display rise text-6xl">Edit profile</h1>
       <p className="mt-1 text-muted">Tell people what you build and what you&apos;re looking for.</p>
       <ProfileForm profile={profile} />
+      <PasswordForm />
     </div>
   );
 }

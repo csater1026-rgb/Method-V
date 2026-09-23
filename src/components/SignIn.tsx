@@ -57,7 +57,7 @@ function SignInSheet({ reason, next, onClose }: { reason: string; next: string; 
             ✕
           </button>
         </div>
-        <p className="mt-1 text-sm text-muted">Free, no password. You&apos;ll come right back here.</p>
+        <p className="mt-1 text-sm text-muted">Free. You&apos;ll come right back here.</p>
         <ProviderButtons next={next} />
         <LoginForm next={next} disabled={!isSupabaseConfigured} />
       </div>

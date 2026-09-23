@@ -145,6 +145,7 @@ export const TRY_SOURCES = [
   { slug: "sponsor", label: "Sponsor cards" },
   { slug: "api", label: "API" },
   { slug: "share", label: "Shared links" },
+  { slug: "app", label: "Mobile app" },
   { slug: "direct", label: "Direct" },
 ] as const;
 
@@ -155,3 +156,6 @@ export const ANALYTICS_RANGES = [7, 30, 90] as const;
 export const ANALYTICS_FREE_DAYS = 7;
 
 export const BRAND_LIMITS = { perPerson: 3 } as const;
+
+// Shortest password for email + password accounts (website and mobile app).
+export const MIN_PASSWORD = 8;
