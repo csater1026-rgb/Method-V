@@ -52,7 +52,7 @@ export default async function ProfilePage({ params }: PageProps<"/u/[username]">
           <RoleTags roles={profile.roles} />
           {profile.bio && <p className="max-w-2xl whitespace-pre-line text-ink/90">{profile.bio}</p>}
 
-          <p className="flex gap-4 text-sm text-muted">
+          <p className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted">
             <span>
               <strong className="text-ink">{formatCount(profile.follower_count)}</strong> followers
             </span>
@@ -61,6 +61,15 @@ export default async function ProfilePage({ params }: PageProps<"/u/[username]">
             </span>
             <span>
               <strong className="text-ink">{apps.length}</strong> {apps.length === 1 ? "app" : "apps"}
+            </span>
+            <span title="Feedback this builder has given, and how much of it builders marked helpful">
+              <strong className="text-ink">{formatCount(profile.feedback_given_count)}</strong> feedback given
+              {profile.feedback_helpful_count > 0 && (
+                <>
+                  {" · "}
+                  <strong className="text-accent">{formatCount(profile.feedback_helpful_count)}</strong> helpful
+                </>
+              )}
             </span>
           </p>
 

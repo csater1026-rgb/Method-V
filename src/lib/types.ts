@@ -13,6 +13,8 @@ export type Profile = {
   linkedin_url: string | null;
   follower_count: number;
   following_count: number;
+  feedback_given_count: number;
+  feedback_helpful_count: number;
 };
 
 export type ProfileSummary = Pick<Profile, "id" | "username" | "display_name" | "roles">;
@@ -31,6 +33,9 @@ export type App = {
   stage: Stage;
   try_count: number;
   like_count: number;
+  feedback_count: number;
+  would_use_yes_count: number;
+  rating_sum: number;
   created_at: string;
 };
 
@@ -74,6 +79,39 @@ export type Comment = {
 export type Viewer = {
   id: string;
   username: string;
+  credits: number;
+};
+
+export type TestRequest = {
+  slots_total: number;
+  slots_filled: number;
+};
+
+export type Feedback = {
+  id: string;
+  would_use: "yes" | "maybe" | "no";
+  rating: number;
+  worked: string;
+  confusing: string;
+  earned: number;
+  helpful_at: string | null;
+  created_at: string;
+  user: ProfileSummary;
+};
+
+export type FeedbackPanel =
+  | { mode: "demo" | "signed-out"; request: TestRequest | null }
+  | { mode: "owner"; request: TestRequest | null; feedback: Feedback[]; credits: number }
+  | { mode: "tester"; request: TestRequest | null; tried: boolean; mine: Feedback | null };
+
+export type QueueItem = AppCard & { spots_left: number };
+
+export type CreditEvent = {
+  id: number;
+  delta: number;
+  reason: string;
+  created_at: string;
+  app: { slug: string; name: string } | null;
 };
 
 export type ActionResult = { ok: true } | { ok: false; error: string };

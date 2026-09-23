@@ -50,9 +50,9 @@ await run("feed (phone)", phone, async (page) => {
   ok(await page.getByText("Demo mode").isVisible(), "demo banner visible");
   const feed = page.getByTestId("drop-feed");
   const box = await feed.boundingBox();
-  const vh = page.viewportSize().height;
-  const bottomGap = vh - (box.y + box.height);
-  ok(Math.abs(bottomGap) <= 1, `feed fills the screen (gap ${bottomGap}px)`);
+  const tabs = await page.getByRole("navigation", { name: "Main" }).boundingBox();
+  const bottomGap = tabs.y - (box.y + box.height);
+  ok(Math.abs(bottomGap) <= 1, `feed fills the space above the tab bar (gap ${bottomGap}px)`);
   const tryLink = page.locator("article").first().getByRole("link", { name: "Try it →" });
   ok((await tryLink.getAttribute("href")) === "/try/noteflow", "Try it links to /try/<slug>");
   await noSideScroll(page, "feed");
@@ -71,7 +71,7 @@ await run("feed (phone)", phone, async (page) => {
 });
 
 await run("small phone", { width: 360, height: 740 }, async (page) => {
-  for (const path of ["/", "/browse", "/apps/noteflow", "/u/ada_builds", "/submit", "/login"]) {
+  for (const path of ["/", "/browse", "/apps/noteflow", "/u/ada_builds", "/submit", "/login", "/test", "/credits"]) {
     await page.goto(BASE + path);
     await noSideScroll(page, `360px ${path}`);
   }
@@ -166,6 +166,39 @@ await run("submit", desktop, async (page) => {
   await page.getByRole("button", { name: "Post Drop" }).click();
   ok(await page.getByText("Method V is running in demo mode").isVisible(), "posting explains demo mode");
   await page.screenshot({ path: OUT + "submit-desktop.png", fullPage: true });
+});
+
+await run("test & earn", desktop, async (page) => {
+  await page.goto(BASE + "/test");
+  ok(await page.getByRole("heading", { name: "Test & earn" }).isVisible(), "Test & earn page loads");
+  ok((await page.locator("main article").count()) === 2, "queue shows the 2 sample apps waiting for testers");
+  ok(await page.getByText("4 spots left").isVisible(), "shows spots left");
+  await page.getByRole("link", { name: "Test it →" }).first().click();
+  await page.waitForURL(/\/apps\/.+#feedback/);
+  ok(await page.locator("#feedback").getByText("off in demo mode").isVisible(), "feedback panel explains demo mode");
+  await page.screenshot({ path: OUT + "test-desktop.png", fullPage: true });
+});
+
+await run("app stats", desktop, async (page) => {
+  await page.goto(BASE + "/apps/palettepal");
+  ok(await page.getByText("87%").isVisible(), "shows % who would use it (27 of 31)");
+  ok(await page.getByText("4.6★").isVisible(), "shows average rating (142 / 31)");
+  await page.goto(BASE + "/apps/splitsy");
+  ok(await page.getByText("No feedback yet").first().isVisible(), "no-feedback state");
+});
+
+await run("test & earn (phone)", phone, async (page) => {
+  await page.goto(BASE + "/test");
+  await noSideScroll(page, "test phone");
+  const tabs = page.getByRole("navigation", { name: "Main" });
+  ok(await tabs.isVisible(), "bottom tab bar on phones");
+  ok((await tabs.getByRole("link", { name: "Test" }).getAttribute("aria-current")) === "page", "Test tab is active");
+  await page.screenshot({ path: OUT + "test-phone.png", fullPage: true });
+});
+
+await run("credits", phone, async (page) => {
+  await page.goto(BASE + "/credits");
+  ok(await page.getByText("How credits work").isVisible(), "credits page explains the rules");
 });
 
 await run("submit (phone)", phone, async (page) => {

@@ -125,7 +125,7 @@ Big brands won't sponsor small apps early on, but **small apps will sponsor each
 
 ## 5. Build phases
 
-**Phase 1: MVP ("Show it")**
+**Phase 1: MVP ("Show it")** ✅ built
 - Sign-up, profiles and role tags
 - App submission with a 60-second Drop
 - Drops feed and the category directory
@@ -139,7 +139,7 @@ Big brands won't sponsor small apps early on, but **small apps will sponsor each
 - A notifications system
 
 **Phase 3: "Grow"** (the difference maker)
-- Try-to-earn credits and structured feedback
+- Try-to-earn credits and structured feedback ✅ built
 - Launch days and boosts
 - Build-in-public posts
 - Share kit and badges

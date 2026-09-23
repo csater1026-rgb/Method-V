@@ -5,12 +5,13 @@
 //   npm run test:db
 
 import { PGlite } from "@electric-sql/pglite";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 
-const migration = readFileSync(
-  new URL("../supabase/migrations/20260923000000_phase1.sql", import.meta.url),
-  "utf8",
-);
+const migrationsDir = new URL("../supabase/migrations/", import.meta.url);
+const migrations = readdirSync(migrationsDir)
+  .filter((f) => f.endsWith(".sql"))
+  .sort()
+  .map((f) => readFileSync(new URL(f, migrationsDir), "utf8"));
 
 const db = new PGlite();
 
@@ -42,8 +43,8 @@ await db.exec(`
   grant all on storage.objects to anon, authenticated;
 `);
 
-await db.exec(migration);
-console.log("migration applied");
+for (const sql of migrations) await db.exec(sql);
+console.log(`${migrations.length} migrations applied`);
 
 let failures = 0;
 const ok = (cond, msg) => {
@@ -85,7 +86,6 @@ ok(!!(await fails("authenticated", B, "update public.profiles set bio = 'x' wher
 ok(!!(await fails("authenticated", A, "update public.profiles set roles = '{astronaut}' where id = $1", [A])), "unknown role rejected");
 
 // Apps
-const APP = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 await db.exec("reset role");
 const appInsert = `insert into public.apps (owner_id, slug, name, tagline, url, category) values ($1, 'noteflow', 'NoteFlow', 'Notes that flow', 'https://example.com', 'productivity') returning id`;
 const inserted = await as("authenticated", A, appInsert, [A]);
@@ -146,6 +146,94 @@ ok(!!(await fails("anon", null, "insert into storage.objects (bucket_id, name) v
 // Search column
 const s = await db.query("select name from public.apps where search @@ websearch_to_tsquery('english', 'notes')");
 ok(s.rows.length === 1, "full-text search finds the app");
+
+// ---------------------------------------------------------------------------
+// Phase 3: credits and feedback
+// ---------------------------------------------------------------------------
+
+const credits = async (id) => (await db.query("select credits from public.profiles where id = $1", [id])).rows[0].credits;
+const C = "33333333-3333-3333-3333-333333333333";
+const D = "44444444-4444-4444-4444-444444444444";
+const E = "55555555-5555-5555-5555-555555555555";
+await db.exec(`insert into auth.users (id) values ('${C}'), ('${D}'), ('${E}')`);
+
+ok((await credits(A)) === 10 && (await credits(B)) === 10, "existing builders get 10 welcome credits");
+ok((await credits(C)) === 10, "new sign-ups get 10 welcome credits");
+ok(!!(await fails("authenticated", A, "insert into public.credit_events (user_id, delta, reason) values ($1, 100, 'welcome')", [A])), "cannot write credits directly");
+ok(!!(await fails("authenticated", A, "update public.profiles set credits = 999 where id = $1", [A])), "cannot set own balance");
+ok((await as("authenticated", B, "select * from public.credit_events")).rows.every((r) => r.user_id === B), "credit history is private");
+
+const fbSql = `insert into public.feedback (app_id, user_id, would_use, rating, worked, confusing) values ($1, $2, $3, $4, $5, $6) returning earned`;
+const good = "The onboarding was quick and clear.";
+
+// B already tried the app in the Phase 1 tests. Not in the queue yet: no reward.
+const fbB = await as("authenticated", B, fbSql, [appId, B, "yes", 5, good, ""]);
+ok(fbB.rows[0].earned === 0, "feedback on an app not in the queue earns nothing");
+ok((await credits(B)) === 10, "…and B's balance is unchanged");
+ok(!!(await fails("authenticated", B, fbSql, [appId, B, "no", 1, good, ""])), "one feedback per person per app");
+ok(!!(await fails("authenticated", C, fbSql, [appId, C, "yes", 4, good, ""])), "must try the app before giving feedback");
+await as("authenticated", A, "insert into public.try_clicks (app_id, user_id) values ($1, $2)", [appId, A]);
+ok(!!(await fails("authenticated", A, fbSql, [appId, A, "yes", 5, good, ""])), "cannot give feedback on your own app");
+await as("authenticated", C, "insert into public.try_clicks (app_id, user_id) values ($1, $2)", [appId, C]);
+ok(!!(await fails("authenticated", C, fbSql, [appId, C, "yes", 4, "too short", ""])), "feedback needs at least 10 characters on what worked");
+ok(!!(await fails("authenticated", C, fbSql, [appId, C, "yes", 6, good, ""])), "rating must be 1–5");
+
+// A buys 3 testers for 6 credits.
+await as("authenticated", A, "select public.request_testers($1, 3)", [appId]);
+ok((await credits(A)) === 4, "asking for 3 testers costs 6 credits");
+let req = (await db.query("select slots_total, slots_filled from public.test_requests where app_id = $1", [appId])).rows[0];
+ok(req.slots_total === 3 && req.slots_filled === 0, "app enters the test queue with 3 spots");
+ok(!!(await fails("authenticated", A, "select public.request_testers($1, 10)", [appId])), "can't spend more credits than you have");
+ok((await credits(A)) === 4, "…and a failed request costs nothing");
+ok(!!(await fails("authenticated", B, "select public.request_testers($1, 1)", [appId])), "can't buy testers for someone else's app");
+ok(!!(await fails("anon", null, "select public.request_testers($1, 1)", [appId])), "signed-out people can't call it");
+
+const fbC = await as("authenticated", C, fbSql, [appId, C, "maybe", 3, good, "The pricing page was hard to find."]);
+ok(fbC.rows[0].earned === 2, "feedback on a queued app earns 2 credits");
+ok((await credits(C)) === 12, "…and lands in the tester's balance");
+req = (await db.query("select slots_filled from public.test_requests where app_id = $1", [appId])).rows[0];
+ok(req.slots_filled === 1, "…and fills one spot");
+
+const stats = (await db.query("select feedback_count, would_use_yes_count, rating_sum from public.apps where id = $1", [appId])).rows[0];
+ok(stats.feedback_count === 2 && stats.would_use_yes_count === 1 && stats.rating_sum === 8, "app totals update");
+ok((await db.query("select feedback_given_count from public.profiles where id = $1", [C])).rows[0].feedback_given_count === 1, "tester's feedback count updates");
+
+ok((await as("authenticated", A, "select * from public.feedback")).rows.length === 2, "builder sees all feedback on their app");
+ok((await as("authenticated", B, "select * from public.feedback")).rows.length === 1, "tester sees only their own feedback");
+ok((await as("authenticated", D, "select * from public.feedback")).rows.length === 0, "others can't read feedback");
+ok((await as("anon", null, "select * from public.feedback")).rows.length === 0, "signed-out people can't read feedback");
+ok(!!(await fails("authenticated", C, "update public.feedback set rating = 5 where user_id = $1", [C])), "feedback can't be edited");
+ok(!!(await fails("authenticated", C, "delete from public.feedback where user_id = $1", [C])), "feedback can't be deleted");
+
+// Helpful bonus.
+const fbCId = (await db.query("select id from public.feedback where user_id = $1", [C])).rows[0].id;
+ok(!!(await fails("authenticated", B, "select public.mark_feedback_helpful($1)", [fbCId])), "only the builder can mark feedback helpful");
+await as("authenticated", A, "select public.mark_feedback_helpful($1)", [fbCId]);
+ok((await credits(C)) === 13, "helpful feedback earns the tester +1");
+ok(!!(await fails("authenticated", A, "select public.mark_feedback_helpful($1)", [fbCId])), "helpful only counts once");
+
+// Cancel refunds the 2 unused spots.
+const refunded = await as("authenticated", A, "select public.cancel_test_request($1) as n", [appId]);
+ok(refunded.rows[0].n === 2 && (await credits(A)) === 8, "cancelling refunds unused spots (2 × 2 credits)");
+req = (await db.query("select slots_total, slots_filled from public.test_requests where app_id = $1", [appId])).rows[0];
+ok(req.slots_total === req.slots_filled, "cancelled request leaves the queue");
+
+// Daily cap: a tester who already earned 10 times today earns nothing and doesn't use up a spot.
+await as("authenticated", A, "select public.request_testers($1, 1)", [appId]);
+await db.query(`insert into public.credit_events (user_id, delta, reason) select $1, 2, 'feedback_reward' from generate_series(1, 10)`, [E]);
+await as("authenticated", E, "insert into public.try_clicks (app_id, user_id) values ($1, $2)", [appId, E]);
+const fbE = await as("authenticated", E, fbSql, [appId, E, "yes", 4, good, ""]);
+ok(fbE.rows[0].earned === 0, "daily cap: 11th paid feedback in 24h earns nothing");
+req = (await db.query("select slots_total, slots_filled from public.test_requests where app_id = $1", [appId])).rows[0];
+ok(req.slots_filled < req.slots_total, "…and the spot stays open for someone else");
+
+let overdraft = false;
+try {
+  await db.query("insert into public.credit_events (user_id, delta, reason) values ($1, -1000, 'testers_requested')", [D]);
+} catch {
+  overdraft = true;
+}
+ok(overdraft, "balances can never go negative");
 
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");
 process.exit(failures ? 1 : 0);

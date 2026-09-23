@@ -3,10 +3,25 @@ import "server-only";
 import { cache } from "react";
 
 import { CATEGORIES, PRICING, STAGES, isOneOf } from "./constants";
-import { demoApps, demoCommentDate, demoComments, demoDrops, demoProfiles } from "./demo";
+import { demoApps, demoCommentDate, demoComments, demoDrops, demoProfiles, demoTestRequests } from "./demo";
 import { isSupabaseConfigured, publicFileUrl } from "./supabase/env";
 import { createClient } from "./supabase/server";
-import type { App, AppCard, AppDetail, Comment, Drop, FeedItem, Profile, ProfileSummary, Viewer } from "./types";
+import type {
+  App,
+  AppCard,
+  AppDetail,
+  Comment,
+  CreditEvent,
+  Drop,
+  FeedItem,
+  Feedback,
+  FeedbackPanel,
+  Profile,
+  ProfileSummary,
+  QueueItem,
+  TestRequest,
+  Viewer,
+} from "./types";
 
 // All reads go through here. Each function returns sample data in demo mode.
 
@@ -52,7 +67,24 @@ function toApp(row: any): App {
     stage: row.stage,
     try_count: row.try_count ?? 0,
     like_count: row.like_count ?? 0,
+    feedback_count: row.feedback_count ?? 0,
+    would_use_yes_count: row.would_use_yes_count ?? 0,
+    rating_sum: row.rating_sum ?? 0,
     created_at: row.created_at,
+  };
+}
+
+function toFeedback(row: any): Feedback {
+  return {
+    id: row.id,
+    would_use: row.would_use,
+    rating: row.rating,
+    worked: row.worked,
+    confusing: row.confusing ?? "",
+    earned: row.earned ?? 0,
+    helpful_at: row.helpful_at,
+    created_at: row.created_at,
+    user: toSummary(row.user),
   };
 }
 
@@ -66,8 +98,8 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
   const { data } = await supabase.auth.getClaims();
   const id = data?.claims?.sub;
   if (!id) return null;
-  const { data: profile } = await supabase.from("profiles").select("username").eq("id", id).maybeSingle();
-  return profile ? { id, username: profile.username } : null;
+  const { data: profile } = await supabase.from("profiles").select("username, credits").eq("id", id).maybeSingle();
+  return profile ? { id, username: profile.username, credits: profile.credits ?? 0 } : null;
 });
 
 async function likedDropIds(viewer: Viewer | null, dropIds: string[]): Promise<Set<string>> {
@@ -308,4 +340,109 @@ export async function getOwnProfile(): Promise<Profile | null> {
   const supabase = await createClient();
   const { data } = await supabase.from("profiles").select("*").eq("id", viewer.id).maybeSingle();
   return (data as Profile | null) ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// Phase 3: credits and feedback
+// ---------------------------------------------------------------------------
+
+const FEEDBACK_FIELDS = `id, would_use, rating, worked, confusing, earned, helpful_at, created_at,
+  user:profiles!feedback_user_id_fkey(${PROFILE_SUMMARY})`;
+
+function openRequest(row: TestRequest | null | undefined): TestRequest | null {
+  return row ? { slots_total: row.slots_total, slots_filled: row.slots_filled } : null;
+}
+
+export async function getFeedbackPanel(app: App, viewer: Viewer | null): Promise<FeedbackPanel> {
+  if (!isSupabaseConfigured) return { mode: "demo", request: demoTestRequests[app.id] ?? null };
+
+  const supabase = await createClient();
+  const { data: req } = await supabase
+    .from("test_requests")
+    .select("slots_total, slots_filled")
+    .eq("app_id", app.id)
+    .maybeSingle();
+  const request = openRequest(req);
+
+  if (!viewer) return { mode: "signed-out", request };
+
+  if (viewer.id === app.owner_id) {
+    const { data } = await supabase
+      .from("feedback")
+      .select(FEEDBACK_FIELDS)
+      .eq("app_id", app.id)
+      .order("created_at", { ascending: false })
+      .limit(200);
+    return { mode: "owner", request, feedback: (data ?? []).map(toFeedback), credits: viewer.credits };
+  }
+
+  const [{ data: mine }, { data: tried }] = await Promise.all([
+    supabase.from("feedback").select(FEEDBACK_FIELDS).eq("app_id", app.id).eq("user_id", viewer.id).maybeSingle(),
+    supabase.from("try_clicks").select("id").eq("app_id", app.id).eq("user_id", viewer.id).limit(1).maybeSingle(),
+  ]);
+  return { mode: "tester", request, tried: Boolean(tried), mine: mine ? toFeedback(mine) : null };
+}
+
+// Apps with open tester spots, oldest request first so everyone gets a turn.
+// Leaves out the viewer's own apps and ones they've already reviewed.
+export async function getTestQueue(viewer: Viewer | null): Promise<QueueItem[]> {
+  if (!isSupabaseConfigured) {
+    return demoApps
+      .filter((a) => demoTestRequests[a.id])
+      .map((a) => {
+        const r = demoTestRequests[a.id];
+        return { ...a, owner: toSummary(demoProfile(a.owner_id)), poster_url: null, spots_left: r.slots_total - r.slots_filled };
+      })
+      .filter((a) => a.spots_left > 0);
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("test_requests")
+    .select(
+      `slots_total, slots_filled, opened_at,
+       app:apps!inner(*, owner:profiles!apps_owner_id_fkey(${PROFILE_SUMMARY}), drops(poster_path, created_at))`,
+    )
+    .not("app.link_checked_at", "is", null)
+    .order("opened_at", { ascending: true })
+    .limit(100);
+  if (error) throw new Error(`Couldn't load the test queue: ${error.message}`);
+
+  let reviewed = new Set<string>();
+  if (viewer) {
+    const { data: mine } = await supabase.from("feedback").select("app_id").eq("user_id", viewer.id);
+    reviewed = new Set((mine ?? []).map((r) => r.app_id as string));
+  }
+
+  return (data ?? [])
+    .filter((row) => row.slots_filled < row.slots_total)
+    .map((row) => {
+      /* eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped embed */
+      const app = row.app as any;
+      const latest = [...(app.drops ?? [])].sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
+      return {
+        ...toApp(app),
+        owner: toSummary(app.owner),
+        poster_url: publicFileUrl(latest?.poster_path ?? null),
+        spots_left: row.slots_total - row.slots_filled,
+      };
+    })
+    .filter((a) => a.owner_id !== viewer?.id && !reviewed.has(a.id));
+}
+
+export async function getCreditHistory(viewer: Viewer): Promise<CreditEvent[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("credit_events")
+    .select("id, delta, reason, created_at, app:apps(slug, name)")
+    .eq("user_id", viewer.id)
+    .order("created_at", { ascending: false })
+    .limit(100);
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    delta: row.delta,
+    reason: row.reason,
+    created_at: row.created_at,
+    app: (row.app as unknown as CreditEvent["app"]) ?? null,
+  }));
 }

@@ -94,7 +94,7 @@ function EmptyFeed({ tab, signedIn, filtered }: { tab: FeedTab; signedIn: boolea
   }
 
   return (
-    <div className="flex h-[calc(100dvh-var(--chrome))] flex-col items-center justify-center gap-3 px-6 pt-24 text-center">
+    <div className="flex h-[calc(100dvh-var(--chrome)-var(--tabbar))] flex-col items-center justify-center gap-3 px-6 pt-24 text-center">
       <h1 className="text-2xl font-black">{title}</h1>
       <p className="max-w-sm text-muted">{body}</p>
       <Link href={action.href} className="btn-accent mt-2">

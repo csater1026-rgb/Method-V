@@ -3,23 +3,29 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const LINKS = [
+export const PAGE_LINKS = [
   { href: "/", label: "Drops" },
   { href: "/browse", label: "Browse" },
+  { href: "/test", label: "Test & earn" },
 ];
 
+export function isActive(pathname: string, href: string) {
+  return href === "/" ? pathname === "/" : pathname.startsWith(href);
+}
+
+// Desktop page links. Phones use MobileTabs instead.
 export function NavLinks() {
   const pathname = usePathname();
   return (
-    <nav className="flex items-center gap-0.5 sm:ml-2 sm:gap-1">
-      {LINKS.map((link) => {
-        const active = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
+    <nav className="ml-2 hidden items-center gap-1 sm:flex">
+      {PAGE_LINKS.map((link) => {
+        const active = isActive(pathname, link.href);
         return (
           <Link
             key={link.href}
             href={link.href}
             aria-current={active ? "page" : undefined}
-            className={`rounded-full px-2.5 py-1.5 text-sm font-medium transition sm:px-3 ${
+            className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
               active ? "bg-surface-2 text-ink" : "text-muted hover:text-ink"
             }`}
           >

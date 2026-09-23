@@ -17,6 +17,8 @@ export const demoProfiles: Profile[] = [
     linkedin_url: null,
     follower_count: 214,
     following_count: 38,
+    feedback_given_count: 23,
+    feedback_helpful_count: 9,
   },
   {
     id: "demo-marco",
@@ -31,6 +33,8 @@ export const demoProfiles: Profile[] = [
     linkedin_url: null,
     follower_count: 87,
     following_count: 120,
+    feedback_given_count: 41,
+    feedback_helpful_count: 17,
   },
   {
     id: "demo-june",
@@ -45,6 +49,8 @@ export const demoProfiles: Profile[] = [
     linkedin_url: null,
     follower_count: 1032,
     following_count: 76,
+    feedback_given_count: 8,
+    feedback_helpful_count: 3,
   },
 ];
 
@@ -67,6 +73,9 @@ export const demoApps: App[] = [
     stage: "launched",
     try_count: 412,
     like_count: 96,
+    feedback_count: 18,
+    would_use_yes_count: 14,
+    rating_sum: 79,
     created_at: ago(1),
   },
   {
@@ -83,6 +92,9 @@ export const demoApps: App[] = [
     stage: "beta",
     try_count: 158,
     like_count: 41,
+    feedback_count: 6,
+    would_use_yes_count: 4,
+    rating_sum: 25,
     created_at: ago(3),
   },
   {
@@ -99,6 +111,9 @@ export const demoApps: App[] = [
     stage: "launched",
     try_count: 890,
     like_count: 233,
+    feedback_count: 31,
+    would_use_yes_count: 27,
+    rating_sum: 142,
     created_at: ago(6),
   },
   {
@@ -115,6 +130,9 @@ export const demoApps: App[] = [
     stage: "idea",
     try_count: 37,
     like_count: 12,
+    feedback_count: 0,
+    would_use_yes_count: 0,
+    rating_sum: 0,
     created_at: ago(9),
   },
 ];
@@ -146,3 +164,9 @@ export const demoComments: Record<string, { user: string; body: string; days: nu
 };
 
 export const demoCommentDate = ago;
+
+// Apps waiting for testers in the "Test & earn" queue.
+export const demoTestRequests: Record<string, { slots_total: number; slots_filled: number }> = {
+  "demo-app-quizpop": { slots_total: 10, slots_filled: 6 },
+  "demo-app-splitsy": { slots_total: 5, slots_filled: 0 },
+};

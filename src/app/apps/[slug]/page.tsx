@@ -5,11 +5,12 @@ import { notFound } from "next/navigation";
 import { Avatar } from "@/components/Avatar";
 import { Comments } from "@/components/Comments";
 import { DropPlaceholder } from "@/components/DropVideo";
+import { FeedbackPanel } from "@/components/FeedbackPanel";
 import { FollowButton } from "@/components/FollowButton";
 import { LikeButton } from "@/components/LikeButton";
 import { ShareButton } from "@/components/ShareButton";
 import { CategoryChip, Chip, PricingStage, RoleTags } from "@/components/Tags";
-import { getApp, getComments, getViewer, isFollowing } from "@/lib/data";
+import { getApp, getComments, getFeedbackPanel, getViewer, isFollowing } from "@/lib/data";
 import { formatCount, formatDuration, timeAgo } from "@/lib/format";
 
 export async function generateMetadata({ params }: PageProps<"/apps/[slug]">): Promise<Metadata> {
@@ -23,10 +24,13 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
   const [app, viewer] = await Promise.all([getApp(slug), getViewer()]);
   if (!app) notFound();
 
-  const [comments, following] = await Promise.all([
+  const [comments, following, feedbackPanel] = await Promise.all([
     app.drop ? getComments(app.drop.id) : [],
     isFollowing(viewer, app.owner_id),
+    getFeedbackPanel(app, viewer),
   ]);
+  const wouldUse = app.feedback_count ? Math.round((app.would_use_yes_count / app.feedback_count) * 100) : null;
+  const rating = app.feedback_count ? (app.rating_sum / app.feedback_count).toFixed(1) : null;
   const isOwner = viewer?.id === app.owner_id;
 
   return (
@@ -68,6 +72,7 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
           </div>
           <h1 className="mt-3 text-4xl font-black tracking-tight">{app.name}</h1>
           <p className="mt-1 text-lg text-muted">{app.tagline}</p>
+          <p className="mt-1 text-sm text-muted">Posted {timeAgo(app.created_at)}</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -86,10 +91,15 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
           <ShareButton path={`/apps/${app.slug}`} title={`${app.name} on Method V`} layout="inline" />
         </div>
 
-        <dl className="grid grid-cols-3 gap-3 text-center">
+        <dl className="grid grid-cols-2 gap-3 text-center sm:grid-cols-4">
           <Stat label="Tries" value={formatCount(app.try_count)} />
           <Stat label="Likes" value={formatCount(app.like_count)} />
-          <Stat label="Posted" value={timeAgo(app.created_at)} />
+          <Stat
+            label="Would use"
+            value={wouldUse === null ? "—" : `${wouldUse}%`}
+            note={`${formatCount(app.feedback_count)} ${app.feedback_count === 1 ? "tester" : "testers"}`}
+          />
+          <Stat label="Rating" value={rating === null ? "—" : `${rating}★`} note={rating === null ? "No feedback yet" : undefined} />
         </dl>
 
         {app.description && <p className="leading-relaxed whitespace-pre-line text-ink/90">{app.description}</p>}
@@ -121,6 +131,8 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
           )}
         </div>
 
+        <FeedbackPanel panel={feedbackPanel} app={{ id: app.id, slug: app.slug, name: app.name }} />
+
         {app.drop && (
           <Comments dropId={app.drop.id} appSlug={app.slug} comments={comments} viewerId={viewer?.id ?? null} />
         )}
@@ -129,11 +141,12 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, note }: { label: string; value: string; note?: string }) {
   return (
     <div className="rounded-xl border border-line bg-surface px-3 py-3">
       <dt className="text-xs text-muted">{label}</dt>
       <dd className="mt-0.5 text-lg font-bold">{value}</dd>
+      {note && <dd className="text-xs text-muted">{note}</dd>}
     </div>
   );
 }

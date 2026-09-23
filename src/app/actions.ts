@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { CATEGORIES, MAX_DROP_SECONDS, PRICING, ROLES, STAGES, isOneOf } from "@/lib/constants";
+import { CATEGORIES, MAX_DROP_SECONDS, PRICING, ROLES, STAGES, TESTER_PACKS, WOULD_USE, isOneOf } from "@/lib/constants";
 import { getViewer } from "@/lib/data";
 import { parseList, slugify } from "@/lib/format";
 import { checkLink, parseAppUrl } from "@/lib/link-check";
@@ -295,4 +295,91 @@ export async function createApp(input: NewApp): Promise<ActionResult> {
   revalidatePath("/browse");
   revalidatePath(`/u/${viewer.username}`);
   redirect(`/apps/${app.slug}?posted=1`);
+}
+
+// ---------------------------------------------------------------------------
+// Phase 3: feedback and credits
+// ---------------------------------------------------------------------------
+
+export type NewFeedback = {
+  wouldUse: string;
+  rating: number;
+  worked: string;
+  confusing: string;
+};
+
+export async function submitFeedback(appId: string, appSlug: string, input: NewFeedback): Promise<ActionResult & { earned?: number }> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  if (!UUID.test(appId)) return { ok: false, error: "Unknown app." };
+  if (!isOneOf(WOULD_USE, input.wouldUse)) return { ok: false, error: "Say whether you'd use it." };
+  const rating = Number(input.rating);
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) return { ok: false, error: "Pick a rating from 1 to 5 stars." };
+  const worked = input.worked.trim();
+  const confusing = input.confusing.trim();
+  if (worked.length < 10) return { ok: false, error: "Tell them what worked (at least 10 characters)." };
+  if (worked.length > 1000 || confusing.length > 1000) return { ok: false, error: "Keep each answer under 1,000 characters." };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("feedback")
+    .insert({ app_id: appId, user_id: auth.viewer.id, would_use: input.wouldUse, rating, worked, confusing })
+    .select("earned")
+    .single();
+  if (error) {
+    if (error.code === "23505") return { ok: false, error: "You've already given feedback on this app." };
+    // Row level security says no: they haven't tried it, or it's their own app.
+    if (error.code === "42501") return { ok: false, error: "Open the app with Try it first, then come back to give feedback." };
+    return { ok: false, error: "Couldn't save your feedback." };
+  }
+  revalidatePath(`/apps/${appSlug}`);
+  revalidatePath("/test");
+  revalidatePath("/credits");
+  return { ok: true, earned: data?.earned ?? 0 };
+}
+
+function rpcError(message: string | undefined, fallback: string): string {
+  // Messages raised by our database functions are written for people; anything else isn't.
+  return message && !/permission|violates|function|column|relation/i.test(message) ? message : fallback;
+}
+
+export async function requestTesters(appId: string, appSlug: string, testers: number): Promise<ActionResult> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  if (!UUID.test(appId)) return { ok: false, error: "Unknown app." };
+  if (!TESTER_PACKS.includes(testers as (typeof TESTER_PACKS)[number])) return { ok: false, error: "Pick a tester pack." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("request_testers", { p_app_id: appId, p_testers: testers });
+  if (error) return { ok: false, error: rpcError(error.message, "Couldn't add testers.") };
+  revalidatePath(`/apps/${appSlug}`);
+  revalidatePath("/test");
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+export async function cancelTesters(appId: string, appSlug: string): Promise<ActionResult> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  if (!UUID.test(appId)) return { ok: false, error: "Unknown app." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("cancel_test_request", { p_app_id: appId });
+  if (error) return { ok: false, error: rpcError(error.message, "Couldn't cancel.") };
+  revalidatePath(`/apps/${appSlug}`);
+  revalidatePath("/test");
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+export async function markHelpful(feedbackId: string, appSlug: string): Promise<ActionResult> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  if (!UUID.test(feedbackId)) return { ok: false, error: "Unknown feedback." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("mark_feedback_helpful", { p_feedback_id: feedbackId });
+  if (error) return { ok: false, error: rpcError(error.message, "Couldn't mark that as helpful.") };
+  revalidatePath(`/apps/${appSlug}`);
+  return { ok: true };
 }

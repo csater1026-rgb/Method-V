@@ -5,6 +5,31 @@ export const MAX_DROP_SECONDS = 60;
 export const MAX_DROP_BYTES = 100 * 1024 * 1024;
 export const DROP_VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
 
+// Must match the numbers in supabase/migrations/*_phase3_credits_feedback.sql.
+export const CREDITS = {
+  welcome: 10,
+  perTester: 2,
+  feedbackReward: 2,
+  helpfulBonus: 1,
+  dailyPaidFeedback: 10,
+} as const;
+
+export const TESTER_PACKS = [3, 5, 10] as const;
+
+export const WOULD_USE = [
+  { slug: "yes", label: "Yes" },
+  { slug: "maybe", label: "Maybe" },
+  { slug: "no", label: "No" },
+] as const;
+
+export const CREDIT_REASONS: Record<string, string> = {
+  welcome: "Welcome credits",
+  feedback_reward: "Feedback reward",
+  feedback_helpful: "Feedback marked helpful",
+  testers_requested: "Asked for testers",
+  testers_refunded: "Unused tester spots refunded",
+};
+
 export const CATEGORIES = [
   { slug: "ai", label: "AI tools" },
   { slug: "productivity", label: "Productivity" },

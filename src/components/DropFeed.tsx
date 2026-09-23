@@ -19,7 +19,7 @@ export function DropFeed({ items, signedIn }: { items: FeedItem[]; signedIn: boo
 
   return (
     <div
-      className="no-scrollbar h-[calc(100dvh-var(--chrome))] snap-y snap-mandatory overflow-y-scroll"
+      className="no-scrollbar h-[calc(100dvh-var(--chrome)-var(--tabbar))] snap-y snap-mandatory overflow-y-scroll"
       data-testid="drop-feed"
     >
       {items.map((item) => (

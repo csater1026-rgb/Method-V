@@ -18,11 +18,20 @@
 
 :root {
   color-scheme: dark;
+  /* Height of the phone bottom tab bar (MobileTabs); none on larger screens. */
+  --tabbar: calc(3.5rem + env(safe-area-inset-bottom));
+}
+
+@media (width >= 40rem) {
+  :root {
+    --tabbar: 0px;
+  }
 }
 
 body {
   background: var(--color-bg);
   color: var(--color-ink);
+  padding-bottom: var(--tabbar);
 }
 
 /* Shared looks for form fields and buttons. */
