@@ -18,8 +18,9 @@ import {
 } from "@/lib/constants";
 import { getViewer } from "@/lib/data";
 import { parseList, slugify } from "@/lib/format";
-import { checkLink, parseAppUrl } from "@/lib/link-check";
-import { DEMO_MODE_MESSAGE, isSupabaseConfigured } from "@/lib/supabase/env";
+import { checkLink, fetchPage, parseAppUrl } from "@/lib/link-check";
+import { sitePreview, type SitePreview } from "@/lib/site-preview";
+import { DEMO_MODE_MESSAGE, authProviders, isSupabaseConfigured, type AuthProvider } from "@/lib/supabase/env";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import type { ActionResult, Viewer } from "@/lib/types";
 
@@ -72,6 +73,20 @@ export async function signIn(_prev: SignInState, formData: FormData): Promise<Si
   });
   if (error) return { status: "error", error: error.message };
   return { status: "sent", email };
+}
+
+// "Continue with GitHub/Google": off to the provider, back via /auth/callback.
+export async function signInWithProvider(formData: FormData) {
+  const provider = text(formData, "provider") as AuthProvider;
+  const next = safeNext(text(formData, "next"));
+  if (!isSupabaseConfigured || !authProviders.includes(provider)) redirect(`/login?next=${encodeURIComponent(next)}`);
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider,
+    options: { redirectTo: `${await siteOrigin()}/auth/callback?next=${encodeURIComponent(next)}` },
+  });
+  if (error || !data.url) redirect(`/login?error=link&next=${encodeURIComponent(next)}`);
+  redirect(data.url);
 }
 
 export async function signOut() {
@@ -207,6 +222,16 @@ export async function checkAppLink(url: string): Promise<ActionResult> {
   if ("error" in auth) return { ok: false, error: auth.error };
   const result = await checkLink(url);
   return result.ok ? { ok: true } : { ok: false, error: result.reason };
+}
+
+// Reads the app's site to fill in the post: name, tagline, description and a
+// best-guess category. Also confirms the link works.
+export async function previewLink(url: string): Promise<{ ok: true; preview: SitePreview } | { ok: false; error: string }> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  const page = await fetchPage(url);
+  if (!page.ok) return { ok: false, error: page.reason };
+  return { ok: true, preview: sitePreview(page.html ?? "", page.finalUrl) };
 }
 
 export type NewApp = {

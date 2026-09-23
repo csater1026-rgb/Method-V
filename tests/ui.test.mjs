@@ -101,10 +101,15 @@ await run("feed (phone)", phone, async (page) => {
   const second = await page.locator("article").nth(1).boundingBox();
   ok(Math.abs(second.y - box.y) < 2, "scrolling snaps to the next Drop");
 
-  // Liking while signed out goes to sign-in.
+  // Liking while signed out opens the sign-in sheet right there.
   await page.locator("article").nth(1).getByRole("button", { name: "Like" }).click();
-  await page.waitForURL(/\/login\?next=/);
-  ok(page.url().includes("/login?next=%2Fdrops"), "like while signed out → sign in");
+  const sheet = page.getByRole("dialog", { name: "Sign in" });
+  ok(await sheet.getByRole("heading", { name: "Sign in to like this Drop" }).isVisible(), "like while signed out → sign-in sheet");
+  ok(page.url().endsWith("/drops"), "…without leaving the feed");
+  await page.waitForTimeout(700);
+  await page.screenshot({ path: OUT + "signin-sheet.png" });
+  await page.keyboard.press("Escape");
+  ok((await sheet.count()) === 0, "Esc closes the sheet");
 });
 
 // Themes: follows the phone, the toggle switches and remembers, media stays dark.
@@ -311,8 +316,8 @@ await run("connect + inbox", desktop, async (page) => {
   ok(await page.getByText("24 connections").isVisible(), "profile shows connections");
   ok(await page.getByText("12 reputation").isVisible(), "profile shows reputation");
   await page.getByRole("button", { name: "Connect" }).click();
-  await page.waitForURL(/\/login\?next=%2Fu%2Fjune_designs/);
-  ok(true, "Connect while signed out goes to sign in");
+  ok(await page.getByRole("heading", { name: "Sign in to connect" }).isVisible(), "Connect while signed out opens the sign-in sheet");
+  await page.getByRole("button", { name: "Close" }).click();
   await go(page, "/inbox");
   ok(await page.getByText("The inbox is off in demo mode.").isVisible(), "inbox explains demo mode");
 });
@@ -330,8 +335,8 @@ await run("q&a", desktop, async (page) => {
   ok((await page.locator("#qa").textContent()).indexOf("Both! Meet import") < (await page.locator("#qa").textContent()).indexOf("Can confirm"), "best answer is listed first");
   ok(await page.locator("#qa").getByText("Sign in").isVisible(), "signed-out visitors are asked to sign in");
   await page.locator("#qa").getByRole("button", { name: "Upvote" }).first().click();
-  await page.waitForURL(/\/login/);
-  ok(true, "voting while signed out goes to sign in");
+  ok(await page.getByRole("heading", { name: "Sign in to vote" }).isVisible(), "voting while signed out opens the sign-in sheet");
+  await page.keyboard.press("Escape");
   await go(page, "/apps/noteflow?tab=qa");
   await page.locator("#qa").screenshot({ path: OUT + "qa.png" });
 });
@@ -374,12 +379,21 @@ await run("submit", desktop, async (page) => {
   await input.setInputFiles(CLIPS + "clip-20s.webm");
   await page.getByText(/^0:20 ·/).waitFor({ timeout: 15000 });
   ok(true, "20-second video is accepted and shows 0:20");
-  await page.getByLabel("App name").fill("Test");
-  await page.getByLabel(/Tagline/).fill("Testing");
-  await page.getByRole("textbox", { name: /Link to your live app/ }).fill("https://example.com");
-  await page.getByLabel("Category").selectOption("ai");
+  ok(await page.getByText("Still need: your link, a name, a tagline, a category.").isVisible(), "tells you what's still needed");
+  const link = page.getByRole("textbox", { name: /Link to your live app/ });
+  await link.fill("https://example.com");
+  await link.blur();
+  ok(await page.getByText("Method V is running in demo mode").first().isVisible(), "reading the site explains demo mode");
+  await page.getByRole("textbox", { name: /^Name/ }).fill("Test");
+  await page.getByRole("textbox", { name: /Tagline/ }).fill("Testing");
+  await page.getByRole("radio", { name: "AI tools" }).click();
+  ok((await page.getByRole("radio", { name: "AI tools" }).getAttribute("aria-checked")) === "true", "one tap picks a category");
+  ok(!(await page.getByRole("textbox", { name: /Built with/ }).isVisible()), "extra details are tucked away");
+  await page.getByText("More details").click();
+  ok(await page.getByRole("textbox", { name: /Built with/ }).isVisible(), "…and open with one tap");
+  ok(!(await page.getByText(/^Still need/).count()), "nothing missing once the basics are in");
   await page.getByRole("button", { name: "Post Drop" }).click();
-  ok(await page.getByText("Method V is running in demo mode").isVisible(), "posting explains demo mode");
+  ok(await page.locator("form p.rounded-lg", { hasText: "Method V is running in demo mode" }).isVisible(), "posting explains demo mode");
   await page.screenshot({ path: OUT + "submit-desktop.png", fullPage: true });
 });
 
@@ -414,6 +428,18 @@ await run("test & earn (phone)", phone, async (page) => {
 await run("credits", phone, async (page) => {
   await go(page, "/credits");
   ok(await page.getByText("How credits work").isVisible(), "credits page explains the rules");
+});
+
+await run("+ opens the camera/library", phone, async (page) => {
+  await go(page, "/");
+  const plus = page.getByRole("navigation", { name: "Main" }).getByLabel("Post a Drop");
+  ok((await plus.getAttribute("type")) === "file" && (await plus.getAttribute("accept")) === "video/*", "+ is a video picker on phones");
+  await plus.setInputFiles(CLIPS + "clip-20s.webm");
+  await page.waitForURL(/\/submit$/);
+  await page.getByText(/^0:20 ·/).waitFor({ timeout: 15000 });
+  ok(await page.getByRole("region", { name: "Your Drop" }).getByLabel("Your Drop").isVisible() || (await page.locator("video[aria-label='Your Drop']").count()) === 1, "the Post screen opens with that video ready");
+  ok(await page.getByText("Change video").isVisible(), "…with a way to change it");
+  await page.screenshot({ path: OUT + "submit-flow-phone.png", fullPage: true });
 });
 
 await run("submit (phone)", phone, async (page) => {

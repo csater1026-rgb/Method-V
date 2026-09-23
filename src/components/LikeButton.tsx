@@ -1,10 +1,11 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { setLike } from "@/app/actions";
 import { formatCount } from "@/lib/format";
+
+import { useSignIn } from "./SignIn";
 
 type Props = {
   dropId: string;
@@ -15,8 +16,7 @@ type Props = {
 };
 
 export function LikeButton({ dropId, initialLiked, initialCount, signedIn, layout = "rail" }: Props) {
-  const router = useRouter();
-  const pathname = usePathname();
+  const signIn = useSignIn();
   const [liked, setLiked] = useState(initialLiked);
   const [bump, setBump] = useState(0);
   const [count, setCount] = useState(initialCount);
@@ -25,7 +25,7 @@ export function LikeButton({ dropId, initialLiked, initialCount, signedIn, layou
 
   function toggle() {
     if (!signedIn) {
-      router.push(`/login?next=${encodeURIComponent(pathname)}`);
+      signIn("like this Drop");
       return;
     }
     const next = !liked;

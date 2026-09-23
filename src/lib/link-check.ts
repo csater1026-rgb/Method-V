@@ -101,7 +101,13 @@ export function parseAppUrl(input: string): URL | null {
   return url;
 }
 
-export async function checkLink(input: string): Promise<LinkCheckResult> {
+const MAX_HTML_BYTES = 256 * 1024;
+
+type FollowResult = { ok: true; finalUrl: string; html: string | null } | { ok: false; reason: string };
+
+// Follows the link (re-checking every redirect), and optionally reads the
+// start of an HTML page so we can pull its title and description.
+async function follow(input: string, readHtml: boolean): Promise<FollowResult> {
   const start = parseAppUrl(input);
   if (!start) return { ok: false, reason: "Enter a public http:// or https:// link." };
   let url: URL = start;
@@ -115,18 +121,27 @@ export async function checkLink(input: string): Promise<LinkCheckResult> {
         redirect: "manual",
         dispatcher: agent,
         signal: controller.signal,
-        headers: { "user-agent": "MethodV-LinkCheck/1.0 (+https://github.com/csater1026-rgb/Method-V)" },
+        headers: {
+          "user-agent": "MethodV-LinkCheck/1.0 (+https://github.com/csater1026-rgb/Method-V)",
+          accept: "text/html,application/xhtml+xml;q=0.9,*/*;q=0.5",
+        },
       });
-      await res.body?.cancel();
 
       if (res.status >= 300 && res.status < 400) {
+        await res.body?.cancel();
         const location = res.headers.get("location");
         const next: URL | null = location ? parseAppUrl(new URL(location, url).toString()) : null;
         if (!next) return { ok: false, reason: "The link redirects somewhere we can't check." };
         url = next;
         continue;
       }
-      if (res.status < 300 || UP_BUT_BLOCKING.has(res.status)) return { ok: true, finalUrl: url.toString() };
+      if (res.status < 300 || UP_BUT_BLOCKING.has(res.status)) {
+        const isHtml = (res.headers.get("content-type") ?? "").includes("html");
+        const html = readHtml && res.status < 300 && isHtml ? await readStart(res.body) : null;
+        if (html === null) await res.body?.cancel();
+        return { ok: true, finalUrl: url.toString(), html };
+      }
+      await res.body?.cancel();
       if (res.status === 404 || res.status === 410) return { ok: false, reason: "That page wasn't found (404)." };
       return { ok: false, reason: `The site answered with an error (${res.status}).` };
     }
@@ -140,4 +155,42 @@ export async function checkLink(input: string): Promise<LinkCheckResult> {
   } finally {
     clearTimeout(timer);
   }
+}
+
+// Reads at most MAX_HTML_BYTES of the page, then stops downloading.
+type ByteStream = {
+  getReader(): { read(): Promise<{ done: boolean; value?: Uint8Array }>; cancel(): Promise<void> };
+};
+
+async function readStart(body: ByteStream | null): Promise<string | null> {
+  if (!body) return null;
+  const reader = body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  while (size < MAX_HTML_BYTES) {
+    const { done, value } = await reader.read();
+    if (done || !value) break;
+    chunks.push(value);
+    size += value.byteLength;
+  }
+  await reader.cancel().catch(() => {});
+  const all = new Uint8Array(Math.min(size, MAX_HTML_BYTES));
+  let offset = 0;
+  for (const c of chunks) {
+    const part = c.subarray(0, Math.min(c.byteLength, all.byteLength - offset));
+    all.set(part, offset);
+    offset += part.byteLength;
+    if (offset >= all.byteLength) break;
+  }
+  return new TextDecoder("utf-8", { fatal: false }).decode(all);
+}
+
+export async function checkLink(input: string): Promise<LinkCheckResult> {
+  const result = await follow(input, false);
+  return result.ok ? { ok: true, finalUrl: result.finalUrl } : result;
+}
+
+// Checks the link and returns the page's HTML (the first 256 KB) when it's a web page.
+export async function fetchPage(input: string): Promise<FollowResult> {
+  return follow(input, true);
 }

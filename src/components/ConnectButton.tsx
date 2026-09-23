@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { removeConnection, requestConnection, respondConnection } from "@/app/actions";
 import { CONNECT_REASONS, labelFor } from "@/lib/constants";
 import type { ConnectionState } from "@/lib/types";
+
+import { useSignIn } from "./SignIn";
 
 // Connect with a reason: tap Connect, pick why, add a note if you like, send.
 // Once connected it becomes a Message button.
@@ -22,7 +24,7 @@ export function ConnectButton({
   signedIn: boolean;
 }) {
   const router = useRouter();
-  const pathname = usePathname();
+  const signIn = useSignIn();
   const [state, setState] = useState<ConnectionState>(initial);
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState<string>("");
@@ -103,7 +105,7 @@ export function ConnectButton({
         type="button"
         className="btn-ghost"
         aria-expanded={open}
-        onClick={() => (signedIn ? setOpen((o) => !o) : router.push(`/login?next=${encodeURIComponent(pathname)}`))}
+        onClick={() => (signedIn ? setOpen((o) => !o) : signIn("connect"))}
       >
         Connect
       </button>

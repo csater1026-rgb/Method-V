@@ -1,9 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+
+import { setPendingVideo } from "@/lib/pending-video";
 
 import { isActive } from "./NavLinks";
+import { useSignIn } from "./SignIn";
 
 const ICONS: Record<string, React.ReactNode> = {
   home: <path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1z" />,
@@ -13,8 +16,10 @@ const ICONS: Record<string, React.ReactNode> = {
 };
 
 // Bottom tab bar on phones, like TikTok. Its height is --tabbar in globals.css.
-export function MobileTabs({ profileHref }: { profileHref: string }) {
+export function MobileTabs({ profileHref, canPost }: { profileHref: string; canPost: boolean }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const signIn = useSignIn();
   const tabs = [
     { href: "/", label: "Home", icon: "home" },
     { href: "/drops", label: "Drops", icon: "drops" },
@@ -31,15 +36,42 @@ export function MobileTabs({ profileHref }: { profileHref: string }) {
       {tabs.map((tab) => {
         const active = isActive(pathname, tab.href);
         if (tab.icon === "post") {
+          const look =
+            "flex h-9 w-12 -skew-x-6 items-center justify-center rounded-md bg-accent text-2xl leading-none font-bold text-accent-ink shadow-[0_3px_0_0_var(--accent-edge)] active:translate-y-px";
+          // Like TikTok: + opens the camera / video library straight away, then
+          // the Post screen opens with that video. On the Post screen itself it
+          // does nothing special.
+          if (!canPost) {
+            return (
+              <button key={tab.label} type="button" aria-label="Post a Drop" className={look} onClick={() => signIn("post a Drop", "/submit")}>
+                +
+              </button>
+            );
+          }
+          if (pathname === "/submit") {
+            return (
+              <Link key={tab.label} href={tab.href} aria-label="Post a Drop" className={look}>
+                +
+              </Link>
+            );
+          }
           return (
-            <Link
-              key={tab.label}
-              href={tab.href}
-              aria-label="Post a Drop"
-              className="flex h-9 w-12 -skew-x-6 items-center justify-center rounded-md bg-accent text-2xl leading-none font-bold text-accent-ink shadow-[0_3px_0_0_var(--accent-edge)] active:translate-y-px"
-            >
-              +
-            </Link>
+            <label key={tab.label} className={`${look} cursor-pointer`}>
+              <span aria-hidden>+</span>
+              <input
+                type="file"
+                accept="video/*"
+                aria-label="Post a Drop"
+                className="sr-only"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = "";
+                  if (!file) return;
+                  setPendingVideo(file);
+                  router.push("/submit");
+                }}
+              />
+            </label>
           );
         }
         return (

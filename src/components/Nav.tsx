@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { signOut } from "@/app/actions";
 import { getInboxCounts, getViewer } from "@/lib/data";
+import { isSupabaseConfigured } from "@/lib/supabase/env";
 
 import { Avatar } from "./Avatar";
 import { CreditsChip } from "./CreditsChip";
@@ -52,7 +53,7 @@ export async function Nav() {
           </div>
         </div>
       </header>
-      <MobileTabs profileHref={viewer ? `/u/${viewer.username}` : "/login"} />
+      <MobileTabs profileHref={viewer ? `/u/${viewer.username}` : "/login"} canPost={Boolean(viewer) || !isSupabaseConfigured} />
     </>
   );
 }

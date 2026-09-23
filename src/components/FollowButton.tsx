@@ -1,9 +1,11 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { setFollow } from "@/app/actions";
+
+import { useSignIn } from "./SignIn";
 
 export function FollowButton({
   profileId,
@@ -15,14 +17,14 @@ export function FollowButton({
   signedIn: boolean;
 }) {
   const router = useRouter();
-  const pathname = usePathname();
+  const signIn = useSignIn();
   const [following, setFollowing] = useState(initialFollowing);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   function toggle() {
     if (!signedIn) {
-      router.push(`/login?next=${encodeURIComponent(pathname)}`);
+      signIn("follow builders");
       return;
     }
     const next = !following;

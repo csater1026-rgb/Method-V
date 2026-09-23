@@ -1,38 +1,63 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import { checkAppLink, createApp } from "@/app/actions";
-import { CATEGORIES, DROP_VIDEO_TYPES, MAX_DROP_BYTES, MAX_DROP_SECONDS, PRICING, STAGES } from "@/lib/constants";
+import { createApp, previewLink } from "@/app/actions";
+import { LoadingCoder } from "@/components/LoadingCoder";
+import {
+  CATEGORIES,
+  DROP_VIDEO_TYPES,
+  MAX_DROP_BYTES,
+  MAX_DROP_SECONDS,
+  PRICING,
+  STAGES,
+  type Category,
+} from "@/lib/constants";
 import { formatDuration } from "@/lib/format";
+import { clearPendingVideo, peekPendingVideo } from "@/lib/pending-video";
 import { DEMO_MODE_MESSAGE, DROPS_BUCKET } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/client";
-import { LoadingCoder } from "@/components/LoadingCoder";
 
 // Recorders often land a hair over a round number, so allow half a second.
 const DURATION_GRACE = 0.5;
 
 type Video = { file: File; url: string; duration: number; poster: Blob | null };
-type LinkState = { state: "unchecked" | "checking" | "ok" | "bad"; message?: string };
+type LinkState = { state: "empty" | "reading" | "ok" | "bad"; message?: string };
 type Step = "idle" | "uploading" | "saving";
 
+// Posting in two steps: 1) your video, 2) your link. Name, tagline and
+// category fill themselves in from your site; everything else is optional.
 export function SubmitForm({ userId }: { userId: string | null }) {
   const [video, setVideo] = useState<Video | null>(null);
   const [videoError, setVideoError] = useState<string | null>(null);
-  const [link, setLink] = useState<LinkState>({ state: "unchecked" });
+
+  const [url, setUrl] = useState("");
+  const [link, setLink] = useState<LinkState>({ state: "empty" });
+  const [name, setName] = useState("");
+  const [tagline, setTagline] = useState("");
+  const [description, setDescription] = useState("");
+  const [category, setCategory] = useState<Category | "">("");
+  const [pricing, setPricing] = useState("free");
+  const [stage, setStage] = useState("launched");
+  const [techStack, setTechStack] = useState("");
+  const [caption, setCaption] = useState("");
+  // Once someone types in a field, auto-fill leaves it alone.
+  const touched = useRef({ name: false, tagline: false, description: false, category: false });
+  const lastPreviewed = useRef("");
+
   const [step, setStep] = useState<Step>("idle");
   const [error, setError] = useState<string | null>(null);
-  const urlRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => () => {
-    if (video) URL.revokeObjectURL(video.url);
-  }, [video]);
+  useEffect(
+    () => () => {
+      if (video) URL.revokeObjectURL(video.url);
+    },
+    [video],
+  );
 
-  async function onPickVideo(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+  const pickFile = useCallback(async (file: File) => {
     setVideo(null);
     setVideoError(null);
-    if (!file) return;
     if (!DROP_VIDEO_TYPES.includes(file.type)) {
       setVideoError("Use an MP4, WebM or MOV video.");
       return;
@@ -41,32 +66,63 @@ export function SubmitForm({ userId }: { userId: string | null }) {
       setVideoError("Videos can be up to 100 MB. Try exporting at 1080p or lower.");
       return;
     }
-    const url = URL.createObjectURL(file);
+    const objectUrl = URL.createObjectURL(file);
     try {
-      const { duration, poster } = await inspectVideo(url);
+      const { duration, poster } = await inspectVideo(objectUrl);
       if (duration > MAX_DROP_SECONDS + DURATION_GRACE) {
-        URL.revokeObjectURL(url);
-        setVideoError(`That video is ${Math.round(duration)} seconds. Drops can be up to ${MAX_DROP_SECONDS} seconds — trim it and try again.`);
+        URL.revokeObjectURL(objectUrl);
+        setVideoError(
+          `That video is ${Math.round(duration)} seconds. Drops can be up to ${MAX_DROP_SECONDS} seconds — trim it and try again.`,
+        );
         return;
       }
-      setVideo({ file, url, duration: Math.min(duration, MAX_DROP_SECONDS), poster });
+      setVideo({ file, url: objectUrl, duration: Math.min(duration, MAX_DROP_SECONDS), poster });
     } catch {
-      URL.revokeObjectURL(url);
+      URL.revokeObjectURL(objectUrl);
       setVideoError("We couldn't read that video. Try exporting it again as MP4.");
     }
-  }
+  }, []);
 
-  async function onCheckLink() {
-    const value = urlRef.current?.value ?? "";
-    if (!value) return;
+  // A video picked from the + button on the previous screen.
+  useEffect(() => {
+    const file = peekPendingVideo();
+    if (!file) return;
+    const t = setTimeout(() => {
+      clearPendingVideo();
+      void pickFile(file);
+    }, 0);
+    return () => clearTimeout(t);
+  }, [pickFile]);
+
+  async function readSite(value: string) {
+    const trimmed = value.trim();
+    if (!/^https?:\/\/[^\s/]+\.[^\s]+/i.test(trimmed) || trimmed === lastPreviewed.current) return;
+    lastPreviewed.current = trimmed;
     if (!userId) {
       setLink({ state: "bad", message: DEMO_MODE_MESSAGE });
       return;
     }
-    setLink({ state: "checking" });
-    const result = await checkAppLink(value);
-    setLink(result.ok ? { state: "ok", message: "Link works." } : { state: "bad", message: result.error });
+    setLink({ state: "reading" });
+    const result = await previewLink(trimmed);
+    if (!result.ok) {
+      setLink({ state: "bad", message: result.error });
+      return;
+    }
+    const p = result.preview;
+    if (!touched.current.name && p.name) setName(p.name);
+    if (!touched.current.tagline && p.tagline) setTagline(p.tagline);
+    if (!touched.current.description && p.description) setDescription(p.description);
+    if (!touched.current.category && p.category) setCategory(p.category);
+    setLink({ state: "ok", message: p.name ? "Link works. We filled in the details from your site." : "Link works." });
   }
+
+  const missing = [
+    !video && "your video",
+    !url.trim() && "your link",
+    !name.trim() && "a name",
+    !tagline.trim() && "a tagline",
+    !category && "a category",
+  ].filter(Boolean) as string[];
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -75,12 +131,10 @@ export function SubmitForm({ userId }: { userId: string | null }) {
       setError(DEMO_MODE_MESSAGE);
       return;
     }
-    if (!video) {
-      setError("Add your Drop video (up to 60 seconds).");
+    if (missing.length > 0 || !video) {
+      setError(`Add ${missing.join(", ")}.`);
       return;
     }
-    const form = new FormData(e.currentTarget);
-    const get = (k: string) => String(form.get(k) ?? "");
 
     const supabase = createClient();
     const bucket = supabase.storage.from(DROPS_BUCKET);
@@ -106,15 +160,15 @@ export function SubmitForm({ userId }: { userId: string | null }) {
     setStep("saving");
     // On success this redirects to the new app page.
     const result = await createApp({
-      name: get("name"),
-      tagline: get("tagline"),
-      description: get("description"),
-      url: get("url"),
-      category: get("category"),
-      techStack: get("tech_stack"),
-      pricing: get("pricing"),
-      stage: get("stage"),
-      caption: get("caption"),
+      name,
+      tagline,
+      description,
+      url,
+      category,
+      techStack,
+      pricing,
+      stage,
+      caption,
       videoPath,
       posterPath: uploaded.includes(posterPath ?? "") ? posterPath : null,
       durationSeconds: video.duration,
@@ -135,113 +189,270 @@ export function SubmitForm({ userId }: { userId: string | null }) {
           <LoadingCoder message={step === "uploading" ? "Uploading your Drop…" : "Checking your link and posting…"} />
         </div>
       )}
-      <form onSubmit={onSubmit} className="mt-6 grid gap-6 md:grid-cols-[240px_1fr]">
-        <div className="flex flex-col gap-2">
-          <span className="text-sm font-medium">Your Drop</span>
-          <label className="relative flex aspect-[9/16] cursor-pointer flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border border-dashed border-line bg-surface text-center text-sm text-muted hover:border-accent">
-            {video ? (
-              <video src={video.url} className="absolute inset-0 h-full w-full object-cover" muted playsInline autoPlay loop />
-            ) : (
-              <>
-                <span className="text-3xl">▶</span>
-                <span className="px-4">Choose a video up to 60 seconds</span>
-                <span className="text-xs">MP4, WebM or MOV · 100 MB max</span>
-              </>
-            )}
-            <input
-              type="file"
-              accept={DROP_VIDEO_TYPES.join(",")}
-              onChange={onPickVideo}
-              disabled={busy}
-              className="sr-only"
-              aria-label="Drop video"
-            />
-          </label>
-          {video && (
-            <p className="text-xs text-muted">
-              {formatDuration(video.duration)} · {(video.file.size / 1024 / 1024).toFixed(1)} MB · tap to replace
-            </p>
-          )}
-          {videoError && <p className="text-sm text-danger">{videoError}</p>}
-        </div>
 
-        <div className="flex flex-col gap-4">
-          <Field label="App name">
-            <input name="name" required maxLength={60} className="field" placeholder="NoteFlow" />
-          </Field>
-          <Field label="Tagline" hint="One line: what it does">
-            <input name="tagline" required maxLength={120} className="field" placeholder="Meeting notes that turn into to-dos" />
-          </Field>
-          <Field label="Link to your live app" hint="We check it loads before it goes live">
-            <div className="flex gap-2">
-              <input
-                ref={urlRef}
-                name="url"
-                type="url"
-                required
-                maxLength={500}
-                placeholder="https://"
-                className="field"
-                onChange={() => setLink({ state: "unchecked" })}
+      <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-8">
+        {/* Step 1 */}
+        <section aria-labelledby="step-video">
+          <StepTitle n={1} id="step-video">
+            Your Drop
+          </StepTitle>
+          {video ? (
+            <div className="mt-3 flex items-end gap-4">
+              <video
+                src={video.url}
+                className="aspect-[9/16] w-28 rounded-lg border border-line bg-black object-cover"
+                muted
+                playsInline
+                autoPlay
+                loop
+                aria-label="Your Drop"
               />
-              <button type="button" onClick={onCheckLink} className="btn-ghost shrink-0" disabled={link.state === "checking"}>
-                {link.state === "checking" ? "Checking…" : "Check link"}
-              </button>
+              <div className="flex flex-col gap-2 text-sm">
+                <span className="font-mono text-xs text-muted">
+                  {formatDuration(video.duration)} · {(video.file.size / 1024 / 1024).toFixed(1)} MB
+                </span>
+                <VideoPicker label="Change video" onFile={pickFile} disabled={busy} small />
+              </div>
             </div>
+          ) : (
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <VideoPicker label="Record" capture onFile={pickFile} disabled={busy} />
+              <VideoPicker label="Choose a video" onFile={pickFile} disabled={busy} />
+            </div>
+          )}
+          <p className="mt-2 text-xs text-muted">Up to 60 seconds · MP4, WebM or MOV · 100 MB max</p>
+          {videoError && <p className="mt-2 text-sm text-danger">{videoError}</p>}
+        </section>
+
+        {/* Step 2 */}
+        <section aria-labelledby="step-link" className="flex flex-col gap-4">
+          <StepTitle n={2} id="step-link">
+            Your app
+          </StepTitle>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium">Link to your live app</span>
+            <input
+              name="url"
+              type="url"
+              inputMode="url"
+              autoComplete="url"
+              required
+              maxLength={500}
+              placeholder="https://"
+              value={url}
+              onChange={(e) => {
+                setUrl(e.target.value);
+                setLink({ state: "empty" });
+              }}
+              onBlur={(e) => void readSite(e.target.value)}
+              onPaste={(e) => {
+                const pasted = e.clipboardData.getData("text");
+                setTimeout(() => void readSite(pasted), 0);
+              }}
+              className="field text-base"
+            />
+            {link.state === "reading" && <span className="text-xs text-muted">Reading your site…</span>}
             {link.message && (
               <span className={`text-xs ${link.state === "ok" ? "text-accent" : "text-danger"}`}>{link.message}</span>
             )}
-          </Field>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Field label="Category">
-              <select name="category" required defaultValue="" className="field">
-                <option value="" disabled>
-                  Pick one
-                </option>
-                {CATEGORIES.map((c) => (
-                  <option key={c.slug} value={c.slug}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
+          </label>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Name">
+              <input
+                name="name"
+                required
+                maxLength={60}
+                value={name}
+                onChange={(e) => {
+                  touched.current.name = true;
+                  setName(e.target.value);
+                }}
+                className="field"
+                placeholder="NoteFlow"
+              />
             </Field>
-            <Field label="Pricing">
-              <select name="pricing" defaultValue="free" className="field">
-                {PRICING.map((p) => (
-                  <option key={p.slug} value={p.slug}>
-                    {p.label}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Stage">
-              <select name="stage" defaultValue="launched" className="field">
-                {STAGES.map((s) => (
-                  <option key={s.slug} value={s.slug}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
+            <Field label="Tagline" hint="One line: what it does">
+              <input
+                name="tagline"
+                required
+                maxLength={120}
+                value={tagline}
+                onChange={(e) => {
+                  touched.current.tagline = true;
+                  setTagline(e.target.value);
+                }}
+                className="field"
+                placeholder="Meeting notes that turn into to-dos"
+              />
             </Field>
           </div>
-          <Field label="Built with" hint="Comma separated">
-            <input name="tech_stack" className="field" placeholder="Next.js, Supabase, Lovable" />
-          </Field>
-          <Field label="Caption" hint="Shown on the Drop">
-            <input name="caption" maxLength={300} className="field" placeholder="Recorded a real standup and let it do the rest 👀" />
-          </Field>
-          <Field label="Description" hint="Optional">
-            <textarea name="description" maxLength={2000} rows={4} className="field" />
-          </Field>
 
-          {error && <p className="rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm">{error}</p>}
+          <fieldset>
+            <legend className="text-sm font-medium">Category</legend>
+            <div className="mt-2 flex flex-wrap gap-1.5" role="radiogroup" aria-label="Category">
+              {CATEGORIES.map((c) => (
+                <Choice
+                  key={c.slug}
+                  selected={category === c.slug}
+                  onClick={() => {
+                    touched.current.category = true;
+                    setCategory(c.slug);
+                  }}
+                >
+                  {c.label}
+                </Choice>
+              ))}
+            </div>
+          </fieldset>
 
-          <button className="btn-accent self-start px-6 py-3 text-base" disabled={busy}>
-            {step === "uploading" ? "Uploading video…" : step === "saving" ? "Checking link and posting…" : "Post Drop"}
+          <details className="group rounded-xl border border-line bg-surface">
+            <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-semibold">
+              More details <span className="font-normal text-muted">Optional</span>
+            </summary>
+            <div className="flex flex-col gap-4 border-t border-line p-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <fieldset>
+                  <legend className="text-sm font-medium">Pricing</legend>
+                  <div className="mt-2 flex flex-wrap gap-1.5" role="radiogroup" aria-label="Pricing">
+                    {PRICING.map((o) => (
+                      <Choice key={o.slug} selected={pricing === o.slug} onClick={() => setPricing(o.slug)}>
+                        {o.label}
+                      </Choice>
+                    ))}
+                  </div>
+                </fieldset>
+                <fieldset>
+                  <legend className="text-sm font-medium">Stage</legend>
+                  <div className="mt-2 flex flex-wrap gap-1.5" role="radiogroup" aria-label="Stage">
+                    {STAGES.map((o) => (
+                      <Choice key={o.slug} selected={stage === o.slug} onClick={() => setStage(o.slug)}>
+                        {o.label}
+                      </Choice>
+                    ))}
+                  </div>
+                </fieldset>
+              </div>
+              <Field label="Built with" hint="Comma separated">
+                <input
+                  name="tech_stack"
+                  value={techStack}
+                  onChange={(e) => setTechStack(e.target.value)}
+                  className="field"
+                  placeholder="Next.js, Supabase, Lovable"
+                />
+              </Field>
+              <Field label="Caption" hint="Shown on the Drop">
+                <input
+                  name="caption"
+                  maxLength={300}
+                  value={caption}
+                  onChange={(e) => setCaption(e.target.value)}
+                  className="field"
+                  placeholder="Recorded a real standup and let it do the rest 👀"
+                />
+              </Field>
+              <Field label="Description">
+                <textarea
+                  name="description"
+                  maxLength={2000}
+                  rows={4}
+                  value={description}
+                  onChange={(e) => {
+                    touched.current.description = true;
+                    setDescription(e.target.value);
+                  }}
+                  className="field"
+                />
+              </Field>
+            </div>
+          </details>
+        </section>
+
+        {error && <p className="rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm">{error}</p>}
+
+        <div className="sticky bottom-[calc(var(--tabbar)+0.75rem)] z-10 flex flex-col gap-1.5 rounded-xl border border-line bg-bg/90 p-3 backdrop-blur sm:static sm:border-0 sm:bg-transparent sm:p-0">
+          <button className="btn-accent w-full py-3 text-base sm:w-auto sm:self-start sm:px-8" disabled={busy}>
+            Post Drop
           </button>
+          {missing.length > 0 && <p className="text-xs text-muted">Still need: {missing.join(", ")}.</p>}
         </div>
       </form>
     </>
+  );
+}
+
+function StepTitle({ n, id, children }: { n: number; id: string; children: React.ReactNode }) {
+  return (
+    <h2 id={id} className="display flex items-baseline gap-2 text-3xl">
+      <span className="font-mono text-xs text-accent">0{n} /</span>
+      {children}
+    </h2>
+  );
+}
+
+function VideoPicker({
+  label,
+  capture = false,
+  small = false,
+  disabled,
+  onFile,
+}: {
+  label: string;
+  capture?: boolean;
+  small?: boolean;
+  disabled: boolean;
+  onFile: (file: File) => void;
+}) {
+  return (
+    <label
+      className={
+        small
+          ? "btn-ghost cursor-pointer px-3 py-1.5"
+          : `flex cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-line bg-surface px-4 py-6 text-center hover:border-accent ${
+              capture ? "pointer-fine:hidden" : ""
+            }`
+      }
+    >
+      {!small && (
+        <span className="text-2xl" aria-hidden>
+          {capture ? "●" : "▶"}
+        </span>
+      )}
+      <span className={small ? "" : "font-semibold"}>{label}</span>
+      {!small && (
+        <span className="text-xs text-muted">{capture ? "Use your camera" : "From your phone or computer"}</span>
+      )}
+      <input
+        type="file"
+        accept={capture ? "video/*" : DROP_VIDEO_TYPES.join(",")}
+        capture={capture ? "environment" : undefined}
+        disabled={disabled}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          if (file) onFile(file);
+        }}
+        className="sr-only"
+        aria-label={capture ? "Record a video" : "Drop video"}
+      />
+    </label>
+  );
+}
+
+function Choice({ selected, onClick, children }: { selected: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      onClick={onClick}
+      className={`rounded-md border px-3 py-2 text-sm ${
+        selected ? "border-accent bg-accent font-semibold text-accent-ink" : "border-line bg-surface hover:border-muted"
+      }`}
+    >
+      {children}
+    </button>
   );
 }
 

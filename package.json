@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test:db": "node tests/db.test.mjs",
-    "test:ui": "node tests/ui.test.mjs"
+    "test:ui": "node tests/ui.test.mjs",
+    "test:unit": "node --conditions=react-server --experimental-strip-types --no-warnings tests/unit.test.mts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

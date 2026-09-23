@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 
 import { Footer } from "@/components/Footer";
 import { Nav } from "@/components/Nav";
+import { SignInProvider } from "@/components/SignIn";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
 import "./globals.css";
@@ -46,14 +47,16 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         className="flex min-h-full flex-col font-sans"
         style={{ "--chrome": isSupabaseConfigured ? "calc(3.5rem + 1px)" : "calc(5.25rem + 1px)" } as React.CSSProperties}
       >
-        <Nav />
-        {!isSupabaseConfigured && (
-          <p className="h-7 truncate border-b border-line bg-surface/80 px-4 text-center font-mono text-[10.5px] leading-7 tracking-wide text-muted uppercase">
-            Demo mode · sample apps · connect Supabase to post
-          </p>
-        )}
-        <main className="flex flex-1 flex-col">{children}</main>
-        <Footer />
+        <SignInProvider>
+          <Nav />
+          {!isSupabaseConfigured && (
+            <p className="h-7 truncate border-b border-line bg-surface/80 px-4 text-center font-mono text-[10.5px] leading-7 tracking-wide text-muted uppercase">
+              Demo mode · sample apps · connect Supabase to post
+            </p>
+          )}
+          <main className="flex flex-1 flex-col">{children}</main>
+          <Footer />
+        </SignInProvider>
       </body>
     </html>
   );

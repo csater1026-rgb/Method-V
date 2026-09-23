@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { answerQuestion, askQuestion, deletePost, markBestAnswer, setVote } from "@/app/actions";
@@ -9,6 +8,7 @@ import { timeAgo } from "@/lib/format";
 import type { Answer, Question } from "@/lib/types";
 
 import { Avatar } from "./Avatar";
+import { useSignIn } from "./SignIn";
 
 type Props = {
   app: { id: string; slug: string; name: string; owner_id: string };
@@ -83,8 +83,7 @@ function AskForm({ app }: { app: Props["app"] }) {
 type VoteProps = { kind: "question" | "answer"; id: string; count: number; voted: boolean; own: boolean; signedIn: boolean };
 
 function VoteButton({ kind, id, count, voted, own, signedIn }: VoteProps) {
-  const router = useRouter();
-  const pathname = usePathname();
+  const signIn = useSignIn();
   const [state, setState] = useState({ voted, count });
   const [pending, startTransition] = useTransition();
 
@@ -97,7 +96,7 @@ function VoteButton({ kind, id, count, voted, own, signedIn }: VoteProps) {
       title={own ? "You can't vote on your own post" : undefined}
       onClick={() => {
         if (!signedIn) {
-          router.push(`/login?next=${encodeURIComponent(pathname)}`);
+          signIn("vote");
           return;
         }
         const next = !state.voted;

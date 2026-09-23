@@ -38,6 +38,12 @@ Builder tools (launch day, boosts, share kit) live in the *Grow* panel on your o
 - **Builders like you:** suggestions on Home from shared categories (what you build, like and test) and skills.
 - **Notifications:** one inbox icon in the top bar with an unread count; `/inbox` has Activity (follows, likes, comments, feedback, helpful marks, connections, questions, answers, best answers, swaps), Messages and Requests.
 
+**Easy posting:**
+
+- **Two steps:** pick your video, paste your link. Method V reads your site to fill in the name, tagline and description and guesses the category; everything else (pricing, stage, built with, caption) is under *More details*. It tells you what's still missing.
+- **The + button** on phones opens the camera or video library straight away, then the Post screen opens with that video ready (like TikTok).
+- **Sign in only when needed:** browse and watch without an account. Liking, following, connecting, voting or posting while signed out opens a sign-in sheet over the page and brings you back to the same spot. Optional *Continue with GitHub / Google* buttons (see step 4b under "Connect Supabase").
+
 Next: Phase 4 ("Earn"): paid app-to-app sponsorships, stack sponsors, backers and Pro profiles. See the plan.
 
 ## Run it locally
@@ -57,6 +63,7 @@ Open http://localhost:3000. With no Supabase keys the site runs in **demo mode**
 2. In the project's **SQL Editor**, run each file in `supabase/migrations/` in order (oldest first). They create the tables, the security rules, the counters, the credits system and the `drops` storage bucket for videos. (If you use the Supabase CLI, `supabase db push` does the same.)
 3. Copy `.env.example` to `.env.local` and fill in the URL and keys from **Project Settings → API**.
 4. In **Authentication → URL Configuration**, set the Site URL to your site (for local work, `http://localhost:3000`) and add `http://localhost:3000/auth/callback` (and your live `https://…/auth/callback`) to the redirect URLs.
+4b. Optional, for one-tap sign-in: turn on GitHub and/or Google under **Authentication → Providers**, then set `NEXT_PUBLIC_AUTH_PROVIDERS=github,google` (or just one).
 5. Restart `npm run dev`. Sign in with your email, set your username under **Edit profile**, and post your first Drop.
 
 To deploy, import the repo into [Vercel](https://vercel.com) and add the same environment variables there.
@@ -95,6 +102,7 @@ A few rules the code relies on:
 ```bash
 npm run lint
 npx tsc --noEmit
+npm run test:unit   # site preview parsing, category guesses, link safety
 npm run test:db     # security rules against an in-memory Postgres
 npm run build && npm start   # then, in another terminal:
 npm run test:ui     # clicks through the site in Chromium (demo mode)
