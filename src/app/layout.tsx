@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Big_Shoulders, Martian_Mono, Schibsted_Grotesk } from "next/font/google";
 import { cookies } from "next/headers";
 
+import { Footer } from "@/components/Footer";
 import { Nav } from "@/components/Nav";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
@@ -52,6 +53,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           </p>
         )}
         <main className="flex flex-1 flex-col">{children}</main>
+        <Footer />
       </body>
     </html>
   );

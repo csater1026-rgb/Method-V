@@ -275,6 +275,29 @@ await run("swaps", desktop, async (page) => {
   ok(await page.getByText("Swaps are off in demo mode.").isVisible(), "swaps page explains demo mode");
 });
 
+await run("pixel coder", phone, async (page) => {
+  await page.goto(BASE + "/");
+  const footer = page.locator("footer");
+  ok(await footer.getByRole("img", { name: "A pixel builder coding at their desk" }).isVisible(), "footer masthead shows the pixel coder");
+  const running = await footer.locator(".pc-dust").first().evaluate((el) => getComputedStyle(el).animationName);
+  ok(running === "pc-float", "pixels drift away (animation running)");
+  ok((await page.locator("header svg.pc-animated").count()) === 1, "pixel coder next to the logo");
+  await footer.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(2600);
+  await footer.screenshot({ path: OUT + "footer-coder.png" });
+  await page.goto(BASE + "/drops");
+  ok((await page.locator("footer").count()) === 0, "no footer under the full-screen Drops feed");
+});
+
+{
+  const ctx = await browser.newContext({ viewport: phone, reducedMotion: "reduce" });
+  const page = await ctx.newPage();
+  await page.goto(BASE + "/");
+  const count = await page.locator("footer .pc-dust").first().evaluate((el) => getComputedStyle(el).animationIterationCount);
+  ok(count === "1", "reduced motion: the pixel coder doesn't loop");
+  await ctx.close();
+}
+
 await run("tester passport", desktop, async (page) => {
   await page.goto(BASE + "/u/marco_ships");
   const passport = page.getByRole("region", { name: "Tester Passport" });

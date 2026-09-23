@@ -187,12 +187,64 @@ body::before {
   animation-delay: calc(var(--i, 0) * 55ms);
 }
 
+/* PixelCoder: typing code, blinking cursor, tapping hands, drifting pixels. */
+.pc-animated .pc-code {
+  transform-box: fill-box;
+  transform-origin: left;
+  animation: pc-type 4.8s steps(8, end) infinite;
+}
+.pc-animated .pc-cursor {
+  animation: pc-blink 1s steps(1) infinite;
+}
+.pc-animated .pc-hands {
+  animation: pc-tap 0.35s steps(1) infinite;
+}
+.pc-dust {
+  opacity: 0;
+}
+.pc-animated .pc-dust {
+  animation: pc-float 5s ease-out infinite;
+}
+@keyframes pc-type {
+  0% {
+    transform: scaleX(0);
+  }
+  45%,
+  100% {
+    transform: scaleX(1);
+  }
+}
+@keyframes pc-blink {
+  50% {
+    opacity: 0;
+  }
+}
+@keyframes pc-tap {
+  50% {
+    transform: translateY(0.35px);
+  }
+}
+@keyframes pc-float {
+  0% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate(var(--dx, 0px), -9px);
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 1ms !important;
     animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 1ms !important;
   }
 }

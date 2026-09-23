@@ -7,6 +7,7 @@ import { CATEGORIES, DROP_VIDEO_TYPES, MAX_DROP_BYTES, MAX_DROP_SECONDS, PRICING
 import { formatDuration } from "@/lib/format";
 import { DEMO_MODE_MESSAGE, DROPS_BUCKET } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/client";
+import { LoadingCoder } from "@/components/LoadingCoder";
 
 // Recorders often land a hair over a round number, so allow half a second.
 const DURATION_GRACE = 0.5;
@@ -128,112 +129,119 @@ export function SubmitForm({ userId }: { userId: string | null }) {
   const busy = step !== "idle";
 
   return (
-    <form onSubmit={onSubmit} className="mt-6 grid gap-6 md:grid-cols-[240px_1fr]">
-      <div className="flex flex-col gap-2">
-        <span className="text-sm font-medium">Your Drop</span>
-        <label className="relative flex aspect-[9/16] cursor-pointer flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border border-dashed border-line bg-surface text-center text-sm text-muted hover:border-accent">
-          {video ? (
-            <video src={video.url} className="absolute inset-0 h-full w-full object-cover" muted playsInline autoPlay loop />
-          ) : (
-            <>
-              <span className="text-3xl">▶</span>
-              <span className="px-4">Choose a video up to 60 seconds</span>
-              <span className="text-xs">MP4, WebM or MOV · 100 MB max</span>
-            </>
-          )}
-          <input
-            type="file"
-            accept={DROP_VIDEO_TYPES.join(",")}
-            onChange={onPickVideo}
-            disabled={busy}
-            className="sr-only"
-            aria-label="Drop video"
-          />
-        </label>
-        {video && (
-          <p className="text-xs text-muted">
-            {formatDuration(video.duration)} · {(video.file.size / 1024 / 1024).toFixed(1)} MB · tap to replace
-          </p>
-        )}
-        {videoError && <p className="text-sm text-danger">{videoError}</p>}
-      </div>
-
-      <div className="flex flex-col gap-4">
-        <Field label="App name">
-          <input name="name" required maxLength={60} className="field" placeholder="NoteFlow" />
-        </Field>
-        <Field label="Tagline" hint="One line: what it does">
-          <input name="tagline" required maxLength={120} className="field" placeholder="Meeting notes that turn into to-dos" />
-        </Field>
-        <Field label="Link to your live app" hint="We check it loads before it goes live">
-          <div className="flex gap-2">
-            <input
-              ref={urlRef}
-              name="url"
-              type="url"
-              required
-              maxLength={500}
-              placeholder="https://"
-              className="field"
-              onChange={() => setLink({ state: "unchecked" })}
-            />
-            <button type="button" onClick={onCheckLink} className="btn-ghost shrink-0" disabled={link.state === "checking"}>
-              {link.state === "checking" ? "Checking…" : "Check link"}
-            </button>
-          </div>
-          {link.message && (
-            <span className={`text-xs ${link.state === "ok" ? "text-accent" : "text-danger"}`}>{link.message}</span>
-          )}
-        </Field>
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Field label="Category">
-            <select name="category" required defaultValue="" className="field">
-              <option value="" disabled>
-                Pick one
-              </option>
-              {CATEGORIES.map((c) => (
-                <option key={c.slug} value={c.slug}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Pricing">
-            <select name="pricing" defaultValue="free" className="field">
-              {PRICING.map((p) => (
-                <option key={p.slug} value={p.slug}>
-                  {p.label}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Stage">
-            <select name="stage" defaultValue="launched" className="field">
-              {STAGES.map((s) => (
-                <option key={s.slug} value={s.slug}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-          </Field>
+    <>
+      {busy && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg/85 backdrop-blur-sm">
+          <LoadingCoder message={step === "uploading" ? "Uploading your Drop…" : "Checking your link and posting…"} />
         </div>
-        <Field label="Built with" hint="Comma separated">
-          <input name="tech_stack" className="field" placeholder="Next.js, Supabase, Lovable" />
-        </Field>
-        <Field label="Caption" hint="Shown on the Drop">
-          <input name="caption" maxLength={300} className="field" placeholder="Recorded a real standup and let it do the rest 👀" />
-        </Field>
-        <Field label="Description" hint="Optional">
-          <textarea name="description" maxLength={2000} rows={4} className="field" />
-        </Field>
+      )}
+      <form onSubmit={onSubmit} className="mt-6 grid gap-6 md:grid-cols-[240px_1fr]">
+        <div className="flex flex-col gap-2">
+          <span className="text-sm font-medium">Your Drop</span>
+          <label className="relative flex aspect-[9/16] cursor-pointer flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border border-dashed border-line bg-surface text-center text-sm text-muted hover:border-accent">
+            {video ? (
+              <video src={video.url} className="absolute inset-0 h-full w-full object-cover" muted playsInline autoPlay loop />
+            ) : (
+              <>
+                <span className="text-3xl">▶</span>
+                <span className="px-4">Choose a video up to 60 seconds</span>
+                <span className="text-xs">MP4, WebM or MOV · 100 MB max</span>
+              </>
+            )}
+            <input
+              type="file"
+              accept={DROP_VIDEO_TYPES.join(",")}
+              onChange={onPickVideo}
+              disabled={busy}
+              className="sr-only"
+              aria-label="Drop video"
+            />
+          </label>
+          {video && (
+            <p className="text-xs text-muted">
+              {formatDuration(video.duration)} · {(video.file.size / 1024 / 1024).toFixed(1)} MB · tap to replace
+            </p>
+          )}
+          {videoError && <p className="text-sm text-danger">{videoError}</p>}
+        </div>
 
-        {error && <p className="rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm">{error}</p>}
+        <div className="flex flex-col gap-4">
+          <Field label="App name">
+            <input name="name" required maxLength={60} className="field" placeholder="NoteFlow" />
+          </Field>
+          <Field label="Tagline" hint="One line: what it does">
+            <input name="tagline" required maxLength={120} className="field" placeholder="Meeting notes that turn into to-dos" />
+          </Field>
+          <Field label="Link to your live app" hint="We check it loads before it goes live">
+            <div className="flex gap-2">
+              <input
+                ref={urlRef}
+                name="url"
+                type="url"
+                required
+                maxLength={500}
+                placeholder="https://"
+                className="field"
+                onChange={() => setLink({ state: "unchecked" })}
+              />
+              <button type="button" onClick={onCheckLink} className="btn-ghost shrink-0" disabled={link.state === "checking"}>
+                {link.state === "checking" ? "Checking…" : "Check link"}
+              </button>
+            </div>
+            {link.message && (
+              <span className={`text-xs ${link.state === "ok" ? "text-accent" : "text-danger"}`}>{link.message}</span>
+            )}
+          </Field>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Field label="Category">
+              <select name="category" required defaultValue="" className="field">
+                <option value="" disabled>
+                  Pick one
+                </option>
+                {CATEGORIES.map((c) => (
+                  <option key={c.slug} value={c.slug}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Pricing">
+              <select name="pricing" defaultValue="free" className="field">
+                {PRICING.map((p) => (
+                  <option key={p.slug} value={p.slug}>
+                    {p.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Stage">
+              <select name="stage" defaultValue="launched" className="field">
+                {STAGES.map((s) => (
+                  <option key={s.slug} value={s.slug}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </div>
+          <Field label="Built with" hint="Comma separated">
+            <input name="tech_stack" className="field" placeholder="Next.js, Supabase, Lovable" />
+          </Field>
+          <Field label="Caption" hint="Shown on the Drop">
+            <input name="caption" maxLength={300} className="field" placeholder="Recorded a real standup and let it do the rest 👀" />
+          </Field>
+          <Field label="Description" hint="Optional">
+            <textarea name="description" maxLength={2000} rows={4} className="field" />
+          </Field>
 
-        <button className="btn-accent self-start px-6 py-3 text-base" disabled={busy}>
-          {step === "uploading" ? "Uploading video…" : step === "saving" ? "Checking link and posting…" : "Post Drop"}
-        </button>
-      </div>
-    </form>
+          {error && <p className="rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm">{error}</p>}
+
+          <button className="btn-accent self-start px-6 py-3 text-base" disabled={busy}>
+            {step === "uploading" ? "Uploading video…" : step === "saving" ? "Checking link and posting…" : "Post Drop"}
+          </button>
+        </div>
+      </form>
+    </>
   );
 }
 
