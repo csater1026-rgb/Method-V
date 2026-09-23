@@ -1,10 +1,10 @@
 @import "tailwindcss";
 
 /*
- * Method V look: drop culture meets the late-night code editor, in sage and
- * white. Two themes: dark (deep green-black, white ink, soft sage) and light
- * (white paper, green-black ink, deeper sage so text and buttons stay
- * readable). Video and poster areas stay dark in both (`media-dark`).
+ * Method V look: drop culture meets the late-night code editor, in blue,
+ * mint, white and cyan. Two themes: dark (deep navy, white ink, cyan accent)
+ * and light (white paper, navy ink, blue accent so text and buttons stay
+ * readable). Mint marks highlight badges in both. Video and poster areas stay dark in both (`media-dark`).
  * Big Shoulders (condensed poster caps) for display, Schibsted Grotesk for
  * reading, Martian Mono for numbers, timers, credits and tags.
  *
@@ -13,16 +13,20 @@
  */
 @theme {
   /* Dark is the default; the light values are applied below. */
-  --color-bg: #121814;
-  --color-surface: #19211b;
-  --color-surface-2: #222c25;
-  --color-line: #34413a;
+  --color-bg: #0a1624;
+  --color-surface: #0f2031;
+  --color-surface-2: #172b3f;
+  --color-line: #243a50;
   --color-ink: #ffffff;
-  --color-muted: #a3ab9d;
-  --color-accent: #a8c09e;
-  --color-accent-ink: #112014;
+  --color-muted: #9db2c7;
+  --color-accent: #40f4f5;
+  --color-accent-ink: #04213a;
   --color-heart: #e5826f;
   --color-danger: #f08c78;
+  /* Highlight badges (Launch day, Boosted, Pro, Verified): the same in both themes. */
+  --color-mint: #82ed9d;
+  --color-mint-ink: #0b1b2b;
+  --color-cyan: #40f4f5;
 
   --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-poster), var(--font-body), sans-serif;
@@ -48,9 +52,9 @@
   color-scheme: dark;
   /* Pressed-edge shadow under accent buttons, and the glow/dot colors of the
      background, as r g b triplets. */
-  --accent-edge: #6d8764;
-  --glow: 168 192 158;
-  --dot: 239 232 216;
+  --accent-edge: #1aa9b0;
+  --glow: 64 244 245;
+  --dot: 255 255 255;
   /* Height of the phone bottom tab bar (MobileTabs); none on larger screens. */
   --tabbar: calc(3.5rem + env(safe-area-inset-bottom));
 }
@@ -66,17 +70,17 @@
     color-scheme: light;
     --color-bg: #ffffff;
     --color-surface: #ffffff;
-    --color-surface-2: #eef1ee;
-    --color-line: #dde2dd;
-    --color-ink: #1e2a21;
-    --color-muted: #5c6757;
-    --color-accent: #4a6a4e;
+    --color-surface-2: #eef5fc;
+    --color-line: #d9e5f1;
+    --color-ink: #0b1b2b;
+    --color-muted: #56687a;
+    --color-accent: #0379d9;
     --color-accent-ink: #ffffff;
     --color-heart: #c4533f;
     --color-danger: #b2412f;
-    --accent-edge: #2c4330;
-    --glow: 127 157 128;
-    --dot: 30 42 33;
+    --accent-edge: #02589f;
+    --glow: 3 121 217;
+    --dot: 11 27 43;
   }
 }
 
@@ -84,33 +88,33 @@
   color-scheme: light;
   --color-bg: #ffffff;
   --color-surface: #ffffff;
-  --color-surface-2: #eef1ee;
-  --color-line: #dde2dd;
-  --color-ink: #1e2a21;
-  --color-muted: #5c6757;
-  --color-accent: #4a6a4e;
+  --color-surface-2: #eef5fc;
+  --color-line: #d9e5f1;
+  --color-ink: #0b1b2b;
+  --color-muted: #56687a;
+  --color-accent: #0379d9;
   --color-accent-ink: #ffffff;
   --color-heart: #c4533f;
   --color-danger: #b2412f;
-  --accent-edge: #2c4330;
-  --glow: 127 157 128;
-  --dot: 30 42 33;
+  --accent-edge: #02589f;
+  --glow: 3 121 217;
+  --dot: 11 27 43;
 }
 
 /* Video, posters and anything drawn on top of them: always the dark palette. */
 @utility media-dark {
   color-scheme: dark;
-  --color-bg: #121814;
-  --color-surface: #19211b;
-  --color-surface-2: #222c25;
-  --color-line: #34413a;
+  --color-bg: #0a1624;
+  --color-surface: #0f2031;
+  --color-surface-2: #172b3f;
+  --color-line: #243a50;
   --color-ink: #ffffff;
-  --color-muted: #a3ab9d;
-  --color-accent: #a8c09e;
-  --color-accent-ink: #112014;
+  --color-muted: #9db2c7;
+  --color-accent: #40f4f5;
+  --color-accent-ink: #04213a;
   --color-heart: #e5826f;
-  --accent-edge: #6d8764;
-  --glow: 168 192 158;
+  --accent-edge: #1aa9b0;
+  --glow: 64 244 245;
   color: var(--color-ink);
 }
 
@@ -121,7 +125,7 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Atmosphere: an editor-style dot grid, a soft sage glow up top and a little
+/* Atmosphere: an editor-style dot grid, a soft cyan-blue glow up top and a little
    grain. Drawn once on a fixed layer so scrolling stays cheap on phones. */
 body::before {
   content: "";
@@ -155,7 +159,7 @@ body::before {
 }
 
 @utility tag-accent {
-  @apply tag border-accent bg-accent text-accent-ink;
+  @apply tag border-mint bg-mint text-mint-ink;
 }
 
 @utility field {

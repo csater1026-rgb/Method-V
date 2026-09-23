@@ -7,7 +7,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
-    "backgroundColor": "#121814",
+    "backgroundColor": "#0a1624",
     "ios": {
       "bundleIdentifier": "com.methodv.app",
       "supportsTablet": true,
@@ -19,7 +19,7 @@
     "android": {
       "package": "com.methodv.app",
       "adaptiveIcon": {
-        "backgroundColor": "#121814",
+        "backgroundColor": "#0a1624",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -46,7 +46,7 @@
           "backgroundColor": "#ffffff",
           "dark": {
             "image": "./assets/splash-icon.png",
-            "backgroundColor": "#121814"
+            "backgroundColor": "#0a1624"
           }
         }
       ],

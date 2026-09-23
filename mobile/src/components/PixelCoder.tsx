@@ -41,7 +41,7 @@ const CODE: [number, number, number][] = [
 
 export function PixelCoder({ size = 96, label }: { size?: number; label?: string }) {
   const t = useTheme();
-  const colors: Record<string, string> = { h: "#6b4a2f", s: "#d9b38c", t: t.accent, p: t.muted, k: t.line, M: t.muted, S: "#0d120f", D: t.line };
+  const colors: Record<string, string> = { h: "#6b4a2f", s: "#d9b38c", t: t.accent, p: t.muted, k: t.line, M: t.muted, S: "#06101a", D: t.line };
   const rects: { x: number; y: number; w: number; fill: string }[] = [];
   ART.forEach((row, y) => {
     let x = 0;

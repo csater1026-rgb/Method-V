@@ -9,8 +9,8 @@ import { createClient } from "@/lib/supabase/server";
 // Plain SVG with system fonts so it renders anywhere without loading ours.
 
 const THEMES = {
-  dark: { bg: "#121814", ink: "#ffffff", muted: "#a3ab9d", accent: "#a8c09e", accentInk: "#112014", line: "#34413a" },
-  light: { bg: "#ffffff", ink: "#1e2a21", muted: "#5c6757", accent: "#4a6a4e", accentInk: "#ffffff", line: "#dde2dd" },
+  dark: { bg: "#0a1624", ink: "#ffffff", muted: "#9db2c7", accent: "#40f4f5", accentInk: "#04213a", line: "#243a50" },
+  light: { bg: "#ffffff", ink: "#0b1b2b", muted: "#56687a", accent: "#0379d9", accentInk: "#ffffff", line: "#d9e5f1" },
 };
 
 function esc(s: string) {

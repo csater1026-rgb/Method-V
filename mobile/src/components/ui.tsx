@@ -1,7 +1,7 @@
 import * as Haptics from "expo-haptics";
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View, type TextProps, type ViewStyle } from "react-native";
 
-import { fonts, useTheme } from "@/theme";
+import { MINT, MINT_INK, fonts, useTheme } from "@/theme";
 
 export function Display({ style, children, size = 40, ...rest }: TextProps & { size?: number }) {
   const t = useTheme();
@@ -37,15 +37,15 @@ export function Tag({ children, tone = "plain" }: { children: React.ReactNode; t
     <View
       style={{
         borderWidth: 1,
-        borderColor: accent ? t.accent : t.line,
-        backgroundColor: accent ? t.accent : t.surface2,
+        borderColor: accent ? MINT : t.line,
+        backgroundColor: accent ? MINT : t.surface2,
         borderRadius: 4,
         paddingHorizontal: 6,
         paddingVertical: 2,
         alignSelf: "flex-start",
       }}
     >
-      <Text style={{ fontFamily: fonts.mono, fontSize: 10, textTransform: "uppercase", color: accent ? t.accentInk : t.muted }}>
+      <Text style={{ fontFamily: fonts.mono, fontSize: 10, textTransform: "uppercase", color: accent ? MINT_INK : t.muted }}>
         {children}
       </Text>
     </View>
@@ -111,7 +111,7 @@ export function Button({
   );
 }
 
-const AVATAR_COLORS = ["#a8c09e", "#d7dfd9", "#d9b38c", "#9fc3cf", "#c7b6d6", "#e2a597", "#c3cf94"];
+const AVATAR_COLORS = ["#82ed9d", "#9fd8fb", "#d9b38c", "#40f4f5", "#c7b6d6", "#e2a597", "#b8f3c8"];
 
 // Same colors and letters as the website's avatars.
 export function Avatar({ username, name, size = 40 }: { username: string; name?: string; size?: number }) {
@@ -124,7 +124,7 @@ export function Avatar({ username, name, size = 40 }: { username: string; name?:
       importantForAccessibility="no-hide-descendants"
       style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: AVATAR_COLORS[hash % AVATAR_COLORS.length], alignItems: "center", justifyContent: "center" }}
     >
-      <Text style={{ fontFamily: fonts.display, fontSize: size * 0.56, color: "#15201a", marginTop: size * 0.06 }}>{letter}</Text>
+      <Text style={{ fontFamily: fonts.display, fontSize: size * 0.56, color: "#0b1b2b", marginTop: size * 0.06 }}>{letter}</Text>
     </View>
   );
 }

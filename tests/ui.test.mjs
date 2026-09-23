@@ -120,12 +120,12 @@ await run("feed (phone)", phone, async (page) => {
   await go(page, "/");
   ok((await bgOf(page)) === "rgb(255, 255, 255)", "light phone setting → white background");
   const featuredBg = await bgOf(page, "[aria-label='Featured apps'] article [class*='@container']");
-  ok(featuredBg === "rgb(25, 33, 27)", `featured poster stays dark in light mode (${featuredBg})`);
+  ok(featuredBg === "rgb(15, 32, 49)", `featured poster stays dark in light mode (${featuredBg})`);
   await page.getByRole("button", { name: "Switch between light and dark" }).click();
   ok((await page.evaluate(() => document.documentElement.dataset.theme)) === "dark", "toggle switches to dark");
-  ok((await bgOf(page)) === "rgb(18, 24, 20)", "dark background after toggle");
+  ok((await bgOf(page)) === "rgb(10, 22, 36)", "dark background after toggle");
   await page.reload();
-  ok((await bgOf(page)) === "rgb(18, 24, 20)", "choice is remembered after reload");
+  ok((await bgOf(page)) === "rgb(10, 22, 36)", "choice is remembered after reload");
   await page.waitForTimeout(1200); // let the entrance animation finish
   await page.screenshot({ path: OUT + "home-dark-phone.png" });
   await page.getByRole("button", { name: "Switch between light and dark" }).click();
@@ -259,7 +259,7 @@ await run("build in public", desktop, async (page) => {
   const svg = await res.text();
   ok(res.headers.get("content-type").startsWith("image/svg+xml") && svg.includes("METHOD V") && svg.includes("412 tries"), "badge is an SVG with the app's tries");
   ok((await fetch(BASE + "/badge/nope")).status === 404, "badge for an unknown app is 404");
-  ok((await (await fetch(BASE + "/badge/noteflow?theme=light")).text()).includes("#1e2a21"), "light badge");
+  ok((await (await fetch(BASE + "/badge/noteflow?theme=light")).text()).includes("#0b1b2b"), "light badge");
 }
 
 await run("share kit", desktop, async (page) => {
@@ -676,7 +676,7 @@ await run("developers + install (phone)", phone, async (page) => {
   const embedHtml = await embed.text();
   ok(embed.status === 200 && !embed.headers.get("x-frame-options"), "the embed card can be framed");
   ok(/frame-ancestors \*/.test(embed.headers.get("content-security-policy") ?? "") && /default-src 'none'/.test(embed.headers.get("content-security-policy") ?? ""), "the embed runs no scripts");
-  ok(embedHtml.includes("NoteFlow") && embedHtml.includes("/try/noteflow?via=embed") && embedHtml.includes("#1e2a21"), "embed shows the app, a counted Try link and the light theme");
+  ok(embedHtml.includes("NoteFlow") && embedHtml.includes("/try/noteflow?via=embed") && embedHtml.includes("#0b1b2b"), "embed shows the app, a counted Try link and the light theme");
   ok(!/<script/i.test(embedHtml), "embed has no scripts");
   ok((await fetch(BASE + "/embed/nope")).status === 404, "unknown embed is 404");
 

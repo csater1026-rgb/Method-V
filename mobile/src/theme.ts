@@ -1,31 +1,31 @@
 import { useColorScheme } from "react-native";
 
-// Same sage-and-white palette as the website (src/app/globals.css), dark and
+// Same blue, mint, white and cyan palette as the website (src/app/globals.css), dark and
 // light. The app follows the phone's setting.
 export const palettes = {
   dark: {
-    bg: "#121814",
-    surface: "#19211b",
-    surface2: "#222c25",
-    line: "#34413a",
+    bg: "#0a1624",
+    surface: "#0f2031",
+    surface2: "#172b3f",
+    line: "#243a50",
     ink: "#ffffff",
-    muted: "#a3ab9d",
-    accent: "#a8c09e",
-    accentInk: "#112014",
-    accentEdge: "#6f8a66",
+    muted: "#9db2c7",
+    accent: "#40f4f5",
+    accentInk: "#04213a",
+    accentEdge: "#1aa9b0",
     heart: "#e5826f",
     danger: "#f08c78",
   },
   light: {
     bg: "#ffffff",
     surface: "#ffffff",
-    surface2: "#eef1ee",
-    line: "#dde2dd",
-    ink: "#1e2a21",
-    muted: "#5c6757",
-    accent: "#4a6a4e",
+    surface2: "#eef5fc",
+    line: "#d9e5f1",
+    ink: "#0b1b2b",
+    muted: "#56687a",
+    accent: "#0379d9",
     accentInk: "#ffffff",
-    accentEdge: "#2f4833",
+    accentEdge: "#02589f",
     heart: "#c4533f",
     danger: "#b2412f",
   },
@@ -53,3 +53,7 @@ export const fonts = {
 
 // Video and posters stay dark in both themes, like the website's media-dark.
 export const media = palettes.dark;
+
+// Highlight badges (Pro, Launch day…), the same in both themes.
+export const MINT = "#82ed9d";
+export const MINT_INK = "#0b1b2b";

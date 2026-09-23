@@ -9,8 +9,8 @@ import { formatCount } from "@/lib/format";
 // Drop's poster. "Try it" goes through /try with ?via=embed so it's counted.
 
 const THEMES = {
-  dark: { bg: "#121814", surface: "#19211b", ink: "#ffffff", muted: "#a3ab9d", accent: "#a8c09e", accentInk: "#112014", line: "#34413a" },
-  light: { bg: "#ffffff", surface: "#ffffff", ink: "#1e2a21", muted: "#5c6757", accent: "#4a6a4e", accentInk: "#ffffff", line: "#dde2dd" },
+  dark: { bg: "#0a1624", surface: "#0f2031", ink: "#ffffff", muted: "#9db2c7", accent: "#40f4f5", accentInk: "#04213a", line: "#243a50" },
+  light: { bg: "#ffffff", surface: "#ffffff", ink: "#0b1b2b", muted: "#56687a", accent: "#0379d9", accentInk: "#ffffff", line: "#d9e5f1" },
 };
 
 function esc(s: string) {
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/embed/[slug]
 html,body{height:100%}
 body{background:${t.bg};color:${t.ink};font:14px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
 .card{display:flex;height:100%;min-height:150px;border:1px solid ${t.line};border-radius:12px;overflow:hidden;background:${t.surface}}
-.media{flex:0 0 34%;max-width:170px;background:#121814 ${poster ? `url("${esc(poster)}") center/cover` : `repeating-linear-gradient(135deg,#19211b 0 10px,#222c25 10px 20px)`};display:flex;align-items:flex-end;padding:10px}
+.media{flex:0 0 34%;max-width:170px;background:#0a1624 ${poster ? `url("${esc(poster)}") center/cover` : `repeating-linear-gradient(135deg,#0f2031 0 10px,#172b3f 10px 20px)`};display:flex;align-items:flex-end;padding:10px}
 .media span{font:700 20px/1 Impact,"Arial Narrow",sans-serif;text-transform:uppercase;color:#ffffff;${poster ? "display:none" : ""}}
 .body{flex:1;min-width:0;padding:14px 16px;display:flex;flex-direction:column;gap:6px}
 .kicker{font:600 10px/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;color:${t.muted}}

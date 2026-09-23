@@ -37,7 +37,7 @@ const COLORS: Record<string, string> = {
   p: "var(--color-muted)",
   k: "var(--color-line)",
   M: "var(--color-muted)",
-  S: "#0d120f",
+  S: "#06101a",
   D: "var(--color-line)",
 };
 

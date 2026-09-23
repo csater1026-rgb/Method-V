@@ -86,7 +86,7 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
             <DropPlaceholder name={app.name} category={app.category} />
           )}
           {app.drop && (
-            <span className="absolute top-3 left-3 rounded-md bg-black/55 px-2 py-0.5 font-mono text-[11px] backdrop-blur">
+            <span className="absolute top-3 right-3 rounded-md bg-black/55 px-2 py-0.5 font-mono text-[11px] backdrop-blur">
               {formatDuration(app.drop.duration_seconds)}
             </span>
           )}
