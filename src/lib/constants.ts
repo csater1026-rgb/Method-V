@@ -111,3 +111,26 @@ export function labelFor(list: readonly Option[], slug: string): string {
 export function isOneOf<T extends Option>(list: readonly T[], value: unknown): value is T["slug"] {
   return typeof value === "string" && list.some((o) => o.slug === value);
 }
+
+// Phase 4 money rules, in cents. Must match
+// supabase/migrations/*_phase4_earn.sql.
+export const EARN = {
+  tip: { min: 100, max: 50000, feePercent: 5, presets: [300, 500, 1000, 2500] },
+  sponsor: { minPrice: 10, maxPrice: 500, minBudget: 1000, maxBudget: 100000, minTries: 10, feePercent: 12, maxRunning: 3 },
+  pro: { price: 600, days: 30, boostPerDay: 5 },
+  payoutMin: 500,
+} as const;
+
+// Must match the check on public.jobs.kind.
+export const JOB_KINDS = [
+  { slug: "hiring", label: "Hiring" },
+  { slug: "gig", label: "Gig" },
+  { slug: "looking", label: "Looking for work" },
+] as const;
+
+export const JOB_LIMITS = { openPerPerson: 5, days: 30, skills: 8 } as const;
+
+export function formatCents(cents: number): string {
+  const dollars = cents / 100;
+  return `$${Number.isInteger(dollars) ? dollars.toLocaleString("en-US") : dollars.toFixed(2)}`;
+}

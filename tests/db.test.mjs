@@ -64,7 +64,9 @@ async function as(role, uid, sql, params) {
 async function fails(role, uid, sql, params) {
   try {
     const r = await as(role, uid, sql, params);
-    return r.affectedRows === 0 ? "no rows" : false;
+    // An update/delete that matched nothing counts as blocked. A select that
+    // returned a row (e.g. calling a function) succeeded.
+    return r.affectedRows === 0 && r.rows.length === 0 ? "no rows" : false;
   } catch (e) {
     return e.message;
   }
@@ -474,6 +476,214 @@ ok(sug.some((s) => s.id === T && s.shared_skills.includes("Next.js")), "matches 
 await as("authenticated", E, "insert into public.follows (follower_id, following_id) values ($1, $2)", [E, T]);
 ok(!(await as("authenticated", E, "select * from public.suggest_builders(10)")).rows.some((s) => s.id === T), "people you follow aren't suggested");
 ok((await as("anon", null, "select * from public.suggest_builders(10)").catch(() => ({ rows: [] }))).rows.length === 0, "no suggestions when signed out");
+
+// ---------------------------------------------------------------------------
+// Phase 4: jobs, payments, backers, sponsorships, challenges, Pro
+// ---------------------------------------------------------------------------
+
+const H = "88888888-8888-8888-8888-888888888888"; // hiring builder / host
+const J = "99999999-9999-9999-9999-999999999999"; // job seeker / sponsor
+const F = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"; // fan
+const N = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"; // brand-new account
+await db.exec(`insert into auth.users (id) values ('${H}'), ('${J}'), ('${F}'), ('${N}')`);
+await db.query("update public.profiles set created_at = now() - interval '3 days' where id in ($1, $2, $3)", [H, J, F]);
+
+// Jobs board
+const jobSql = "insert into public.jobs (user_id, kind, title, body, pay) values ($1, $2, $3, 'Build our onboarding', '$60/hr') returning id";
+const job = (await as("authenticated", H, jobSql, [H, "hiring", "Frontend engineer (React)"])).rows[0].id;
+ok(!!job, "anyone signed in can post a job");
+ok(!!(await fails("authenticated", H, jobSql, [H, "hiring", "Hi"])), "job titles need 5+ characters");
+ok(!!(await fails("authenticated", H, jobSql, [J, "hiring", "Posting as someone else"])), "can't post as someone else");
+ok(!!(await fails("authenticated", H, "insert into public.jobs (user_id, kind, title, application_count) values ($1, 'gig', 'Fake counts here', 50)", [H])), "can't set application counts");
+for (let i = 0; i < 4; i++) await as("authenticated", H, jobSql, [H, "gig", `Gig number ${i + 1}`]);
+ok(!!(await fails("authenticated", H, jobSql, [H, "gig", "One too many gigs"])), "up to 5 open posts per person");
+const looking = (await as("authenticated", J, jobSql, [J, "looking", "Designer looking for work"])).rows[0].id;
+ok((await as("anon", null, "select id from public.jobs")).rows.length === 6, "open posts are public");
+
+const applySql = "insert into public.job_applications (job_id, user_id, note) values ($1, $2, $3) returning id";
+const application = (await as("authenticated", J, applySql, [job, J, "I built the NoteFlow editor."])).rows[0].id;
+ok(!!application, "people can apply to a job");
+ok((await db.query("select application_count from public.jobs where id = $1", [job])).rows[0].application_count === 1, "application count updates");
+ok((await notes(H)).some((n) => n.kind === "job_application" && n.actor_id === J), "poster is notified of applications");
+ok(!!(await fails("authenticated", J, applySql, [job, J, "Applying twice"])), "one application per job");
+ok(!!(await fails("authenticated", H, applySql, [job, H, "My own job"])), "can't apply to your own post");
+ok(!!(await fails("authenticated", H, applySql, [looking, H, "Hire me?"])), "can't apply to a looking-for-work post");
+ok((await as("authenticated", F, "select id from public.job_applications")).rows.length === 0, "applications are private to applicant and poster");
+ok((await as("authenticated", H, "select id from public.job_applications")).rows.length === 1, "poster sees applications");
+ok(!!(await fails("authenticated", F, "select public.respond_application($1, true)", [application])), "only the poster can shortlist");
+await as("authenticated", H, "select public.respond_application($1, true)", [application]);
+ok((await as("authenticated", J, "select public.are_connected($1, $2) as c", [H, J])).rows[0].c, "shortlisting connects you so you can message");
+ok((await notes(J)).some((n) => n.kind === "application_shortlisted"), "applicant is told they were shortlisted");
+ok(!(await notes(J)).some((n) => n.kind === "connection_request"), "no stray connect request from shortlisting");
+ok((await db.query("select connection_count from public.profiles where id = $1", [H])).rows[0].connection_count === 1, "shortlisting counts the connection");
+await as("authenticated", H, "update public.jobs set status = 'closed' where id = $1", [job]);
+ok(!!(await fails("authenticated", F, applySql, [job, F, "Too late?"])), "closed posts take no applications");
+ok((await as("anon", null, "select id from public.jobs where id = $1", [job])).rows.length === 0, "closed posts leave the board");
+
+// Payments: tips
+const hostApp = await makeApp(H, "study-timer");
+const sponsorApp = await makeApp(J, "noteflow-pro");
+const unlistedApp = (await db.query("insert into public.apps (owner_id, slug, name, tagline, url, category) values ($1, 'unchecked', 'U', 'x', 'https://e.com', 'ai') returning id", [H])).rows[0].id;
+const prep = (uid, kind, ref, amount, note = "", pub = true) =>
+  as("authenticated", uid, "select public.prepare_payment($1, $2, $3, $4, $5) as id", [kind, ref, amount, note, pub]);
+ok(!!(await fails("authenticated", F, "insert into public.payments (user_id, kind, amount_cents) values ($1, 'pro', 600)", [F])), "can't write payments directly");
+ok(!!(await fails("anon", null, "select public.prepare_payment('pro')")), "must be signed in to pay");
+ok(!!(await fails("authenticated", H, "select public.prepare_payment('tip', $1, 500)", [hostApp])), "can't tip your own app");
+ok(!!(await fails("authenticated", F, "select public.prepare_payment('tip', $1, 50)", [hostApp])), "tips start at $1");
+ok(!!(await fails("authenticated", F, "select public.prepare_payment('tip', $1, 60000)", [hostApp])), "tips top out at $500");
+ok(!!(await fails("authenticated", F, "select public.prepare_payment('tip', $1, 500)", [unlistedApp])), "only live apps take tips");
+const tip = (await prep(F, "tip", hostApp, 1000, "Love the timer!")).rows[0].id;
+const tipRow = (await db.query("select amount_cents, fee_cents, status from public.payments where id = $1", [tip])).rows[0];
+ok(tipRow.amount_cents === 1000 && tipRow.fee_cents === 50 && tipRow.status === "pending", "a tip starts pending with a 5% fee");
+ok(!!(await fails("authenticated", F, "select public.complete_payment($1, 'cs_1', 1000, 'pi_1')", [tip])), "people can't complete their own payment");
+ok(!!(await fails("service_role", null, "select public.complete_payment($1, 'cs_1', 999, 'pi_1')", [tip])), "the paid amount must match");
+await as("service_role", null, "select public.complete_payment($1, 'cs_1', 1000, 'pi_1')", [tip]);
+await as("service_role", null, "select public.complete_payment($1, 'cs_1', 1000, 'pi_1')", [tip]);
+ok((await db.query("select count(*)::int as n from public.backings where app_id = $1", [hostApp])).rows[0].n === 1, "completing twice only records one backing");
+ok((await db.query("select backer_count from public.apps where id = $1", [hostApp])).rows[0].backer_count === 1, "backer count updates");
+const bal = async (uid) => (await as("authenticated", uid, "select public.my_earnings_balance() as b")).rows[0].b;
+ok((await bal(H)) === 950, "builder earns the tip minus 5%");
+ok((await notes(H)).some((n) => n.kind === "backed" && n.actor_id === F), "builder is told who backed them");
+const wall = await as("anon", null, "select * from public.backings where app_id = $1", [hostApp]).catch((e) => e.message);
+ok(typeof wall === "string", "the backers wall can't read amounts");
+ok((await as("anon", null, "select user_id, note from public.backings where app_id = $1", [hostApp])).rows[0]?.note === "Love the timer!", "names and notes are public");
+const quiet = (await prep(F, "tip", hostApp, 500, "", false)).rows[0].id;
+await as("service_role", null, "select public.complete_payment($1, 'cs_2', 500, 'pi_2')", [quiet]);
+ok((await as("anon", null, "select id from public.backings where app_id = $1", [hostApp])).rows.length === 1, "private backings stay off the wall");
+ok((await db.query("select backer_count from public.apps where id = $1", [hostApp])).rows[0].backer_count === 1, "a second tip from the same fan isn't a new backer");
+ok((await notes(H)).some((n) => n.kind === "backed" && n.actor_id === null), "private tips notify without a name");
+ok((await as("authenticated", J, "select id from public.payments")).rows.length === 0, "payments are private");
+ok(!!(await fails("authenticated", H, "select public.earnings_balance($1)", [H])), "can't look up other people's balances");
+
+// Payouts
+ok(!!(await fails("authenticated", H, "select * from public.start_payout($1)", [H])), "people can't start payouts directly");
+ok(!!(await fails("service_role", null, "select * from public.start_payout($1)", [H])), "payouts need a connected account");
+await db.query("insert into public.payout_accounts (user_id, stripe_account_id, payouts_enabled) values ($1, 'acct_h', true)", [H]);
+ok((await db.query("select payouts_enabled from public.profiles where id = $1", [H])).rows[0].payouts_enabled, "payouts_enabled is mirrored on the profile");
+const po = (await as("service_role", null, "select * from public.start_payout($1)", [H])).rows[0];
+ok(po.amount_cents === 1425 && po.stripe_account_id === "acct_h", "cash out takes the whole balance");
+ok((await bal(H)) === 0, "balance is zero while a payout is on its way");
+ok(!!(await fails("service_role", null, "select * from public.start_payout($1)", [H])), "one payout at a time");
+await as("service_role", null, "select public.finish_payout($1, null)", [po.payout_id]);
+ok((await bal(H)) === 1425, "a failed transfer puts the money back");
+const po2 = (await as("service_role", null, "select * from public.start_payout($1)", [H])).rows[0];
+await as("service_role", null, "select public.finish_payout($1, 'tr_1')", [po2.payout_id]);
+ok((await bal(H)) === 0 && (await db.query("select status from public.payouts where id = $1", [po2.payout_id])).rows[0].status === "paid", "a successful transfer is recorded");
+ok(!!(await fails("service_role", null, "select * from public.start_payout($1)", [H])), "cash out needs at least $5");
+
+// Pro
+const proPay = (await prep(J, "pro", null, 1)).rows[0].id;
+ok((await db.query("select amount_cents from public.payments where id = $1", [proPay])).rows[0].amount_cents === 600, "Pro is always $6, whatever the browser sends");
+await as("service_role", null, "select public.complete_payment($1, 'cs_3', 600, 'pi_3')", [proPay]);
+ok((await as("anon", null, "select public.is_pro($1) as p", [J])).rows[0].p, "paying makes you Pro for 30 days");
+await db.query("update public.profiles set credits = 20 where id = $1", [J]);
+await as("authenticated", J, "select public.boost_app($1, 2)", [sponsorApp]);
+ok((await db.query("select credits from public.profiles where id = $1", [J])).rows[0].credits === 10, "Pro boosts cost 5 credits a day");
+ok((await as("authenticated", J, "select count(*)::int as n from public.app_stats($1)", [sponsorApp])).rows[0].n === 30, "Pro sees 30 days of stats");
+ok(!!(await fails("authenticated", H, "select * from public.app_stats($1)", [hostApp])), "stats are part of Pro");
+ok(!!(await fails("authenticated", J, "select * from public.app_stats($1)", [hostApp])), "stats are only for your own apps");
+await as("authenticated", J, "update public.profiles set pinned_app_id = $1 where id = $2", [sponsorApp, J]);
+ok(!!(await fails("authenticated", J, "update public.profiles set pinned_app_id = $1 where id = $2", [hostApp, J])), "you can only pin your own app");
+ok(!!(await fails("authenticated", J, "update public.profiles set pro_until = now() + interval '1 year' where id = $1", [J])), "can't give yourself Pro");
+
+// Sponsorships (Boost Exchange, paid)
+const offer = (price, budget, from = sponsorApp, to = hostApp, uid = J) =>
+  as("authenticated", uid, "select public.offer_sponsorship($1, $2, $3, $4, 'Your users would love NoteFlow') as id", [from, to, price, budget]);
+ok(!!(await fails("authenticated", J, "select public.offer_sponsorship($1, $2, 50, 5000)", [hostApp, sponsorApp])), "you sponsor with your own app");
+ok(!!(await fails("authenticated", J, "select public.offer_sponsorship($1, $2, 50, 5000)", [sponsorApp, sponsorApp])), "can't sponsor yourself");
+ok(!!(await fails("authenticated", J, "select public.offer_sponsorship($1, $2, 5, 5000)", [sponsorApp, hostApp])), "at least 10¢ a try");
+ok(!!(await fails("authenticated", J, "select public.offer_sponsorship($1, $2, 500, 2000)", [sponsorApp, hostApp])), "budget must cover 10 tries");
+ok(!!(await fails("authenticated", J, "select public.offer_sponsorship($1, $2, 50, 5000)", [sponsorApp, unlistedApp])), "only live apps can be sponsored");
+const deal = (await offer(200, 2000)).rows[0].id;
+ok((await notes(H)).some((n) => n.kind === "sponsor_offer"), "host is told about the offer");
+ok(!!(await fails("authenticated", J, "select public.offer_sponsorship($1, $2, 100, 2000)", [sponsorApp, hostApp])), "one open deal per pair");
+ok(!!(await fails("authenticated", J, "insert into public.sponsorships (sponsor_user, host_user, price_cents, budget_cents) values ($1, $2, 10, 1000)", [J, H])), "can't write sponsorships directly");
+ok((await as("authenticated", F, "select id from public.sponsorships")).rows.length === 0, "deal terms are private to both sides");
+ok(!!(await fails("authenticated", J, "select public.prepare_payment('sponsorship', $1)", [deal])), "can't pay before the host accepts");
+ok(!!(await fails("authenticated", J, "select public.respond_sponsorship($1, true)", [deal])), "only the host accepts");
+await as("authenticated", H, "select public.respond_sponsorship($1, true)", [deal]);
+ok((await notes(J)).some((n) => n.kind === "sponsor_accepted"), "sponsor is told it was accepted");
+const other = await makeApp(F, "fan-app");
+const second = (await offer(100, 1000, other, hostApp, F)).rows[0].id;
+ok(!!(await fails("authenticated", H, "select public.respond_sponsorship($1, true)", [second])), "a host has one sponsor at a time");
+ok(!!(await fails("authenticated", H, "delete from public.apps where id = $1", [hostApp])), "an app with a running deal can't be deleted");
+const fund = (await prep(J, "sponsorship", deal, 1)).rows[0].id;
+ok((await db.query("select amount_cents from public.payments where id = $1", [fund])).rows[0].amount_cents === 2000, "the sponsor pays the whole budget up front");
+ok((await as("anon", null, "select * from public.active_sponsors($1)", [[hostApp]])).rows.length === 0, "no sponsor card until it's paid");
+await as("service_role", null, "select public.complete_payment($1, 'cs_4', 2000, 'pi_4')", [fund]);
+const card = (await as("anon", null, "select * from public.active_sponsors($1)", [[hostApp]])).rows;
+ok(card.length === 1 && card[0].sponsor_slug === "noteflow-pro", "paid deals show a public Sponsored-by card");
+ok((await notes(H)).some((n) => n.kind === "sponsor_started"), "host is told the sponsorship started");
+
+const tryIt = async (uid) => (await as("authenticated", uid, "select public.record_sponsored_try($1) as ok", [deal])).rows[0].ok;
+const hBefore = await bal(H);
+ok((await tryIt(F)) === true, "a real person's try counts");
+ok((await tryIt(F)) === false, "one try per person per deal");
+ok((await tryIt(H)) === false && (await tryIt(J)) === false, "the two builders' own tries don't count");
+ok((await tryIt(N)) === false, "brand-new accounts don't count");
+ok((await as("anon", null, "select public.record_sponsored_try($1) as ok", [deal]).catch(() => ({ rows: [{ ok: false }] }))).rows[0].ok === false, "signed-out tries don't count");
+ok((await bal(H)) === hBefore + 176, "host earns the try price minus 12%");
+const dealRow = async () => (await db.query("select status, spent_cents, tries from public.sponsorships where id = $1", [deal])).rows[0];
+ok((await dealRow()).spent_cents === 200 && (await dealRow()).tries === 1, "the sponsor sees honest spend and tries");
+
+// Fill the rest of the budget with established accounts: 2000 / 200 = 10 tries.
+const extras = [];
+for (let i = 0; i < 10; i++) extras.push(`c${i}000000-cccc-cccc-cccc-cccccccccccc`);
+await db.exec(`insert into auth.users (id) values ${extras.map((id) => `('${id}')`).join(", ")}`);
+await db.query("update public.profiles set created_at = now() - interval '3 days' where id = any($1)", [extras]);
+for (const id of extras) await tryIt(id);
+const done = await dealRow();
+ok(done.status === "completed" && done.spent_cents === 2000 && done.tries === 10, "the deal completes when the budget is used up, never overspending");
+ok((await as("anon", null, "select * from public.active_sponsors($1)", [[hostApp]])).rows.length === 0, "the card goes away when it's done");
+
+// Ending early refunds what's left.
+const deal2 = (await offer(100, 1000)).rows[0].id;
+await as("authenticated", H, "select public.respond_sponsorship($1, true)", [deal2]);
+const fund2 = (await prep(J, "sponsorship", deal2, 1)).rows[0].id;
+await as("service_role", null, "select public.complete_payment($1, 'cs_5', 1000, 'pi_5')", [fund2]);
+await as("authenticated", F, "select public.record_sponsored_try($1)", [deal2]);
+ok(!!(await fails("authenticated", F, "select public.end_sponsorship($1)", [deal2])), "outsiders can't end a deal");
+const refundFor = (await as("authenticated", H, "select public.end_sponsorship($1) as p", [deal2])).rows[0].p;
+ok(refundFor === fund2, "ending returns the payment to refund");
+ok((await db.query("select refund_cents from public.payments where id = $1", [fund2])).rows[0].refund_cents === 900, "unspent budget is marked for refund");
+ok((await notes(J)).some((n) => n.kind === "sponsor_ended"), "the other side is told the deal ended");
+ok(!!(await fails("authenticated", J, "select public.mark_refunded($1)", [fund2])), "people can't mark refunds");
+await as("service_role", null, "select public.mark_refunded($1)", [fund2]);
+ok(!!(await db.query("select refunded_at from public.payments where id = $1", [fund2])).rows[0].refunded_at, "the server records the refund");
+
+// Money that arrives for a deal called off meanwhile goes straight back.
+const deal3 = (await offer(100, 1000)).rows[0].id;
+await as("authenticated", H, "select public.respond_sponsorship($1, true)", [deal3]);
+const fund3 = (await prep(J, "sponsorship", deal3, 1)).rows[0].id;
+await as("authenticated", H, "select public.end_sponsorship($1)", [deal3]);
+await as("service_role", null, "select public.complete_payment($1, 'cs_6', 1000, 'pi_6')", [fund3]);
+ok((await db.query("select refund_cents from public.payments where id = $1", [fund3])).rows[0].refund_cents === 1000, "a late payment for an ended deal is refunded in full");
+
+// Challenges
+await db.query(
+  "insert into public.challenges (slug, title, sponsor_name, prize, stack, starts_at, ends_at) values ('best-supabase', 'Best app built with Supabase', 'Supabase', '$1,000 + credits', 'Supabase', now() - interval '1 day', now() + interval '6 days')",
+);
+const ch = (await db.query("select id from public.challenges where slug = 'best-supabase'")).rows[0].id;
+ok(!!(await fails("authenticated", H, "insert into public.challenges (slug, title, sponsor_name, prize, ends_at) values ('mine', 'My own challenge', 'Me', 'Glory', now() + interval '1 day')")), "only the team creates challenges");
+const enter = (uid, app) => as("authenticated", uid, "insert into public.challenge_entries (challenge_id, app_id, user_id) values ($1, $2, $3) returning id", [ch, app, uid]);
+ok(!!(await fails("authenticated", H, "insert into public.challenge_entries (challenge_id, app_id, user_id) values ($1, $2, $3)", [ch, hostApp, H])), "entries must use the sponsor's stack");
+await db.query("update public.apps set tech_stack = '{Next.js,supabase}' where id in ($1, $2)", [hostApp, sponsorApp]);
+const entryH = (await enter(H, hostApp)).rows[0].id;
+const entryJ = (await enter(J, sponsorApp)).rows[0].id;
+ok(!!entryH && !!entryJ, "builders enter their own live apps (stack match ignores case)");
+ok(!!(await fails("authenticated", H, "insert into public.challenge_entries (challenge_id, app_id, user_id) values ($1, $2, $3)", [ch, sponsorApp, H])), "can't enter someone else's app");
+ok((await db.query("select entry_count from public.challenges where id = $1", [ch])).rows[0].entry_count === 2, "entry count updates");
+const vote = (uid, entry) => as("authenticated", uid, "insert into public.challenge_votes (challenge_id, user_id, entry_id) values ($1, $2, $3)", [ch, uid, entry]);
+await vote(F, entryH);
+ok((await db.query("select vote_count from public.challenge_entries where id = $1", [entryH])).rows[0].vote_count === 1, "votes count");
+ok(!!(await fails("authenticated", F, "insert into public.challenge_votes (challenge_id, user_id, entry_id) values ($1, $2, $3)", [ch, F, entryJ])), "one vote per person per challenge");
+ok(!!(await fails("authenticated", H, "insert into public.challenge_votes (challenge_id, user_id, entry_id) values ($1, $2, $3)", [ch, H, entryH])), "can't vote for your own entry");
+ok(!!(await fails("authenticated", N, "insert into public.challenge_votes (challenge_id, user_id, entry_id) values ($1, $2, $3)", [ch, N, entryH])), "brand-new accounts can't vote");
+await as("authenticated", F, "delete from public.challenge_votes where challenge_id = $1 and user_id = $2", [ch, F]);
+await vote(F, entryJ);
+ok((await db.query("select vote_count from public.challenge_entries where id = $1", [entryH])).rows[0].vote_count === 0, "changing your vote moves it");
+await db.query("update public.challenges set ends_at = now() - interval '1 minute', starts_at = now() - interval '7 days' where id = $1", [ch]);
+ok(!!(await fails("authenticated", H, "insert into public.challenge_votes (challenge_id, user_id, entry_id) values ($1, $2, $3)", [ch, H, entryJ])), "voting closes when the challenge ends");
 
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");
 process.exit(failures ? 1 : 0);
