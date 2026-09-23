@@ -19,28 +19,18 @@ See [PLAN.md](PLAN.md) for the full product plan and build phases.
 
 **Phase 3 ("Grow"), part 1 is built:** try-to-earn credits and structured feedback. Everyone starts with ⚡10. Builders spend ⚡2 per tester to put an app in the **Test & earn** queue (`/test`); people who open the app with Try it and leave feedback (would you use it, a rating, what worked, what confused you) earn ⚡2, plus ⚡1 when the builder marks it helpful. Feedback is private to the tester and builder; app pages show the totals (testers, % who'd use it, average rating). Balance and history are at `/credits`.
 
-Next: the rest of Phase 3 (the Tester Passport below, launch days, boosts, build-in-public posts, share badges, swaps), then Phase 2 (see the plan).
+**Phase 3 ("Grow") is built:**
 
-## Coming later: Tester Passport
+- **Tester Passport:** every app you give feedback on stamps your passport. Ranks (Scout → Tester → Pro Tester → Trusted Tester) come from feedback given and feedback marked helpful, with perks built into the database: Testers earn ⚡3 per paid feedback, Pro Testers can earn from 20 a day, Trusted Testers' feedback shows first to builders. 4 weeks in a row earns a ⚡5 bonus. Profiles show the passport (rank, progress, a stamp per category, streak) and Test & earn shows the month's top testers. Ranks never go down.
+- **Launch days:** schedule one free launch day per app (1 hour to 30 days out). It shows under *Launching soon* on Home with a countdown, then sits in the Featured row for 24 hours.
+- **Boosts:** spend ⚡10 a day (1, 3 or 7 days) to put an app in the Featured row with a *Boosted* label.
+- **Build in public:** a one-box composer ("What did you ship today?") on Home, your profile and your app pages. Home shows updates from you and who you follow.
+- **Share kit:** an embeddable *Try it on Method V* badge (`/badge/<app>`, dark or light) with copy-paste HTML/Markdown, plus one-tap posts to X and LinkedIn.
+- **Swaps and co-launches:** from another builder's app page, tap *Team up* to swap shoutouts (each app shows the other under *Friends of*, up to 3) or launch on the same day. Requests are answered on `/swaps`.
 
-A reward for testing more and more apps. Every app you give feedback on adds a **stamp** to your passport, and stamps plus feedback that builders mark helpful move you up tester ranks:
+Builder tools (launch day, boosts, share kit) live in the *Grow* panel on your own app pages; in demo mode everyone sees a preview.
 
-| Rank | Unlocks at | Perk |
-|---|---|---|
-| **Scout** | 5 feedbacks | Badge on your profile |
-| **Tester** | 15 feedbacks, 3 helpful | Earn ⚡3 per feedback instead of ⚡2 |
-| **Pro Tester** | 40 feedbacks, 10 helpful | Higher daily earning cap, early access to new apps before they hit the feed |
-| **Trusted Tester** | 100 feedbacks, 30 helpful | Your feedback shows first to builders, and your own app gets a free Featured spot once a month |
-
-Extra rewards:
-
-- **Category stamps:** test an app in every category for an "All-rounder" badge, so people try things outside their usual lane.
-- **Weekly streaks:** give feedback 4 weeks in a row for a bonus (weekly, not daily, so it never feels like a chore).
-- **Top testers of the month:** a leaderboard on Test & earn, which also helps testers get noticed for work.
-
-Keeping it honest: helpful marks count more than raw numbers, so low-effort feedback doesn't get you far; the existing rules still apply (you must open the app with Try it first, and paid feedback is capped at 10 a day); and ranks never drop, so taking a break isn't punished.
-
-It builds on what's already tracked: every profile already counts feedback given and feedback marked helpful.
+Next: Phase 2 ("Connect": messaging, Q&A, notifications), then Phase 4 ("Earn"). See the plan.
 
 ## Run it locally
 
@@ -71,6 +61,10 @@ To deploy, import the repo into [Vercel](https://vercel.com) and add the same en
 | Likes, comments, follows, profile edits, posting | `src/app/actions.ts` (server actions) |
 | "Try it" button: records the try, then sends people to the app | `src/app/try/[slug]/route.ts` |
 | Test & earn queue `/test`, credits `/credits`, feedback on app pages | `src/app/test/`, `src/app/credits/`, `src/components/FeedbackPanel.tsx` |
+| Tester Passport and top testers | `src/components/Passport.tsx` |
+| Grow panel (launch day, boosts), share kit, badge | `src/components/GrowPanel.tsx`, `src/components/ShareKit.tsx`, `src/app/badge/[slug]/route.ts` |
+| Build-in-public updates | `src/components/Updates.tsx` |
+| Swaps and co-launches | `src/components/Swaps.tsx`, `src/app/swaps/` |
 | All database reads (plus demo data when Supabase isn't set up) | `src/lib/data.ts`, `src/lib/demo.ts` |
 | Link check before an app goes live (blocks private/internal addresses) | `src/lib/link-check.ts` |
 | Database tables, security rules, counters, storage bucket | `supabase/migrations/` |

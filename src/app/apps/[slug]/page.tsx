@@ -13,8 +13,19 @@ import { Updates } from "@/components/Updates";
 import { LikeButton } from "@/components/LikeButton";
 import { ShareButton } from "@/components/ShareButton";
 import { ShareKit } from "@/components/ShareKit";
+import { TeamUp } from "@/components/Swaps";
 import { CategoryChip, Chip, PricingStage, RoleTags } from "@/components/Tags";
-import { appStatus, getApp, getComments, getFeedbackPanel, getUpdates, getViewer, isFollowing } from "@/lib/data";
+import {
+  appStatus,
+  getApp,
+  getComments,
+  getFeedbackPanel,
+  getMyApps,
+  getSwapPartners,
+  getUpdates,
+  getViewer,
+  isFollowing,
+} from "@/lib/data";
 import { formatCount, formatDuration, timeAgo } from "@/lib/format";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
@@ -29,11 +40,13 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
   const [app, viewer] = await Promise.all([getApp(slug), getViewer()]);
   if (!app) notFound();
 
-  const [comments, following, feedbackPanel, updates] = await Promise.all([
+  const [comments, following, feedbackPanel, updates, partners, myApps] = await Promise.all([
     app.drop ? getComments(app.drop.id) : [],
     isFollowing(viewer, app.owner_id),
     getFeedbackPanel(app, viewer),
     getUpdates({ appId: app.id, limit: 10 }),
+    getSwapPartners(app.id),
+    viewer && viewer.id !== app.owner_id ? getMyApps(viewer) : Promise.resolve([]),
   ]);
   const wouldUse = app.feedback_count ? Math.round((app.would_use_yes_count / app.feedback_count) * 100) : null;
   const rating = app.feedback_count ? (app.rating_sum / app.feedback_count).toFixed(1) : null;
@@ -154,10 +167,46 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
             preview={!isSupabaseConfigured}
           >
             <ShareKit slug={app.slug} name={app.name} tagline={app.tagline} />
+            <p className="mt-4 text-sm">
+              <Link href="/swaps" className="text-accent hover:underline">
+                Swaps &amp; co-launches →
+              </Link>{" "}
+              <span className="text-muted">Team up with other builders from their app pages.</span>
+            </p>
           </GrowPanel>
         )}
 
         <FeedbackPanel panel={feedbackPanel} app={{ id: app.id, slug: app.slug, name: app.name }} />
+
+        {(partners.friends.length > 0 || partners.colaunch.length > 0) && (
+          <section aria-label="Friends of this app">
+            <h2 className="display text-4xl">Friends of {app.name}</h2>
+            <p className="mt-1 text-sm text-muted">
+              {partners.colaunch.length > 0 && (
+                <>Launching together with {partners.colaunch.map((a) => a.name).join(" and ")}. </>
+              )}
+              Apps {app.name}&apos;s builder recommends.
+            </p>
+            <ul className="mt-3 grid gap-2 sm:grid-cols-3">
+              {[...partners.friends, ...partners.colaunch].map((friend) => (
+                <li key={friend.id}>
+                  <Link
+                    href={`/apps/${friend.slug}`}
+                    className="flex h-full items-center gap-3 rounded-lg border border-line bg-surface p-3 hover:border-accent"
+                  >
+                    <Avatar username={friend.owner.username} name={friend.owner.display_name} size={32} />
+                    <span className="min-w-0">
+                      <span className="display block truncate text-2xl">{friend.name}</span>
+                      <span className="block truncate text-xs text-muted">{friend.tagline}</span>
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {myApps.length > 0 && <TeamUp target={{ id: app.id, name: app.name }} myApps={myApps} />}
 
         {(updates.length > 0 || isOwner) && (
           <section aria-label="Updates">

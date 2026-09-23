@@ -11,6 +11,7 @@ import {
   demoFeaturedIds,
   demoProfiles,
   demoSchedule,
+  demoSwaps,
   demoTestRequests,
   demoUpdates,
 } from "./demo";
@@ -31,6 +32,7 @@ import type {
   ProfileSummary,
   Passport,
   QueueItem,
+  Swap,
   TestRequest,
   TopTester,
   Update,
@@ -688,4 +690,59 @@ export async function getMyApps(viewer: Viewer | null): Promise<{ id: string; sl
     .not("link_checked_at", "is", null)
     .order("created_at", { ascending: false });
   return data ?? [];
+}
+
+// ---------------------------------------------------------------------------
+// Swaps and co-launches
+// ---------------------------------------------------------------------------
+
+const SWAP_SELECT = `id, kind, status, launch_at, created_at,
+  from:apps!swaps_from_app_fkey(id, slug, name, owner_id),
+  to:apps!swaps_to_app_fkey(id, slug, name, owner_id)`;
+
+/* eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped rows */
+const toSwap = (row: any): Swap => ({ ...row, from: row.from, to: row.to });
+
+// Accepted partners of an app: "Friends of" (shoutout swaps) and co-launches.
+export async function getSwapPartners(appId: string): Promise<{ friends: AppCard[]; colaunch: AppCard[] }> {
+  if (!isSupabaseConfigured) {
+    const cards = demoCards();
+    const friends = demoSwaps
+      .filter(([a, b]) => a === appId || b === appId)
+      .map(([a, b]) => cards.find((c) => c.id === (a === appId ? b : a))!)
+      .filter(Boolean);
+    return { friends, colaunch: [] };
+  }
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("swaps")
+    .select("kind, from_app, to_app")
+    .eq("status", "accepted")
+    .or(`from_app.eq.${appId},to_app.eq.${appId}`);
+  const rows = data ?? [];
+  const otherIds = [...new Set(rows.map((r) => (r.from_app === appId ? r.to_app : r.from_app) as string))];
+  if (otherIds.length === 0) return { friends: [], colaunch: [] };
+  const { data: apps } = await supabase.from("apps").select(CARD_SELECT).in("id", otherIds);
+  const byId = new Map((apps ?? []).map((a) => [a.id as string, toCard(a)]));
+  const pick = (kind: string) =>
+    rows
+      .filter((r) => r.kind === kind)
+      .map((r) => byId.get((r.from_app === appId ? r.to_app : r.from_app) as string))
+      .filter((a): a is AppCard => Boolean(a));
+  return { friends: pick("swap"), colaunch: pick("colaunch") };
+}
+
+// Every swap and co-launch request involving the viewer's apps.
+export async function getMySwaps(viewer: Viewer): Promise<Swap[]> {
+  const supabase = await createClient();
+  const mine = await getMyApps(viewer);
+  if (mine.length === 0) return [];
+  const ids = mine.map((a) => a.id).join(",");
+  const { data } = await supabase
+    .from("swaps")
+    .select(SWAP_SELECT)
+    .or(`from_app.in.(${ids}),to_app.in.(${ids})`)
+    .order("created_at", { ascending: false })
+    .limit(100);
+  return (data ?? []).map(toSwap);
 }

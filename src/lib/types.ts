@@ -140,6 +140,18 @@ export type Update = {
   app: { slug: string; name: string } | null;
 };
 
+export type SwapApp = { id: string; slug: string; name: string; owner_id: string };
+
+export type Swap = {
+  id: string;
+  kind: "swap" | "colaunch";
+  status: "pending" | "accepted" | "declined" | "ended";
+  launch_at: string | null;
+  created_at: string;
+  from: SwapApp;
+  to: SwapApp;
+};
+
 export type FeaturedReason = "featured" | "launch" | "boosted" | "hot";
 export type FeaturedApp = AppCard & { reason: FeaturedReason };
 

@@ -263,6 +263,18 @@ await run("share kit", desktop, async (page) => {
   await grow.screenshot({ path: OUT + "share-kit.png" });
 });
 
+await run("swaps", desktop, async (page) => {
+  await page.goto(BASE + "/apps/noteflow");
+  const friends = page.getByRole("region", { name: "Friends of this app" });
+  ok((await friends.textContent()).includes("PalettePal"), "NoteFlow shows its swap partner PalettePal");
+  await page.goto(BASE + "/apps/palettepal");
+  ok((await page.getByRole("region", { name: "Friends of this app" }).textContent()).includes("NoteFlow"), "…and PalettePal shows NoteFlow");
+  await page.goto(BASE + "/apps/quizpop");
+  ok((await page.getByRole("region", { name: "Friends of this app" }).count()) === 0, "no Friends section without swaps");
+  await page.goto(BASE + "/swaps");
+  ok(await page.getByText("Swaps are off in demo mode.").isVisible(), "swaps page explains demo mode");
+});
+
 await run("tester passport", desktop, async (page) => {
   await page.goto(BASE + "/u/marco_ships");
   const passport = page.getByRole("region", { name: "Tester Passport" });

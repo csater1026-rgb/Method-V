@@ -140,11 +140,11 @@ Big brands won't sponsor small apps early on, but **small apps will sponsor each
 
 **Phase 3: "Grow"** (the difference maker)
 - Try-to-earn credits and structured feedback ✅ built
-- Tester Passport: stamps, tester ranks with perks, category badges, weekly streaks and a monthly top-testers board (see README)
-- Launch days and boosts
-- Build-in-public posts
-- Share kit and badges
-- Swaps and co-launches (free Boost Exchange)
+- Tester Passport: stamps, tester ranks with perks, category badges, weekly streaks and a monthly top-testers board ✅ built
+- Launch days and boosts ✅ built
+- Build-in-public posts ✅ built
+- Share kit and badges ✅ built
+- Swaps and co-launches (free Boost Exchange) ✅ built
 
 **Phase 4: "Earn"**
 - Paid app-to-app sponsorships (Boost Exchange), with pay-per-try pricing

@@ -477,3 +477,36 @@ export async function deleteUpdate(updateId: string): Promise<ActionResult> {
   revalidatePath("/", "layout");
   return { ok: true };
 }
+
+// ---------------------------------------------------------------------------
+// Phase 3: swaps and co-launches
+// ---------------------------------------------------------------------------
+
+export async function proposeSwap(
+  fromAppId: string,
+  toAppId: string,
+  kind: "swap" | "colaunch",
+  launchAt: string | null,
+): Promise<ActionResult> {
+  const when = launchAt ? new Date(launchAt) : null;
+  const invalid =
+    unknownApp(fromAppId) ??
+    unknownApp(toAppId) ??
+    (kind !== "swap" && kind !== "colaunch" ? "Pick swap or co-launch." : null) ??
+    (kind === "colaunch" && (!when || Number.isNaN(when.getTime())) ? "Pick a launch date and time." : null);
+  return callRpc(
+    "propose_swap",
+    { p_from: fromAppId, p_to: toAppId, p_kind: kind, p_launch_at: kind === "colaunch" && when ? when.toISOString() : null },
+    "Couldn't send the request.",
+    ["/swaps"],
+    invalid,
+  );
+}
+
+export async function respondSwap(swapId: string, accept: boolean): Promise<ActionResult> {
+  return callRpc("respond_swap", { p_swap_id: swapId, p_accept: accept }, "Couldn't answer the request.", ["/swaps"], UUID.test(swapId) ? null : "Unknown request.");
+}
+
+export async function endSwap(swapId: string): Promise<ActionResult> {
+  return callRpc("end_swap", { p_swap_id: swapId }, "Couldn't end it.", ["/swaps"], UUID.test(swapId) ? null : "Unknown request.");
+}

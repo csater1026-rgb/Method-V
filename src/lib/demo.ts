@@ -181,6 +181,9 @@ export const demoUpdates: { user: string; app: string | null; body: string; hour
   { user: "demo-ada", app: "demo-app-splitsy", body: "Receipt scanning now works on crumpled receipts too. Tested on 40 of my own.", hours: 50 },
 ];
 
+// Accepted shoutout swaps between apps.
+export const demoSwaps: [string, string][] = [["demo-app-noteflow", "demo-app-palettepal"]];
+
 // Hand-picked for the Featured row on the home feed.
 export const demoFeaturedIds = ["demo-app-palettepal", "demo-app-noteflow"];
 
