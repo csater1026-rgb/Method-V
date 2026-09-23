@@ -25,7 +25,6 @@ Items marked *(suggested)* are additions to the original idea.
 
 A **Drop** is a short demo video of an app, like a reel or a TikTok. Upload button: **"Post a Drop"**. Tagline: **"60 seconds. Then try it."**
 
-
 - A vertical, swipeable feed of Drops, each **60 seconds or shorter**
 - A **"Try it"** button on every Drop that goes straight to the live app
 - Separate feeds: For You, New, Trending and Following
