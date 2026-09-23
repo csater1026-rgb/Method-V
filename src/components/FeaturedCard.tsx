@@ -11,7 +11,7 @@ import { CategoryChip } from "./Tags";
 export function FeaturedCard({ app, rank, label }: { app: AppCard; rank: number; label: string }) {
   return (
     <article
-      className="rise relative flex aspect-[4/5] w-[82vw] max-w-[340px] shrink-0 snap-start overflow-hidden rounded-xl border border-line bg-surface sm:aspect-[4/5]"
+      className="rise media-dark relative flex aspect-[4/5] w-[82vw] max-w-[340px] shrink-0 snap-start overflow-hidden rounded-xl border border-line bg-surface sm:aspect-[4/5]"
       style={{ "--i": rank } as React.CSSProperties}
     >
       <Link href={`/apps/${app.slug}`} className="absolute inset-0" aria-label={app.name}>

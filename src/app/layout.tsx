@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Big_Shoulders, Martian_Mono, Schibsted_Grotesk } from "next/font/google";
+import { cookies } from "next/headers";
 
 import { Nav } from "@/components/Nav";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
@@ -22,12 +23,23 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0e0d0b",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f3eee2" },
+    { media: "(prefers-color-scheme: dark)", color: "#121814" },
+  ],
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  // Light or dark if someone picked one with the toggle; otherwise follow the phone.
+  const saved = (await cookies()).get("theme")?.value;
+  const theme = saved === "light" || saved === "dark" ? saved : undefined;
+
   return (
-    <html lang="en" className={`${poster.variable} ${body.variable} ${code.variable} h-full antialiased`}>
+    <html
+      lang="en"
+      data-theme={theme}
+      className={`${poster.variable} ${body.variable} ${code.variable} h-full antialiased`}
+    >
       {/* --chrome is the height of everything above the page, so the Drops feed can fill the rest. */}
       <body
         className="flex min-h-full flex-col font-sans"

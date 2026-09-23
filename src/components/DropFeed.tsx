@@ -80,7 +80,7 @@ function DropSlide({ item, first, signedIn, muted, onToggleSound }: SlideProps) 
       className="flex h-full snap-start snap-always items-center justify-center sm:py-4"
       aria-label={`${app.name} Drop`}
     >
-      <div className="relative aspect-[9/16] h-full max-w-full overflow-hidden bg-surface sm:rounded-xl sm:border sm:border-line">
+      <div className="media-dark relative aspect-[9/16] h-full max-w-full overflow-hidden bg-surface sm:rounded-xl sm:border sm:border-line">
         {item.video_url ? (
           <video
             ref={videoRef}

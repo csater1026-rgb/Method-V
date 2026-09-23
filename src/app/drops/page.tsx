@@ -30,7 +30,7 @@ export default async function DropsPage({ searchParams }: PageProps<"/drops">) {
 
   return (
     <div className="relative">
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-col items-center gap-2 p-3">
+      <div className="media-dark pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-col items-center gap-2 p-3">
         <nav aria-label="Feed" className="pointer-events-auto flex gap-4 drop-shadow-[0_1px_6px_rgb(0_0_0/0.7)]">
           {TABS.map((t) => (
             <Link

@@ -36,7 +36,7 @@ export function MobileTabs({ profileHref }: { profileHref: string }) {
               key={tab.label}
               href={tab.href}
               aria-label="Post a Drop"
-              className="flex h-9 w-12 -skew-x-6 items-center justify-center rounded-md bg-accent text-2xl leading-none font-bold text-accent-ink shadow-[0_3px_0_0_#9c3004] active:translate-y-px"
+              className="flex h-9 w-12 -skew-x-6 items-center justify-center rounded-md bg-accent text-2xl leading-none font-bold text-accent-ink shadow-[0_3px_0_0_var(--accent-edge)] active:translate-y-px"
             >
               +
             </Link>

@@ -36,7 +36,7 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
   return (
     <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-8 lg:grid-cols-[minmax(0,360px)_1fr]">
       <div className="mx-auto w-full max-w-[360px]">
-        <div className="relative aspect-[9/16] overflow-hidden rounded-xl border border-line bg-surface">
+        <div className="media-dark relative aspect-[9/16] overflow-hidden rounded-xl border border-line bg-surface">
           {app.drop?.video_url ? (
             <video
               src={app.drop.video_url}

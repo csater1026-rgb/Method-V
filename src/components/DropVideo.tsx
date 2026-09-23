@@ -16,10 +16,10 @@ export function DropPlaceholder({
 }) {
   const feed = variant === "feed";
   return (
-    <div className="@container relative h-full w-full overflow-hidden bg-surface">
+    <div className="@container media-dark relative h-full w-full overflow-hidden bg-surface">
       <div
         aria-hidden
-        className="absolute inset-0 bg-[repeating-linear-gradient(135deg,transparent_0_14px,rgb(255_91_31/0.09)_14px_16px)]"
+        className="absolute inset-0 bg-[repeating-linear-gradient(135deg,transparent_0_14px,rgb(var(--glow)/0.13)_14px_16px)]"
       />
       <div aria-hidden className="absolute -right-[20%] -bottom-[20%] h-[70%] w-[70%] rounded-full bg-accent/25 blur-3xl" />
       {variant !== "bare" && (

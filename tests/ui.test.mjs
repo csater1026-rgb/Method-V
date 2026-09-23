@@ -99,6 +99,35 @@ await run("feed (phone)", phone, async (page) => {
   ok(page.url().includes("/login?next=%2Fdrops"), "like while signed out → sign in");
 });
 
+// Themes: follows the phone, the toggle switches and remembers, media stays dark.
+{
+  const bgOf = (page, sel = "body") => page.evaluate((s) => getComputedStyle(document.querySelector(s)).backgroundColor, sel);
+  const ctx = await browser.newContext({ viewport: phone, colorScheme: "light" });
+  const page = await ctx.newPage();
+  await page.goto(BASE + "/");
+  ok((await bgOf(page)) === "rgb(243, 238, 226)", "light phone setting → cream background");
+  const featuredBg = await bgOf(page, "[aria-label='Featured apps'] article [class*='@container']");
+  ok(featuredBg === "rgb(25, 33, 27)", `featured poster stays dark in light mode (${featuredBg})`);
+  await page.getByRole("button", { name: "Switch between light and dark" }).click();
+  ok((await page.evaluate(() => document.documentElement.dataset.theme)) === "dark", "toggle switches to dark");
+  ok((await bgOf(page)) === "rgb(18, 24, 20)", "dark background after toggle");
+  await page.reload();
+  ok((await bgOf(page)) === "rgb(18, 24, 20)", "choice is remembered after reload");
+  await page.waitForTimeout(1200); // let the entrance animation finish
+  await page.screenshot({ path: OUT + "home-dark-phone.png" });
+  await page.getByRole("button", { name: "Switch between light and dark" }).click();
+  await page.reload();
+  ok((await bgOf(page)) === "rgb(243, 238, 226)", "toggle back to light is remembered");
+  await page.waitForTimeout(1200); // let the entrance animation finish
+  await page.screenshot({ path: OUT + "home-light-phone.png" });
+  await page.goto(BASE + "/drops");
+  await page.waitForTimeout(1200); // let the entrance animation finish
+  await page.screenshot({ path: OUT + "feed-light-phone.png" });
+  await page.goto(BASE + "/apps/noteflow");
+  await page.screenshot({ path: OUT + "app-light-phone.png", fullPage: true });
+  await ctx.close();
+}
+
 await run("small phone", { width: 360, height: 740 }, async (page) => {
   for (const path of ["/", "/drops", "/browse", "/apps/noteflow", "/u/ada_builds", "/submit", "/login", "/test", "/credits"]) {
     await page.goto(BASE + path);

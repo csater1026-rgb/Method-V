@@ -12,7 +12,7 @@ type Props = { app: AppCardData; showOwner?: boolean; index?: number };
 export function AppCard({ app, showOwner = true, index = 0 }: Props) {
   return (
     <article
-      className="group rise flex flex-col overflow-hidden rounded-xl border border-line bg-surface transition duration-300 hover:-translate-y-0.5 hover:border-accent/60 hover:shadow-[0_10px_30px_-12px_rgb(255_91_31/0.35)]"
+      className="group rise flex flex-col overflow-hidden rounded-xl border border-line bg-surface transition duration-300 hover:-translate-y-0.5 hover:border-accent/60 hover:shadow-[0_10px_30px_-12px_rgb(var(--glow)/0.55)]"
       style={{ "--i": Math.min(index, 12) } as React.CSSProperties}
     >
       <Link href={`/apps/${app.slug}`} className="relative block aspect-[4/3] overflow-hidden bg-surface-2">

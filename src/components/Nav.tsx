@@ -7,6 +7,7 @@ import { Avatar } from "./Avatar";
 import { CreditsChip } from "./CreditsChip";
 import { MobileTabs } from "./MobileTabs";
 import { NavLinks } from "./NavLinks";
+import { ThemeToggle } from "./ThemeToggle";
 
 // Top bar on every screen size; on phones the page links move to the bottom tab bar.
 export async function Nav() {
@@ -24,6 +25,7 @@ export async function Nav() {
           <NavLinks />
 
           <div className="ml-auto flex items-center gap-2">
+            <ThemeToggle />
             <Link href="/submit" className="btn-accent hidden sm:inline-flex">
               Post a Drop
             </Link>
