@@ -54,6 +54,15 @@ ok(await page.getByText("In common: Design · React").isVisible(), "suggestions 
 ok((await page.getByText("All projects").count()) === 0, "Home leaves the full list to Browse");
 ok(await page.getByText("Just posted").isVisible(), "Home shows the newest projects under the suggestions");
 {
+  const y = async (text) => (await page.getByText(text, { exact: false }).first().boundingBox())?.y ?? -1;
+  const [posted, builders, testers] = [await y("Just posted"), await y("Top builders ·"), await y("Top testers ·")];
+  ok(posted < builders && builders < testers, "Home ends with Top builders, then Top testers");
+  ok(await page.getByRole("link", { name: /^1\. June Okafor/ }).first().isVisible(), "the top builder leads the board");
+  await page.getByText("Top builders ·", { exact: false }).first().scrollIntoViewIfNeeded();
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: `${OUT}home-leaderboards.png` });
+}
+{
   const y = async (text) => (await page.getByText(text, { exact: true }).first().boundingBox()).y;
   ok((await y("Featured")) < (await y("Builders like you")) && (await y("Builders like you")) < (await y("Just posted")), "Home order: Featured, Builders like you, Just posted");
 }

@@ -3,6 +3,7 @@ import { Pressable, RefreshControl, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppCard } from "@/components/AppCard";
+import { Leaderboard, builderStat, testerStat } from "@/components/Leaderboard";
 import { Loading } from "@/components/PixelCoder";
 import { Suggestions } from "@/components/Suggestions";
 import { Body, Button, Card, Display, ErrorText, Eyebrow, Mono, Wordmark } from "@/components/ui";
@@ -12,8 +13,8 @@ import { getHome } from "@/lib/data";
 import { useLoad } from "@/lib/useLoad";
 import { useTheme } from "@/theme";
 
-// Home: Featured, builders to follow, then the newest projects. Everything
-// else is on Browse.
+// Home: Featured, builders to follow, the newest projects, then this month's
+// top builders and top testers. Everything else is on Browse.
 export default function HomeScreen() {
   const t = useTheme();
   const router = useRouter();
@@ -85,6 +86,23 @@ export default function HomeScreen() {
               <AppCard key={app.id} app={app} wide />
             ))}
           </ScrollView>
+        </View>
+      )}
+
+      {data && (
+        <View style={{ gap: 14, marginTop: 10 }}>
+          <Leaderboard
+            title="Top builders"
+            note="Ranked by tries on their apps and likes on their Drops this month."
+            empty="Nobody yet this month. Post a Drop and be the first."
+            rows={data.builders.map((b) => ({ ...b, stat: builderStat(b) }))}
+          />
+          <Leaderboard
+            title="Top testers"
+            note="Ranked by feedback builders marked helpful, then by feedback given."
+            empty="Nobody yet this month. Be the first."
+            rows={data.testers.map((x) => ({ ...x, stat: testerStat(x) }))}
+          />
         </View>
       )}
     </ScrollView>

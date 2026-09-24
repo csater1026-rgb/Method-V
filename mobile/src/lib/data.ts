@@ -19,7 +19,22 @@ import {
   demoQuestions,
   demoSponsors,
 } from "@shared/demo";
-import type { Answer, App, AppCard, AppDetail, Comment, Drop, FeedItem, Profile, ProfileSummary, QuestionCard, SponsorCard, Suggestion } from "@shared/types";
+import type {
+  Answer,
+  App,
+  AppCard,
+  AppDetail,
+  Comment,
+  Drop,
+  FeedItem,
+  Profile,
+  ProfileSummary,
+  QuestionCard,
+  SponsorCard,
+  Suggestion,
+  TopBuilder,
+  TopTester,
+} from "@shared/types";
 
 import { SIGNALS, bumpInterest, mergeInterests, rankFeed, rankQuestions, type Interests } from "@shared/interests";
 
@@ -130,10 +145,11 @@ async function likedIds(viewerId: string | null, dropIds: string[]): Promise<Set
 // Everything else is on Browse.
 export async function getHome(
   viewerId: string | null,
-): Promise<{ featured: AppCard[]; suggestions: Suggestion[]; newest: AppCard[] }> {
+): Promise<{ featured: AppCard[]; suggestions: Suggestion[]; newest: AppCard[]; builders: TopBuilder[]; testers: TopTester[] }> {
   if (!supabase) {
     const cards = demoCards();
     return {
+      ...demoLeaderboards(),
       featured: demoFeaturedIds.map((id) => cards.find((c) => c.id === id)!).filter(Boolean),
       newest: [...cards].sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 10),
       suggestions: [
@@ -177,7 +193,7 @@ export async function getHome(
     shared_categories: r.shared_categories ?? [],
     shared_skills: r.shared_skills ?? [],
   }));
-  return { featured: top, suggestions, newest: (newest.data ?? []).map(toCard) };
+  return { featured: top, suggestions, newest: (newest.data ?? []).map(toCard), ...(await getLeaderboards()) };
 }
 
 // "For you": recent Drops ranked by how new and popular they are and what
@@ -323,6 +339,68 @@ export async function getProfileBundle(
       : Promise.resolve({ data: null }),
   ]);
   return { profile: profile as Profile, apps: (apps.data ?? []).map(toCard), following: Boolean(follow.data) };
+}
+
+// ---------------------------------------------------------------------------
+// Leaderboards (on Home): this month's top builders and top testers
+// ---------------------------------------------------------------------------
+
+// Same numbers as the website's Home.
+function demoLeaderboards(): { builders: TopBuilder[]; testers: TopTester[] } {
+  const builders = demoProfiles
+    .map((p) => {
+      const apps = demoApps.filter((a) => a.owner_id === p.id);
+      return {
+        user_id: p.id,
+        username: p.username,
+        display_name: p.display_name,
+        avatar_url: null,
+        tries: Math.round(apps.reduce((n, a) => n + a.try_count, 0) / 4),
+        likes: Math.round(apps.reduce((n, a) => n + a.like_count, 0) / 4),
+      };
+    })
+    .filter((b) => b.tries + b.likes > 0)
+    .sort((a, b) => b.tries + 2 * b.likes - (a.tries + 2 * a.likes));
+  const testers = demoProfiles
+    .map((p) => ({
+      user_id: p.id,
+      username: p.username,
+      display_name: p.display_name,
+      avatar_url: null,
+      feedback_count: Math.round(p.feedback_given_count / 3),
+      helpful_count: Math.round(p.feedback_helpful_count / 3),
+    }))
+    .sort((a, b) => b.helpful_count - a.helpful_count || b.feedback_count - a.feedback_count);
+  return { builders, testers };
+}
+
+async function getLeaderboards(): Promise<{ builders: TopBuilder[]; testers: TopTester[] }> {
+  const [b, t] = await Promise.all([supabase!.rpc("top_builders", { p_limit: 10 }), supabase!.rpc("top_testers", { p_limit: 10 })]);
+  const testerRows = (t.data ?? []) as any[];
+  // top_testers doesn't return photos: look them up.
+  const photos = new Map<string, string | null>();
+  if (testerRows.length > 0) {
+    const { data } = await supabase!.from("profiles").select("id, avatar_path").in("id", testerRows.map((r) => r.user_id));
+    for (const p of (data ?? []) as any[]) photos.set(p.id, fileUrl(p.avatar_path));
+  }
+  return {
+    builders: ((b.data ?? []) as any[]).map((r) => ({
+      user_id: r.user_id,
+      username: r.username,
+      display_name: r.display_name ?? "",
+      avatar_url: fileUrl(r.avatar_path),
+      tries: Number(r.tries),
+      likes: Number(r.likes),
+    })),
+    testers: testerRows.map((r) => ({
+      user_id: r.user_id,
+      username: r.username,
+      display_name: r.display_name ?? "",
+      avatar_url: photos.get(r.user_id) ?? null,
+      feedback_count: Number(r.feedback_count),
+      helpful_count: Number(r.helpful_count),
+    })),
+  };
 }
 
 // ---------------------------------------------------------------------------
