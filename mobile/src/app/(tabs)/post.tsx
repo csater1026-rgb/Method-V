@@ -105,6 +105,11 @@ export default function PostScreen() {
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1, backgroundColor: t.bg }}>
       <ScrollView contentContainerStyle={{ paddingTop: insets.top + 12, padding: 16, gap: 18, paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
         <Display size={52}>Post a Drop</Display>
+        <Pressable accessibilityRole="link" onPress={() => router.push("/ask")} hitSlop={8} style={{ marginTop: -10, alignSelf: "flex-start" }}>
+          <Body bold size={14} style={{ color: t.accent }}>
+            Or ask a question about your app →
+          </Body>
+        </Pressable>
 
         <View style={{ gap: 10 }}>
           <Mono style={{ textTransform: "uppercase" }}>1 · Your video (up to {MAX_DROP_SECONDS}s)</Mono>

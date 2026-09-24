@@ -12,7 +12,7 @@ import { Sponsored } from "@/components/Sponsored";
 import { Avatar, Body, Button, Card, Display, ErrorText, Mono, StatusBadge, Tag, tap } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import { SITE_URL } from "@/lib/config";
-import { addComment, getAppDetail, setLike } from "@/lib/data";
+import { addComment, getAppDetail, getAppQuestions, setLike } from "@/lib/data";
 import { tryApp } from "@/lib/tryApp";
 import { useLoad } from "@/lib/useLoad";
 import { fonts, media, useTheme } from "@/theme";
@@ -23,6 +23,10 @@ export default function AppScreen() {
   const router = useRouter();
   const { viewer } = useAuth();
   const { data, error, refreshing, reload, setData } = useLoad(() => getAppDetail(slug, viewer?.id ?? null), [slug, viewer?.id]);
+  const questions = useLoad(
+    async () => (data?.app ? getAppQuestions(data.app.id, viewer?.id ?? null) : null),
+    [data?.app?.id, viewer?.id],
+  );
   const [comment, setComment] = useState("");
   const [commentError, setCommentError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
@@ -143,6 +147,29 @@ export default function AppScreen() {
           <Mono>Profile →</Mono>
         </Card>
       </Pressable>
+
+      <View style={{ gap: 10 }}>
+        <Display size={32}>
+          Questions <Mono>{questions.data?.length ?? 0}</Mono>
+        </Display>
+        {(questions.data ?? []).length === 0 && <Body muted>No questions yet. Curious how it works, or what&apos;s next? Ask.</Body>}
+        {(questions.data ?? []).slice(0, 5).map((q) => (
+          <Pressable key={q.id} accessibilityRole="link" onPress={() => router.push(`/q/${q.id}`)}>
+            <Card style={{ gap: 4 }}>
+              <Body bold>{q.body}</Body>
+              <Mono>
+                {q.answer_count} {q.answer_count === 1 ? "answer" : "answers"}
+                {q.poll ? " · poll" : ""} · ▲ {q.vote_count}
+              </Mono>
+            </Card>
+          </Pressable>
+        ))}
+        <Button
+          label="Ask a question"
+          kind="ghost"
+          onPress={() => router.push({ pathname: "/ask", params: { app: app.id, name: app.name } })}
+        />
+      </View>
 
       <View style={{ gap: 10 }}>
         <Display size={32}>

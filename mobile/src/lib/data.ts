@@ -519,6 +519,34 @@ export async function getQuestionFeed(viewerId: string | null, interests: Intere
   ).slice(0, 30);
 }
 
+// An app's questions for its page, most upvoted first.
+export async function getAppQuestions(appId: string, viewerId: string | null): Promise<QuestionCard[]> {
+  if (!supabase) return demoQuestionCards().filter((q) => q.app.id === appId);
+  const { data } = await supabase
+    .from("questions")
+    .select(QUESTION_SELECT)
+    .eq("app_id", appId)
+    .order("vote_count", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(20);
+  const rows = (data ?? []) as any[];
+  const picks = await pollPicks(viewerId, rows);
+  return rows.map((r) => toQuestionCard(r, picks));
+}
+
+// Your live apps, for picking which one a question is about.
+export async function getMyApps(viewerId: string | null): Promise<{ id: string; name: string }[]> {
+  if (!supabase) return demoApps.slice(0, 2).map((a) => ({ id: a.id, name: a.name }));
+  if (!viewerId) return [];
+  const { data } = await supabase
+    .from("apps")
+    .select("id, name")
+    .eq("owner_id", viewerId)
+    .not("link_checked_at", "is", null)
+    .order("created_at", { ascending: false });
+  return (data ?? []) as { id: string; name: string }[];
+}
+
 export async function getQuestion(id: string, viewerId: string | null): Promise<QuestionCard | null> {
   if (!supabase) return demoQuestionCards().find((q) => q.id === id) ?? null;
   const { data } = await supabase.from("questions").select(QUESTION_SELECT).eq("id", id).maybeSingle();
@@ -562,6 +590,25 @@ export async function setFollow(profileId: string, follow: boolean): Promise<Res
     ? await supabase!.from("follows").insert({ follower_id: auth.data.id, following_id: profileId })
     : await supabase!.from("follows").delete().eq("follower_id", auth.data.id).eq("following_id", profileId);
   return error && error.code !== "23505" ? fail("Couldn't update that.") : ok(undefined);
+}
+
+// Ask about an app, optionally with a one-tap poll (2-4 choices). Returns
+// the new question's id.
+export async function askQuestion(appId: string, body: string, pollOptions: string[] | null = null): Promise<Result<string>> {
+  const auth = await signedIn();
+  if (!auth.ok) return auth;
+  const text = body.trim();
+  if (text.length < 5) return fail("Ask a bit more (at least 5 characters).");
+  if (text.length > 500) return fail("Questions can be up to 500 characters.");
+  const options = pollOptions?.map((o) => o.trim()).filter(Boolean) ?? [];
+  if (pollOptions && (options.length < 2 || options.length > 4)) return fail("A poll needs 2 to 4 choices.");
+  if (options.some((o) => o.length > 60)) return fail("Keep each choice under 60 characters.");
+  const { data, error } = await supabase!
+    .from("questions")
+    .insert({ app_id: appId, user_id: auth.data.id, body: text, ...(options.length ? { poll_options: options } : {}) })
+    .select("id")
+    .single();
+  return error ? fail("Couldn't post your question.") : ok((data as { id: string }).id);
 }
 
 // Pick a poll choice (0-based), change it, or null to take it back.

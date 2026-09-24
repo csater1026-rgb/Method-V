@@ -29,6 +29,7 @@ const WATCHED_MS = 4000;
 const SKIPPED_MS = 1500;
 export default function DropsScreen() {
   const t = useTheme();
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const { viewer } = useAuth();
   const focused = useIsFocused();
@@ -86,6 +87,16 @@ export default function DropsScreen() {
     return (
       <View style={{ flex: 1, backgroundColor: media.bg }} onLayout={(e) => setHeight(e.nativeEvent.layout.height)}>
         {toggle}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Ask a question"
+          onPress={() => router.push("/ask")}
+          style={{ position: "absolute", top: insets.top + 12, right: 12, zIndex: 10, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6, backgroundColor: "rgba(0,0,0,0.55)" }}
+        >
+          <Body bold size={14} style={{ color: media.ink }}>
+            Ask
+          </Body>
+        </Pressable>
         {!questions.data && !questions.error ? (
           <Loading />
         ) : questions.error ? (

@@ -112,6 +112,31 @@ await page.getByText("Tailwind config, easy.", { exact: false }).first().waitFor
 ok(await page.getByText("Same, and CSS variables would cover everyone else.").isVisible(), "the thread shows answers and replies");
 await page.screenshot({ path: `${OUT}question-thread.png` });
 
+// Asking: from the Questions feed, an app's page, and the Post tab.
+await visit("/drops");
+await page.getByRole("tab", { name: "Questions" }).click();
+await page.getByRole("button", { name: "Ask a question" }).first().click();
+await page.waitForURL(/\/ask/);
+await page.getByLabel("Your question").waitFor({ timeout: 10000 });
+ok(true, "Questions has an Ask button that opens the Ask screen");
+ok((await page.getByRole("radio").count()) >= 1, "you pick which app it's about");
+await page.getByLabel("Your question").fill("Which logo is better?");
+await page.getByText("+ Add a poll").click();
+ok(await page.getByRole("textbox", { name: "Choice 1", exact: true }).isVisible() && (await page.getByRole("textbox", { name: "Choice 2", exact: true }).isVisible()), "+ Add a poll gives two choices");
+await page.getByText("+ Add a choice").click();
+ok(await page.getByRole("textbox", { name: "Choice 3", exact: true }).isVisible(), "…and you can add more");
+await page.getByRole("textbox", { name: "Choice 1", exact: true }).fill("Blue");
+await page.getByRole("textbox", { name: "Choice 2", exact: true }).fill("Mint");
+await page.getByRole("button", { name: "Ask" }).click();
+await page.waitForFunction(() => document.body.innerText.split("This is a demo build").length > 2, null, { timeout: 10000 });
+ok(true, "asking explains the demo build");
+await page.screenshot({ path: `${OUT}ask.png` });
+await visit("/apps/noteflow");
+await page.getByText("Does it work with Google Meet recordings, or only Zoom?").waitFor({ timeout: 10000 });
+ok(await page.getByRole("button", { name: "Ask a question" }).isVisible(), "app pages list their questions with an Ask button");
+await visit("/post");
+ok(await page.getByText("Or ask a question about your app →").isVisible(), "the Post tab links to Ask");
+
 await visit("/browse", "browse");
 await page.getByRole("button", { name: "Education" }).click();
 await page.waitForTimeout(400);

@@ -62,6 +62,7 @@ function Screens() {
         <Stack.Screen name="apps/[slug]" options={{ title: "" }} />
         <Stack.Screen name="u/[username]" options={{ title: "" }} />
         <Stack.Screen name="q/[id]" options={{ title: "" }} />
+        <Stack.Screen name="ask" options={{ title: "Ask a question" }} />
         <Stack.Screen name="sign-in" options={{ presentation: "modal", title: "Sign in" }} />
       </Stack>
     </>

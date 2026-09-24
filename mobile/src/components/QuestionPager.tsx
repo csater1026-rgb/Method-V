@@ -45,8 +45,8 @@ export function QuestionPager({
           <Display size={40} style={{ color: media.ink, textAlign: "center" }}>
             Got a question?
           </Display>
-          <Body style={{ color: media.muted, textAlign: "center" }}>Ask people about your app from its page, with a poll if you like.</Body>
-          <Button label="Post a Drop" kind="ghost" onPress={() => router.push("/post")} />
+          <Body style={{ color: media.muted, textAlign: "center" }}>Ask people about your app, with a poll if you like. It shows up here for everyone.</Body>
+          <Button label="Ask a question" onPress={() => router.push("/ask")} />
         </View>
       }
     />
