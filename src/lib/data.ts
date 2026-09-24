@@ -51,12 +51,15 @@ import type {
   Notification,
   Profile,
   ProfileSummary,
+  Answer,
   Question,
+  QuestionCard,
   Suggestion,
   Passport,
   QueueItem,
   Swap,
   TestRequest,
+  TopBuilder,
   TopTester,
   Update,
   Viewer,
@@ -748,6 +751,40 @@ export async function getTopTesters(): Promise<TopTester[]> {
   }));
 }
 
+// This month's top builders: tries on their apps plus likes on their Drops
+// (x2), from other people. Null until migration 20261003000000 is run.
+export async function getTopBuilders(): Promise<TopBuilder[] | null> {
+  if (!isSupabaseConfigured) {
+    return demoProfiles
+      .map((p) => {
+        const apps = demoApps.filter((a) => a.owner_id === p.id);
+        return {
+          user_id: p.id,
+          username: p.username,
+          display_name: p.display_name,
+          avatar_url: null,
+          tries: Math.round(apps.reduce((n, a) => n + a.try_count, 0) / 4),
+          likes: Math.round(apps.reduce((n, a) => n + a.like_count, 0) / 4),
+        };
+      })
+      .filter((b) => b.tries + b.likes > 0)
+      .sort((a, b) => b.tries + 2 * b.likes - (a.tries + 2 * a.likes));
+  }
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("top_builders", { p_limit: 10 });
+  if (error) return null;
+  return ((data ?? []) as { user_id: string; username: string; display_name: string; avatar_path: string | null; tries: number; likes: number }[]).map(
+    (r) => ({
+      user_id: r.user_id,
+      username: r.username,
+      display_name: r.display_name,
+      avatar_url: publicFileUrl(r.avatar_path),
+      tries: Number(r.tries),
+      likes: Number(r.likes),
+    }),
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Build-in-public updates
 // ---------------------------------------------------------------------------
@@ -1005,76 +1042,221 @@ export async function getThread(
 // ---------------------------------------------------------------------------
 
 // Questions on an app, most upvoted first; answers with the best one first.
-export async function getQuestions(appId: string, viewer: Viewer | null): Promise<Question[]> {
-  if (!isSupabaseConfigured) {
-    return (demoQuestions[appId] ?? []).map((q, qi) => {
-      const answers = q.answers.map((a, ai) => ({
-        id: `demo-a-${qi}-${ai}`,
+// ---------------------------------------------------------------------------
+// Q&A: on app pages, in the Questions feed and on a question's own page
+// ---------------------------------------------------------------------------
+
+/* eslint-disable @typescript-eslint/no-explicit-any -- rows come back untyped without generated types */
+
+// Polls and replies need migration 20261003000000_questions_feed; until it's
+// run, questions still work without them. Checked again every minute.
+let qaColumns = false;
+let qaCheckedAt = 0;
+async function checkQaColumns() {
+  if (qaColumns || !isSupabaseConfigured || Date.now() - qaCheckedAt < 60_000) return;
+  qaCheckedAt = Date.now();
+  const supabase = await createClient();
+  const [q, a] = await Promise.all([
+    supabase.from("questions").select("poll_options, poll_counts").limit(1),
+    supabase.from("answers").select("parent_id").limit(1),
+  ]);
+  qaColumns = !q.error && !a.error;
+}
+export async function questionsFeedReady(): Promise<boolean> {
+  await checkQaColumns();
+  return qaColumns;
+}
+
+const questionSelect = (withApp: boolean) =>
+  `id, body, created_at, vote_count, answer_count, best_answer_id, user_id${qaColumns ? ", poll_options, poll_counts" : ""},
+   user:profiles!questions_user_id_fkey(${summaryCols()}),
+   answers(id, body, created_at, vote_count${qaColumns ? ", parent_id" : ""}, user:profiles!answers_user_id_fkey(${summaryCols()}))${
+     withApp ? ", app:apps!inner(id, slug, name, tagline, category, owner_id, link_checked_at, drops(poster_path, created_at))" : ""
+   }`;
+
+type AnswerRow = { id: string; body: string; created_at: string; vote_count: number; parent_id?: string | null; user: unknown };
+
+// Answers first by best, then votes, then oldest; replies sit under the
+// answer they reply to, oldest first.
+function orderAnswers(answers: Answer[], bestId: string | null): Answer[] {
+  const top = answers
+    .filter((a) => !a.parent_id)
+    .sort(
+      (a, b) =>
+        Number(b.id === bestId) - Number(a.id === bestId) || b.vote_count - a.vote_count || a.created_at.localeCompare(b.created_at),
+    );
+  const replies = answers.filter((a) => a.parent_id).sort((a, b) => a.created_at.localeCompare(b.created_at));
+  return top.flatMap((a) => [a, ...replies.filter((r) => r.parent_id === a.id)]);
+}
+
+async function viewerQaState(viewer: Viewer | null, rows: any[]) {
+  const votedQ = new Set<string>();
+  const votedA = new Set<string>();
+  const picks = new Map<string, number>();
+  if (!viewer || rows.length === 0) return { votedQ, votedA, picks };
+  const supabase = await createClient();
+  const qIds = rows.map((r) => r.id as string);
+  const aIds = rows.flatMap((r) => ((r.answers ?? []) as { id: string }[]).map((a) => a.id));
+  const pollIds = rows.filter((r) => r.poll_options).map((r) => r.id as string);
+  const [qv, av, pv] = await Promise.all([
+    supabase.from("question_votes").select("question_id").eq("user_id", viewer.id).in("question_id", qIds),
+    aIds.length ? supabase.from("answer_votes").select("answer_id").eq("user_id", viewer.id).in("answer_id", aIds) : Promise.resolve({ data: [] }),
+    pollIds.length ? supabase.from("poll_votes").select("question_id, choice").eq("user_id", viewer.id).in("question_id", pollIds) : Promise.resolve({ data: [] }),
+  ]);
+  for (const v of (qv.data ?? []) as any[]) votedQ.add(v.question_id);
+  for (const v of (av.data ?? []) as any[]) votedA.add(v.answer_id);
+  for (const v of (pv.data ?? []) as any[]) picks.set(v.question_id, v.choice);
+  return { votedQ, votedA, picks };
+}
+
+function toQuestion(row: any, state: Awaited<ReturnType<typeof viewerQaState>>): Question {
+  return {
+    id: row.id,
+    body: row.body,
+    created_at: row.created_at,
+    vote_count: row.vote_count,
+    voted: state.votedQ.has(row.id),
+    best_answer_id: row.best_answer_id,
+    user: toSummary(row.user),
+    poll: row.poll_options ? { options: row.poll_options, counts: row.poll_counts ?? [], mine: state.picks.get(row.id) ?? null } : null,
+    answers: orderAnswers(
+      ((row.answers ?? []) as AnswerRow[]).map((a) => ({
+        id: a.id,
         body: a.body,
-        created_at: demoCommentDate(1 - ai * 0.2),
+        created_at: a.created_at,
+        vote_count: a.vote_count,
+        parent_id: a.parent_id ?? null,
+        voted: state.votedA.has(a.id),
+        user: toSummary(a.user),
+      })),
+      row.best_answer_id,
+    ),
+  };
+}
+
+function toQuestionCard(row: any, state: Awaited<ReturnType<typeof viewerQaState>>): QuestionCard {
+  const latest = [...(row.app.drops ?? [])].sort((a: any, b: any) => b.created_at.localeCompare(a.created_at))[0];
+  return {
+    ...toQuestion(row, state),
+    answer_count: row.answer_count ?? (row.answers ?? []).length,
+    by_builder: row.user_id === row.app.owner_id,
+    app: {
+      id: row.app.id,
+      slug: row.app.slug,
+      name: row.app.name,
+      tagline: row.app.tagline,
+      category: row.app.category,
+      owner_id: row.app.owner_id,
+      poster_url: publicFileUrl(latest?.poster_path ?? null),
+    },
+  };
+}
+
+// Sample questions in demo mode, shaped like the real ones.
+function demoQuestionCards(): QuestionCard[] {
+  return Object.entries(demoQuestions).flatMap(([appId, list]) => {
+    const app = demoApps.find((a) => a.id === appId)!;
+    return list.map((q, qi) => {
+      const answers = q.answers.map((a, ai) => ({
+        id: `demo-a-${appId}-${qi}-${ai}`,
+        body: a.body,
+        created_at: demoCommentDate((q.hours ?? 24 * (2 - qi)) / 24 - (ai + 1) * 0.02),
         vote_count: a.votes,
         voted: false,
         user: toSummary(demoProfile(a.user)),
+        parent_id: null as string | null,
       }));
+      q.answers.forEach((a, ai) => {
+        if (a.replyTo !== undefined) answers[ai].parent_id = answers[a.replyTo].id;
+      });
       const best = q.answers.findIndex((a) => a.best);
+      const bestId = best >= 0 ? answers[best].id : null;
       return {
-        id: `demo-q-${qi}`,
+        id: `demo-q-${appId}-${qi}`,
         body: q.body,
-        created_at: demoCommentDate(2 - qi),
+        created_at: demoCommentDate((q.hours ?? 24 * (2 - qi)) / 24),
         vote_count: q.votes,
         voted: false,
-        best_answer_id: best >= 0 ? answers[best].id : null,
+        best_answer_id: bestId,
         user: toSummary(demoProfile(q.user)),
-        answers,
+        poll: q.poll ? { ...q.poll, mine: null } : null,
+        answers: orderAnswers(answers, bestId),
+        answer_count: answers.length,
+        by_builder: q.user === app.owner_id,
+        app: { id: app.id, slug: app.slug, name: app.name, tagline: app.tagline, category: app.category, owner_id: app.owner_id, poster_url: null },
       };
     });
-  }
+  });
+}
 
+export async function getQuestions(appId: string, viewer: Viewer | null): Promise<Question[]> {
+  if (!isSupabaseConfigured) return demoQuestionCards().filter((q) => q.app.id === appId);
+  await checkQaColumns();
   const supabase = await createClient();
   const { data } = await supabase
     .from("questions")
-    .select(
-      `id, body, created_at, vote_count, best_answer_id, user:profiles!questions_user_id_fkey(${summaryCols()}),
-       answers(id, body, created_at, vote_count, user:profiles!answers_user_id_fkey(${summaryCols()}))`,
-    )
+    .select(questionSelect(false))
     .eq("app_id", appId)
     .order("vote_count", { ascending: false })
     .order("created_at", { ascending: false })
     .limit(50);
-  const rows = data ?? [];
+  const rows = (data ?? []) as any[];
+  const state = await viewerQaState(viewer, rows);
+  return rows.map((r) => toQuestion(r, state));
+}
 
-  let votedQ = new Set<string>();
-  let votedA = new Set<string>();
-  if (viewer && rows.length > 0) {
-    const qIds = rows.map((r) => r.id as string);
-    const aIds = rows.flatMap((r) => (r.answers ?? []).map((a: { id: string }) => a.id));
-    const [qv, av] = await Promise.all([
-      supabase.from("question_votes").select("question_id").eq("user_id", viewer.id).in("question_id", qIds),
-      aIds.length
-        ? supabase.from("answer_votes").select("answer_id").eq("user_id", viewer.id).in("answer_id", aIds)
-        : Promise.resolve({ data: [] as { answer_id: string }[] }),
+// One question with its app and whole thread, for /q/[id].
+export async function getQuestion(id: string, viewer: Viewer | null): Promise<QuestionCard | null> {
+  if (!isSupabaseConfigured) return demoQuestionCards().find((q) => q.id === id) ?? null;
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
+  await checkQaColumns();
+  const supabase = await createClient();
+  const { data } = await supabase.from("questions").select(questionSelect(true)).eq("id", id).not("app.link_checked_at", "is", null).maybeSingle();
+  if (!data) return null;
+  const state = await viewerQaState(viewer, [data]);
+  return toQuestionCard(data, state);
+}
+
+// The Questions tab in Drops: recent questions ranked for this person. Fresh
+// ones and ones still waiting for answers come first, then builders asking
+// about their own app, polls, and the categories they're into.
+export async function getQuestionFeed(viewer: Viewer | null, interests: Interests = {}): Promise<QuestionCard[]> {
+  let cards: QuestionCard[];
+  if (!isSupabaseConfigured) {
+    cards = demoQuestionCards();
+  } else {
+    await checkQaColumns();
+    const supabase = await createClient();
+    const [{ data }, learned] = await Promise.all([
+      supabase
+        .from("questions")
+        .select(questionSelect(true))
+        .not("app.link_checked_at", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(100),
+      viewer ? viewerInterests(viewer.id) : Promise.resolve({}),
     ]);
-    votedQ = new Set((qv.data ?? []).map((v) => v.question_id as string));
-    votedA = new Set((av.data ?? []).map((v) => v.answer_id as string));
+    const rows = (data ?? []) as any[];
+    const state = await viewerQaState(viewer, rows);
+    cards = rows.map((r) => toQuestionCard(r, state));
+    interests = mergeInterests(interests, learned);
   }
-
-  return rows.map((q) => ({
-    id: q.id,
-    body: q.body,
-    created_at: q.created_at,
-    vote_count: q.vote_count,
-    voted: votedQ.has(q.id),
-    best_answer_id: q.best_answer_id,
-    user: toSummary(q.user),
-    answers: ((q.answers ?? []) as unknown as { id: string; body: string; created_at: string; vote_count: number; user: unknown }[])
-      .map((a) => ({ ...a, voted: votedA.has(a.id), user: toSummary(a.user) }))
-      .sort(
-        (a, b) =>
-          Number(b.id === q.best_answer_id) - Number(a.id === q.best_answer_id) ||
-          b.vote_count - a.vote_count ||
-          a.created_at.localeCompare(b.created_at),
-      ),
-  }));
+  const top = Math.max(0, ...Object.values(interests).map((n) => n ?? 0));
+  const now = Date.now();
+  const score = (q: QuestionCard) => {
+    const ageHours = Math.max(0, (now - Date.parse(q.created_at)) / 3_600_000);
+    const affinity = top > 0 ? (interests[q.app.category as keyof Interests] ?? 0) / top : 0;
+    return (
+      1 / (1 + ageHours / 48) +
+      0.8 / (1 + q.answer_count) +
+      (q.by_builder ? 0.5 : 0) +
+      (q.poll ? 0.3 : 0) +
+      affinity +
+      Math.min(0.5, q.vote_count / 20) -
+      (viewer && q.user.id === viewer.id ? 1 : 0)
+    );
+  };
+  return cards.sort((a, b) => score(b) - score(a)).slice(0, 30);
 }
 
 // ---------------------------------------------------------------------------

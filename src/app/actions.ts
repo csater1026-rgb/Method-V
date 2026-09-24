@@ -607,31 +607,72 @@ function qaPath(appSlug: string) {
   return `/apps/${appSlug}`;
 }
 
-export async function askQuestion(appId: string, appSlug: string, body: string): Promise<ActionResult> {
+// Ask about an app, optionally with a one-tap poll (2-4 choices).
+export async function askQuestion(
+  appId: string,
+  appSlug: string,
+  body: string,
+  pollOptions: string[] | null = null,
+): Promise<ActionResult & { id?: string }> {
   const auth = await requireViewer();
   if ("error" in auth) return { ok: false, error: auth.error };
   if (!UUID.test(appId)) return { ok: false, error: "Unknown app." };
   const text = body.trim();
   if (text.length < 5) return { ok: false, error: "Ask a bit more (at least 5 characters)." };
   if (text.length > 500) return { ok: false, error: "Questions can be up to 500 characters." };
+  const options = pollOptions?.map((o) => o.trim()).filter(Boolean) ?? [];
+  if (pollOptions && (options.length < 2 || options.length > 4)) return { ok: false, error: "A poll needs 2 to 4 choices." };
+  if (options.some((o) => o.length > 60)) return { ok: false, error: "Keep each choice under 60 characters." };
   const supabase = await createClient();
-  const { error } = await supabase.from("questions").insert({ app_id: appId, user_id: auth.viewer.id, body: text });
-  if (error) return { ok: false, error: "Couldn't post your question." };
+  const row = { app_id: appId, user_id: auth.viewer.id, body: text, ...(options.length ? { poll_options: options } : {}) };
+  const { data, error } = await supabase.from("questions").insert(row).select("id").single();
+  if (error) {
+    if (options.length && (error.code === "PGRST204" || error.code === "42703")) {
+      return { ok: false, error: "Polls need the latest database update. Open /api/health to see what to run." };
+    }
+    return { ok: false, error: "Couldn't post your question." };
+  }
   revalidatePath(qaPath(appSlug));
-  return { ok: true };
+  revalidatePath("/drops");
+  return { ok: true, id: data.id as string };
 }
 
-export async function answerQuestion(questionId: string, appSlug: string, body: string): Promise<ActionResult> {
+// Pick a poll choice (0-based), change it, or pass null to take it back.
+export async function votePoll(questionId: string, choice: number | null): Promise<ActionResult & { counts?: number[] }> {
   const auth = await requireViewer();
   if ("error" in auth) return { ok: false, error: auth.error };
   if (!UUID.test(questionId)) return { ok: false, error: "Unknown question." };
+  if (choice !== null && (!Number.isInteger(choice) || choice < 0 || choice > 3)) return { ok: false, error: "Pick one of the choices." };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("vote_poll", { p_question: questionId, p_choice: choice });
+  if (error) return { ok: false, error: error.code === "P0001" ? error.message : "Couldn't save your vote." };
+  return { ok: true, counts: data as number[] };
+}
+
+// Answer a question, or with parentId, reply to an answer on it.
+export async function answerQuestion(
+  questionId: string,
+  appSlug: string,
+  body: string,
+  parentId: string | null = null,
+): Promise<ActionResult> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  if (!UUID.test(questionId) || (parentId !== null && !UUID.test(parentId))) return { ok: false, error: "Unknown question." };
   const text = body.trim();
   if (!text) return { ok: false, error: "Write an answer first." };
   if (text.length > 1000) return { ok: false, error: "Answers can be up to 1,000 characters." };
   const supabase = await createClient();
-  const { error } = await supabase.from("answers").insert({ question_id: questionId, user_id: auth.viewer.id, body: text });
-  if (error) return { ok: false, error: "Couldn't post your answer." };
+  const row = { question_id: questionId, user_id: auth.viewer.id, body: text, ...(parentId ? { parent_id: parentId } : {}) };
+  const { error } = await supabase.from("answers").insert(row);
+  if (error) {
+    if (parentId && (error.code === "PGRST204" || error.code === "42703")) {
+      return { ok: false, error: "Replies need the latest database update. Open /api/health to see what to run." };
+    }
+    return { ok: false, error: "Couldn't post your answer." };
+  }
   revalidatePath(qaPath(appSlug));
+  revalidatePath(`/q/${questionId}`);
   return { ok: true };
 }
 

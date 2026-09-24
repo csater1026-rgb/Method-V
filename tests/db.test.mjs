@@ -774,5 +774,66 @@ ok(!!(await fails("anon", null, "insert into public.sponsorships (sponsor_brand,
   ok(!!(await fails("authenticated", A, setSocial("tiktok_handle"), ["a", A])), "TikTok handles are at least 2 characters");
 }
 
+// --- Questions feed: polls and replies ---
+{
+  const ask = "insert into public.questions (app_id, user_id, body, poll_options) values ($1, $2, $3, $4) returning id, poll_counts";
+  const poll = (await as("authenticated", A, ask, [appId, A, "Which logo should I ship?", ["Blue V", "Mint V", "Both"]])).rows[0];
+  ok(JSON.stringify(poll.poll_counts) === "[0,0,0]", "a poll starts at zero for each choice");
+  ok(!!(await fails("authenticated", A, ask, [appId, A, "Only one choice?", ["Yes"]])), "polls need 2 to 4 choices");
+  ok(!!(await fails("authenticated", A, ask, [appId, A, "Five choices?", ["a", "b", "c", "d", "e"]])), "…not 5");
+  ok(!!(await fails("authenticated", A, ask, [appId, A, "Blank choice?", ["ok", "  "]])), "choices can't be blank");
+  ok(!!(await fails("authenticated", A, "insert into public.questions (app_id, user_id, body, poll_options, poll_counts) values ($1, $2, 'Rigged poll?', $3, $4)", [appId, A, ["a", "b"], [99, 0]])), "can't set poll totals");
+
+  const vote = async (uid, choice) => (await as("authenticated", uid, "select public.vote_poll($1, $2) as c", [poll.id, choice])).rows[0].c;
+  await vote(B, 1);
+  await vote(C, 1);
+  ok(JSON.stringify(await vote(D, 0)) === "[1,2,0]", "one tap votes and the totals add up");
+  ok(JSON.stringify(await vote(B, 2)) === "[1,1,1]", "changing your vote moves it");
+  ok(JSON.stringify(await vote(B, null)) === "[1,1,0]", "you can take your vote back");
+  ok(!!(await fails("authenticated", C, "select public.vote_poll($1, 7)", [poll.id])), "only real choices");
+  ok(!!(await fails("authenticated", C, "select public.vote_poll($1, 0)", [qid])), "no voting on questions without a poll");
+  ok(!!(await fails("authenticated", C, "insert into public.poll_votes (question_id, user_id, choice) values ($1, $2, 0)", [poll.id, C])), "can't write votes directly");
+  ok((await as("authenticated", B, "select * from public.poll_votes where question_id = $1", [poll.id])).rows.length === 0, "you only see your own votes (B took theirs back)");
+  ok((await as("authenticated", C, "select * from public.poll_votes where question_id = $1", [poll.id])).rows.length === 1, "…and C sees just their own");
+
+  const reply = "insert into public.answers (question_id, user_id, body, parent_id) values ($1, $2, $3, $4) returning id, parent_id";
+  const top = (await as("authenticated", B, reply, [poll.id, B, "Mint, it pops.", null])).rows[0].id;
+  const r1 = (await as("authenticated", C, reply, [poll.id, C, "Agree with mint.", top])).rows[0];
+  ok(r1.parent_id === top, "you can reply to an answer");
+  const r2 = (await as("authenticated", D, reply, [poll.id, D, "Replying to a reply.", r1.id])).rows[0];
+  ok(r2.parent_id === top, "replies stay one level deep");
+  ok(!!(await fails("authenticated", D, reply, [qid, D, "Wrong thread.", top])), "a reply must be on the same question");
+  ok(!!(await fails("authenticated", A, "select public.mark_best_answer($1, $2)", [poll.id, r1.id])), "best answer is an answer, not a reply");
+  await as("authenticated", A, "select public.mark_best_answer($1, $2)", [poll.id, top]);
+  ok((await db.query("select best_answer_id from public.questions where id = $1", [poll.id])).rows[0].best_answer_id === top, "the asker picks a best answer");
+  ok((await db.query("select count(*)::int n from public.notifications where user_id = $1 and kind = 'answer' and actor_id = $2", [B, C])).rows[0].n >= 1, "replying notifies the answer's author");
+}
+
+// --- Top builders of the month ---
+{
+  const before = (await as("anon", null, "select * from public.top_builders(10)")).rows.find((r) => r.user_id === A);
+  await as("authenticated", A, "insert into public.try_clicks (app_id, user_id) values ($1, $2) on conflict do nothing", [appId, A]);
+  const rows = (await as("anon", null, "select * from public.top_builders(10)")).rows;
+  const a = rows.find((r) => r.user_id === A);
+  ok(Boolean(a) && Number(a.tries) >= 2 && Number(a.likes) >= 1, `builders rank by other people's tries and likes this month (${a?.tries} tries, ${a?.likes} likes)`);
+  ok(Number(a.tries) === Number(before.tries), "your own tries don't count");
+  ok(rows.every((r, i) => i === 0 || Number(rows[i - 1].tries) + 2 * Number(rows[i - 1].likes) >= Number(r.tries) + 2 * Number(r.likes)), "sorted by tries + 2 × likes");
+}
+
+// The newest migrations can be run again without errors (people paste them twice).
+{
+  const again = readdirSync(migrationsDir).filter((f) => f >= "20261001000000").sort();
+  let clean = true;
+  for (const f of again) {
+    try {
+      await db.exec(readFileSync(new URL(f, migrationsDir), "utf8"));
+    } catch (e) {
+      clean = false;
+      console.log(`  ${f}: ${e.message}`);
+    }
+  }
+  ok(clean && again.length === 3, `the newest migrations are safe to run twice (${again.join(", ")})`);
+}
+
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");
 process.exit(failures ? 1 : 0);

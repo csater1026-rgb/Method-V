@@ -1,19 +1,20 @@
 import Link from "next/link";
 
 import { FeaturedCard } from "@/components/FeaturedCard";
-import { TopTesters } from "@/components/Passport";
+import { TopBuilders, TopTesters } from "@/components/Passport";
 import { Suggestions } from "@/components/Suggestions";
-import { getApps, getFeatured, getSuggestions, getTopTesters, getViewer } from "@/lib/data";
+import { getApps, getFeatured, getSuggestions, getTopBuilders, getTopTesters, getViewer } from "@/lib/data";
 
 // Home: Featured, builders to follow, the newest projects, then this month's
-// top testers. Everything else lives on Browse.
+// top builders and top testers. Everything else lives on Browse.
 
 export default async function HomePage() {
   const viewer = await getViewer();
-  const [featured, suggestions, newest, topTesters] = await Promise.all([
+  const [featured, suggestions, newest, topBuilders, topTesters] = await Promise.all([
     getFeatured(),
     getSuggestions(viewer),
     getApps({}, 10),
+    getTopBuilders(),
     getTopTesters(),
   ]);
 
@@ -70,7 +71,8 @@ export default async function HomePage() {
         </section>
       )}
 
-      <div className="mt-10 px-4">
+      <div className="mt-10 flex flex-col gap-4 px-4">
+        {topBuilders && <TopBuilders builders={topBuilders} />}
         <TopTesters testers={topTesters} />
         <p className="mt-2 text-sm text-muted">
           Try an app and give feedback on its page to get on the board.{" "}

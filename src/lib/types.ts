@@ -153,6 +153,15 @@ export type TopTester = {
   avatar_url?: string | null;
 };
 
+export type TopBuilder = {
+  user_id: string;
+  username: string;
+  display_name: string;
+  avatar_url: string | null;
+  tries: number;
+  likes: number;
+};
+
 export type Update = {
   id: string;
   body: string;
@@ -212,6 +221,15 @@ export type Answer = {
   vote_count: number;
   voted: boolean;
   user: ProfileSummary;
+  // Set on a reply: the answer it replies to (one level deep).
+  parent_id?: string | null;
+};
+
+export type Poll = {
+  options: string[];
+  counts: number[];
+  // Your pick (0-based), or null.
+  mine: number | null;
 };
 
 export type Question = {
@@ -223,6 +241,15 @@ export type Question = {
   best_answer_id: string | null;
   user: ProfileSummary;
   answers: Answer[];
+  poll?: Poll | null;
+};
+
+// A question in the Questions feed or on its own page, with its app.
+export type QuestionCard = Question & {
+  answer_count: number;
+  app: { id: string; slug: string; name: string; tagline: string; category: string; owner_id: string; poster_url: string | null };
+  // Asked by the app's own builder.
+  by_builder: boolean;
 };
 
 export type Suggestion = ProfileSummary & { shared_categories: string[]; shared_skills: string[] };

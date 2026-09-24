@@ -8,6 +8,7 @@ import { timeAgo } from "@/lib/format";
 import type { Answer, Question } from "@/lib/types";
 
 import { Avatar } from "./Avatar";
+import { Poll } from "./Poll";
 import { useSignIn } from "./SignIn";
 
 type Props = {
@@ -44,38 +45,82 @@ export function QandA({ app, questions, viewerId }: Props) {
   );
 }
 
-function AskForm({ app }: { app: Props["app"] }) {
+export type QaApp = Props["app"];
+
+// "onAsked" runs after a question posts (e.g. to open its thread).
+export function AskForm({ app, onAsked }: { app: Props["app"]; onAsked?: (id: string) => void }) {
   const [body, setBody] = useState("");
+  const [options, setOptions] = useState<string[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const pollReady = !options || options.filter((o) => o.trim()).length >= 2;
 
   return (
     <form
-      className="flex gap-2"
+      className="flex flex-col gap-2"
       onSubmit={(e) => {
         e.preventDefault();
         setError(null);
         startTransition(async () => {
-          const result = await askQuestion(app.id, app.slug, body);
-          if (result.ok) setBody("");
-          else setError(result.error);
+          const result = await askQuestion(app.id, app.slug, body, options);
+          if (result.ok) {
+            setBody("");
+            setOptions(null);
+            if (result.id) onAsked?.(result.id);
+          } else setError(result.error);
         });
       }}
     >
-      <div className="flex-1">
+      <div className="flex gap-2">
         <input
           value={body}
           onChange={(e) => setBody(e.target.value)}
           maxLength={500}
           placeholder={`Ask about ${app.name}…`}
           aria-label="Ask a question"
-          className="field"
+          className="field flex-1"
         />
-        {error && <p className="mt-1 text-xs text-danger">{error}</p>}
+        <button className="btn-accent" disabled={pending || body.trim().length < 5 || !pollReady}>
+          Ask
+        </button>
       </div>
-      <button className="btn-accent" disabled={pending || body.trim().length < 5}>
-        Ask
-      </button>
+      {options ? (
+        <fieldset className="flex flex-col gap-2 rounded-lg border border-line p-3">
+          <legend className="px-1 text-xs font-semibold">Poll choices · people answer with one tap</legend>
+          {options.map((o, i) => (
+            <div key={i} className="flex gap-2">
+              <input
+                value={o}
+                onChange={(e) => setOptions(options.map((x, j) => (j === i ? e.target.value : x)))}
+                maxLength={60}
+                placeholder={`Choice ${i + 1}`}
+                aria-label={`Choice ${i + 1}`}
+                className="field flex-1"
+              />
+              {options.length > 2 && (
+                <button type="button" className="text-sm text-muted hover:text-danger" onClick={() => setOptions(options.filter((_, j) => j !== i))}>
+                  Remove
+                </button>
+              )}
+            </div>
+          ))}
+          <div className="flex gap-3 text-sm">
+            {options.length < 4 && (
+              <button type="button" className="font-semibold text-accent hover:underline" onClick={() => setOptions([...options, ""])}>
+                + Add a choice
+              </button>
+            )}
+            <button type="button" className="text-muted hover:text-ink" onClick={() => setOptions(null)}>
+              No poll
+            </button>
+          </div>
+        </fieldset>
+      ) : (
+        <button type="button" className="self-start text-sm font-semibold text-accent hover:underline" onClick={() => setOptions(["", ""])}>
+          + Add a poll
+        </button>
+      )}
+      {error && <p className="text-xs text-danger">{error}</p>}
     </form>
   );
 }
@@ -117,7 +162,17 @@ function VoteButton({ kind, id, count, voted, own, signedIn }: VoteProps) {
   );
 }
 
-function QuestionItem({ question, app, viewerId }: { question: Question; app: Props["app"]; viewerId: string | null }) {
+export function QuestionItem({
+  question,
+  app,
+  viewerId,
+  onThreadPage = false,
+}: {
+  question: Question;
+  app: Props["app"];
+  viewerId: string | null;
+  onThreadPage?: boolean;
+}) {
   const [answering, setAnswering] = useState(false);
   const [body, setBody] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -148,8 +203,18 @@ function QuestionItem({ question, app, viewerId }: { question: Question; app: Pr
           signedIn={viewerId !== null}
         />
         <div className="min-w-0 flex-1">
-          <p className="text-[15px] font-semibold break-words">{question.body}</p>
+          <p className={`font-semibold break-words ${onThreadPage ? "text-2xl" : "text-[15px]"}`}>{question.body}</p>
           <Byline user={question.user} at={question.created_at} />
+          {question.poll && (
+            <div className="mt-3 max-w-md">
+              <Poll questionId={question.id} poll={question.poll} signedIn={viewerId !== null} />
+            </div>
+          )}
+          {!onThreadPage && (
+            <Link href={`/q/${question.id}`} className="mt-2 inline-block text-xs font-semibold text-muted hover:text-accent">
+              Open thread →
+            </Link>
+          )}
         </div>
       </div>
 
@@ -226,9 +291,24 @@ function AnswerItem({
 }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [replying, setReplying] = useState(false);
+  const [reply, setReply] = useState("");
+  const isReply = Boolean(answer.parent_id);
+
+  function sendReply(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    startTransition(async () => {
+      const result = await answerQuestion(questionId, appSlug, reply, answer.parent_id ?? answer.id);
+      if (result.ok) {
+        setReply("");
+        setReplying(false);
+      } else setError(result.error);
+    });
+  }
 
   return (
-    <li className={`flex gap-3 rounded-lg p-2 ${best ? "bg-accent/10" : ""}`}>
+    <li className={`flex gap-3 rounded-lg p-2 ${best ? "bg-accent/10" : ""} ${isReply ? "ml-8 border-l-2 border-line pl-3" : ""}`}>
       <VoteButton
         kind="answer"
         id={answer.id}
@@ -245,7 +325,12 @@ function AnswerItem({
         <p className="mt-1 text-[15px] break-words whitespace-pre-line">{answer.body}</p>
         <Byline user={answer.user} at={answer.created_at} />
         <div className="mt-1 flex gap-3">
-          {canPickBest && !best && (
+          {viewerId && (
+            <button type="button" className="text-xs font-semibold text-muted hover:text-accent" onClick={() => setReplying((r) => !r)}>
+              Reply
+            </button>
+          )}
+          {canPickBest && !best && !isReply && (
             <button
               type="button"
               disabled={pending}
@@ -262,6 +347,22 @@ function AnswerItem({
           )}
           {viewerId === answer.user.id && <DeleteButton kind="answer" id={answer.id} appSlug={appSlug} />}
         </div>
+        {replying && (
+          <form onSubmit={sendReply} className="mt-2 flex gap-2">
+            <input
+              value={reply}
+              onChange={(e) => setReply(e.target.value)}
+              maxLength={1000}
+              autoFocus
+              placeholder={`Reply to @${answer.user.username}`}
+              aria-label="Your reply"
+              className="field flex-1 py-1.5"
+            />
+            <button className="btn-accent px-3 py-1.5" disabled={pending || !reply.trim()}>
+              Reply
+            </button>
+          </form>
+        )}
         {error && <p className="text-xs text-danger">{error}</p>}
       </div>
     </li>

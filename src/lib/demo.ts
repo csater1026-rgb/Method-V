@@ -205,8 +205,38 @@ export const demoUpdates: { user: string; app: string | null; body: string; hour
 // Q&A on apps.
 export const demoQuestions: Record<
   string,
-  { user: string; body: string; votes: number; answers: { user: string; body: string; votes: number; best?: boolean }[] }[]
+  {
+    user: string;
+    body: string;
+    votes: number;
+    hours?: number;
+    poll?: { options: string[]; counts: number[] };
+    answers: { user: string; body: string; votes: number; best?: boolean; replyTo?: number }[];
+  }[]
 > = {
+  "demo-app-palettepal": [
+    {
+      user: "demo-june",
+      body: "Which export should I add next?",
+      votes: 9,
+      hours: 3,
+      poll: { options: ["Figma styles", "Tailwind config", "CSS variables", "Swift / Android"], counts: [14, 22, 9, 4] },
+      answers: [
+        { user: "demo-ada", body: "Tailwind config, easy. I'd paste it straight into my project.", votes: 5 },
+        { user: "demo-marco", body: "Same, and CSS variables would cover everyone else.", votes: 2, replyTo: 0 },
+      ],
+    },
+  ],
+  "demo-app-quizpop": [
+    {
+      user: "demo-marco",
+      body: "Teachers: would you rather share a quiz with a QR code or a short link?",
+      votes: 4,
+      hours: 8,
+      poll: { options: ["QR code", "Short link"], counts: [11, 7] },
+      answers: [],
+    },
+  ],
   "demo-app-noteflow": [
     {
       user: "demo-marco",

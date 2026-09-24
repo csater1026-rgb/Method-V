@@ -3,39 +3,47 @@ import { cookies } from "next/headers";
 import Link from "next/link";
 
 import { DropFeed } from "@/components/DropFeed";
-import { getFeed, getViewer, type FeedTab } from "@/lib/data";
+import { QuestionFeed } from "@/components/QuestionFeed";
+import { getFeed, getQuestionFeed, getViewer, type FeedTab } from "@/lib/data";
 import { INTERESTS_COOKIE, parseInterests } from "@/lib/interests";
 
 export const metadata: Metadata = { title: "Drops" };
 
-const TABS: { slug: FeedTab; label: string }[] = [
+type Tab = FeedTab | "questions";
+
+const TABS: { slug: Tab; label: string }[] = [
   { slug: "foryou", label: "For you" },
   { slug: "trending", label: "Trending" },
   { slug: "following", label: "Following" },
+  { slug: "questions", label: "Questions" },
 ];
 
-function feedHref(tab: FeedTab) {
+function feedHref(tab: Tab) {
   return tab === "foryou" ? "/drops" : `/drops?tab=${tab}`;
 }
 
 export default async function DropsPage({ searchParams }: PageProps<"/drops">) {
   const params = await searchParams;
-  const tab: FeedTab = TABS.some((t) => t.slug === params.tab) ? (params.tab as FeedTab) : "foryou";
+  const tab: Tab = TABS.some((t) => t.slug === params.tab) ? (params.tab as Tab) : "foryou";
   // What this browser has learned this person likes (see DropFeed).
   const interests = parseInterests((await cookies()).get(INTERESTS_COOKIE)?.value);
 
-  const [items, viewer] = await Promise.all([getFeed({ tab, interests }), getViewer()]);
+  const viewer = await getViewer();
+  const [items, questions] = await Promise.all([
+    tab === "questions" ? Promise.resolve([]) : getFeed({ tab, interests }),
+    tab === "questions" ? getQuestionFeed(viewer, interests) : Promise.resolve([]),
+  ]);
 
   return (
     <div className="relative">
       <div className="media-dark pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-col items-center gap-2 p-3">
-        <nav aria-label="Feed" className="pointer-events-auto flex gap-4 drop-shadow-[0_1px_6px_rgb(0_0_0/0.7)]">
+        <nav aria-label="Feed" className="pointer-events-auto flex gap-3 drop-shadow-[0_1px_6px_rgb(0_0_0/0.7)] sm:gap-4">
           {TABS.map((t) => (
             <Link
               key={t.slug}
               href={feedHref(t.slug)}
               aria-current={t.slug === tab ? "page" : undefined}
-              className={`display px-0.5 pb-1 text-[22px] transition ${
+              className={`display px-0.5 pb-1 text-[19px] transition sm:text-[22px] ${
                 t.slug === tab ? "text-ink shadow-[inset_0_-3px_0_var(--color-accent)]" : "text-ink/55 hover:text-ink"
               }`}
             >
@@ -45,7 +53,9 @@ export default async function DropsPage({ searchParams }: PageProps<"/drops">) {
         </nav>
       </div>
 
-      {items.length > 0 ? (
+      {tab === "questions" ? (
+        <QuestionFeed items={questions} signedIn={Boolean(viewer)} />
+      ) : items.length > 0 ? (
         <DropFeed items={items} signedIn={Boolean(viewer)} />
       ) : (
         <EmptyFeed tab={tab} signedIn={Boolean(viewer)} />
@@ -54,7 +64,7 @@ export default async function DropsPage({ searchParams }: PageProps<"/drops">) {
   );
 }
 
-function EmptyFeed({ tab, signedIn }: { tab: FeedTab; signedIn: boolean }) {
+function EmptyFeed({ tab, signedIn }: { tab: Tab; signedIn: boolean }) {
   let title = "No Drops yet";
   let body = "Be the first to post a 60-second demo of what you built.";
   let action = { href: "/submit", label: "Post a Drop" };

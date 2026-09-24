@@ -8,18 +8,6 @@ import { getApps, getUpcomingLaunches, type BrowseFilters } from "@/lib/data";
 
 export const metadata: Metadata = { title: "Browse apps" };
 
-// The rest of the site, for phones (where the top nav only has the main tabs).
-const MORE_LINKS = [
-  { href: "/test", label: "Test & earn" },
-  { href: "/challenges", label: "Challenges" },
-  { href: "/credits", label: "Credits" },
-  { href: "/earn", label: "Earn" },
-  { href: "/pro", label: "Pro" },
-  { href: "/brands", label: "Brands" },
-  { href: "/developers", label: "Developers" },
-  { href: "/app", label: "Get the app" },
-] as const;
-
 const POPULAR_STACKS = ["Next.js", "React", "Supabase", "Lovable", "Bolt", "Replit", "v0", "Vite", "Stripe", "Claude"];
 
 function one(value: string | string[] | undefined): string | undefined {
@@ -129,19 +117,6 @@ export default async function BrowsePage({ searchParams }: PageProps<"/browse">)
           </Link>
         </div>
       )}
-
-      <nav aria-label="More on Method V" className="mt-12 border-t border-line pt-6">
-        <h2 className="font-mono text-[11px] tracking-widest text-muted uppercase">More on Method V</h2>
-        <ul className="mt-3 flex flex-wrap gap-2">
-          {MORE_LINKS.map((l) => (
-            <li key={l.href}>
-              <Link href={l.href} className="btn-ghost px-3 text-sm">
-                {l.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
     </div>
   );
 }

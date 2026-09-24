@@ -67,7 +67,9 @@ await run("home (phone)", phone, async (page) => {
   ok((await justPosted.locator("article").first().getAttribute("class")).includes("snap-start"), "Just posted swipes sideways too");
   ok((await justPosted.locator("article .tag-accent").count()) === 0, "Just posted cards have no Featured-style labels");
   const order = await page.locator("main section[aria-label]").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
-  ok(order.join(" > ") === "Featured apps > Builders like you > Just posted > Top testers", `Home order: ${order.join(" > ")}`);
+  ok(order.join(" > ") === "Featured apps > Builders like you > Just posted > Top builders > Top testers", `Home order: ${order.join(" > ")}`);
+  const builders = await page.getByRole("region", { name: "Top builders" }).locator("li a").allTextContents();
+  ok(builders[0]?.includes("June Okafor"), `top builder this month leads (${builders.join(", ")})`);
   ok((await justPosted.getByRole("link", { name: "See all →" }).getAttribute("href")) === "/browse", "Just posted links to Browse");
   for (const gone of ["Upcoming launches", "Build in public", "Get paid"]) {
     ok((await page.getByRole("region", { name: gone }).count()) === 0, `Home has no ${gone} section`);
@@ -164,7 +166,7 @@ await run("feed tabs + For you", desktop, async (page) => {
 
   await go(page, "/drops");
   const tabs = page.getByRole("navigation", { name: "Feed" });
-  ok((await tabs.getByRole("link").allTextContents()).join(",") === "For you,Trending,Following", "tabs: For you, Trending, Following");
+  ok((await tabs.getByRole("link").allTextContents()).join(",") === "For you,Trending,Following,Questions", "tabs: For you, Trending, Following, Questions");
   ok((await tabs.getByRole("link", { name: "For you" }).getAttribute("aria-current")) === "page", "For you is the default");
   ok((await page.getByRole("navigation", { name: "Categories" }).count()) === 0, "no category filter row on Drops");
   await page.screenshot({ path: OUT + "feed-desktop.png" });
@@ -202,6 +204,47 @@ await run("menu: Profile, no jobs board", desktop, async (page) => {
   ok(await top.isVisible() && (await top.locator("li").count()) > 0, "Home shows this month's top testers");
   await go(page, "/drops");
   ok(await page.locator("article").first().locator(".tag-accent", { hasText: /Hiring|Looking for work|Open to collab|Freelancer/ }).count() === 1, "Drops show the builder's status by their avatar");
+});
+
+await run("questions feed (phone)", phone, async (page) => {
+  await go(page, "/drops?tab=questions");
+  const feed = page.getByTestId("question-feed");
+  const cards = feed.locator("article");
+  ok((await cards.count()) === 4, `every sample question is a card (${await cards.count()})`);
+  ok((await feed.locator("article").first().getAttribute("class")).includes("snap-start"), "one question per screen, swipe for the next");
+  ok((await cards.first().getAttribute("aria-label")) === "Question about QuizPop", `an unanswered builder poll leads (${await cards.first().getAttribute("aria-label")})`);
+  const first = feed.getByRole("article", { name: "Question about PalettePal" });
+  ok(await first.getByText("Builder asks").isVisible(), "builders asking about their own app are labeled");
+  const poll = first.getByRole("group", { name: "Poll" });
+  ok((await poll.getByRole("button").count()) === 4 && (await poll.getByText("49 votes · tap to vote and see results").isVisible()), "poll shows its choices and total");
+  await poll.getByRole("button", { name: "Tailwind config" }).click();
+  ok(await page.getByRole("dialog", { name: "Sign in" }).getByText("Sign in to vote in this poll").isVisible(), "voting asks you to sign in first");
+  await page.getByRole("dialog", { name: "Sign in" }).getByRole("button", { name: "Close" }).click();
+  ok(await first.getByText("Tailwind config, easy.").isVisible(), "the top answer previews on the card");
+  ok(await feed.getByRole("link", { name: "Ask a question" }).count() === 1, "the last card invites you to ask");
+  await noSideScroll(page, "questions feed");
+  await page.screenshot({ path: OUT + "questions-phone.png" });
+  await go(page, "/drops?tab=questions");
+  await page.getByTestId("question-feed").getByRole("article", { name: "Question about PalettePal" }).getByRole("link", { name: "Answer →" }).click();
+  await page.waitForURL(/\/q\//);
+  ok(await page.getByText("Which export should I add next?").isVisible(), "thread shows the question");
+  ok(await page.getByRole("group", { name: "Poll" }).isVisible(), "…with its poll");
+  const reply = page.locator("li", { hasText: "Same, and CSS variables" }).last();
+  ok((await reply.getAttribute("class")).includes("ml-8"), "replies sit indented under the answer they reply to");
+  ok(await page.getByText("to answer, reply or vote.").isVisible(), "signed out: sign in to join the thread");
+  await noSideScroll(page, "question thread");
+  await page.screenshot({ path: OUT + "question-thread-phone.png", fullPage: true });
+});
+
+await run("ask + Q&A on app pages", desktop, async (page) => {
+  await go(page, "/ask");
+  ok(await page.getByText("asking is off").isVisible(), "the Ask page explains demo mode");
+  await go(page, "/submit");
+  ok((await page.getByRole("link", { name: "Or ask a question about your app →" }).getAttribute("href")) === "/ask", "Post links to Ask");
+  await go(page, "/apps/noteflow?tab=qa");
+  ok(await page.getByText("Does it work with Google Meet recordings, or only Zoom?").isVisible(), "app page Q&A still lists its questions");
+  ok((await page.getByRole("link", { name: "Open thread →" }).count()) === 2, "each question links to its thread");
+  ok((await fetch(BASE + "/q/nope")).status === 404, "unknown question is 404");
 });
 
 await run("browse", desktop, async (page) => {
@@ -396,11 +439,7 @@ await run("pixel coder", phone, async (page) => {
   await go(page, "/drops");
   ok((await page.locator("footer").count()) === 0, "no footer under the full-screen Drops feed");
   await go(page, "/browse");
-  const more = page.getByRole("navigation", { name: "More on Method V" });
-  for (const name of ["Test & earn", "Challenges", "Credits", "Earn", "Pro", "Brands", "Developers", "Get the app"]) {
-    ok(await more.getByRole("link", { name, exact: true }).isVisible(), `Browse links ${name}`);
-  }
-  await noSideScroll(page, "browse with more links");
+  ok((await page.getByRole("navigation", { name: "More on Method V" }).count()) === 0, "no More on Method V row on Browse");
 });
 
 {

@@ -1,7 +1,8 @@
 import Link from "next/link";
 
 import { CATEGORIES, STREAK_BONUS, TESTER_RANKS, testerRank } from "@/lib/constants";
-import type { Passport as PassportData, Profile, TopTester } from "@/lib/types";
+import { formatCount } from "@/lib/format";
+import type { Passport as PassportData, Profile, TopBuilder, TopTester } from "@/lib/types";
 
 import { Avatar } from "./Avatar";
 
@@ -117,6 +118,34 @@ export function RankTag({ rank }: { rank: string }) {
   if (rank === "new") return null;
   const r = TESTER_RANKS.find((x) => x.slug === rank);
   return <span className={rank === "trusted" || rank === "pro" ? "tag-accent" : "tag"}>{r?.label ?? rank}</span>;
+}
+
+export function TopBuilders({ builders }: { builders: TopBuilder[] }) {
+  const month = new Date().toLocaleDateString("en-US", { month: "long" });
+  return (
+    <section aria-label="Top builders" className="rounded-xl border border-line bg-surface p-4 sm:p-5">
+      <h2 className="display text-4xl">Top builders · {month}</h2>
+      <p className="mt-1 text-sm text-muted">Ranked by tries on their apps and likes on their Drops this month.</p>
+      {builders.length === 0 ? (
+        <p className="mt-3 text-sm text-muted">Nobody yet this month. Post a Drop and be the first.</p>
+      ) : (
+        <ol className="mt-3 divide-y divide-line">
+          {builders.map((b, i) => (
+            <li key={b.user_id} className="flex items-center gap-3 py-2.5">
+              <span className={`w-6 font-mono text-sm font-bold ${i < 3 ? "text-accent" : "text-muted"}`}>{i + 1}</span>
+              <Link href={`/u/${b.username}`} className="flex min-w-0 flex-1 items-center gap-2 hover:underline">
+                <Avatar username={b.username} name={b.display_name} src={b.avatar_url} size={28} />
+                <span className="truncate font-semibold">{b.display_name || `@${b.username}`}</span>
+              </Link>
+              <span className="shrink-0 font-mono text-xs text-muted">
+                {formatCount(b.tries)} tries<span className="hidden sm:inline"> · {formatCount(b.likes)} likes</span>
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+    </section>
+  );
 }
 
 export function TopTesters({ testers }: { testers: TopTester[] }) {
