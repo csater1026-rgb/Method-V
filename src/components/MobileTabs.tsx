@@ -11,7 +11,7 @@ import { useSignIn } from "./SignIn";
 const ICONS: Record<string, React.ReactNode> = {
   home: <path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1z" />,
   drops: <path d="M7 4h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm3 5v6l5-3z" />,
-  test: <path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.7 3h10.6a2 2 0 0 0 1.7-3l-5-9V3M7.5 14h9" />,
+  browse: <path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zm9 16-4-4" />,
   me: <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-7 8a7 7 0 0 1 14 0" />,
 };
 
@@ -24,7 +24,7 @@ export function MobileTabs({ profileHref, canPost }: { profileHref: string; canP
     { href: "/", label: "Home", icon: "home" },
     { href: "/drops", label: "Drops", icon: "drops" },
     { href: "/submit", label: "Post", icon: "post" },
-    { href: "/test", label: "Test", icon: "test" },
+    { href: "/browse", label: "Browse", icon: "browse" },
     { href: profileHref, label: "Me", icon: "me" },
   ];
 

@@ -43,7 +43,7 @@ export function AppCard({ app, showOwner = true, index = 0 }: Props) {
         <div className="mt-auto flex items-center justify-between gap-2 border-t border-line pt-3 text-xs text-muted">
           {showOwner ? (
             <Link href={`/u/${app.owner.username}`} className="flex items-center gap-1.5 hover:text-ink">
-              <Avatar username={app.owner.username} name={app.owner.display_name} size={20} />@{app.owner.username}
+              <Avatar username={app.owner.username} name={app.owner.display_name} src={app.owner.avatar_url} size={20} />@{app.owner.username}
             </Link>
           ) : (
             <span />

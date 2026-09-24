@@ -272,7 +272,7 @@ function Byline({ user, at }: { user: Question["user"]; at: string }) {
   return (
     <p className="mt-1 flex items-center gap-1.5 text-xs text-muted">
       <Link href={`/u/${user.username}`} className="flex items-center gap-1.5 hover:text-ink">
-        <Avatar username={user.username} name={user.display_name} size={18} />@{user.username}
+        <Avatar username={user.username} name={user.display_name} src={user.avatar_url} size={18} />@{user.username}
       </Link>
       · <span suppressHydrationWarning>{timeAgo(at)}</span>
     </p>

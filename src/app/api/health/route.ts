@@ -18,12 +18,12 @@ export async function GET() {
   if (isSupabaseConfigured) {
     const supabase = await createClient();
     const { error: reach } = await supabase.from("apps").select("id", { head: true, count: "exact" }).limit(1);
-    // brands is from the newest migrations, so it shows the database is up to date.
-    const { error: latest } = await supabase.from("brands").select("id", { head: true }).limit(1);
+    // Profile photos (avatar_path) are from the newest migration, so they show the database is up to date.
+    const { error: latest } = await supabase.from("profiles").select("avatar_path", { head: true }).limit(1);
     checks.database = reach
       ? { ok: false, note: /relation|does not exist|schema cache/i.test(reach.message) ? "Tables are missing: run supabase/setup.sql in the Supabase SQL Editor." : "Can't reach the database: check the Supabase URL and key." }
       : latest
-        ? { ok: false, note: "The database is behind: run the newer files in supabase/migrations/ (the ones you haven't run yet)." }
+        ? { ok: false, note: "The database is behind: in Supabase → SQL Editor, run supabase/migrations/20261001000000_avatars.sql (profile photos). If brands is missing too, run the newer migration files you haven't run yet." }
         : { ok: true, note: "Connected, and the tables are up to date." };
 
     const admin = createAdminClient();

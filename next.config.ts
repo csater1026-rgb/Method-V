@@ -1,6 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // The jobs board is gone: people show their status on their profile and
+  // message each other instead.
+  async redirects() {
+    return [
+      { source: "/jobs", destination: "/browse", permanent: false },
+      { source: "/jobs/:path*", destination: "/browse", permanent: false },
+    ];
+  },
   async headers() {
     return [
       {

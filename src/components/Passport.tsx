@@ -133,11 +133,11 @@ export function TopTesters({ testers }: { testers: TopTester[] }) {
             <li key={t.user_id} className="flex items-center gap-3 py-2.5">
               <span className={`w-6 font-mono text-sm font-bold ${i < 3 ? "text-accent" : "text-muted"}`}>{i + 1}</span>
               <Link href={`/u/${t.username}`} className="flex min-w-0 flex-1 items-center gap-2 hover:underline">
-                <Avatar username={t.username} name={t.display_name} size={28} />
+                <Avatar username={t.username} name={t.display_name} src={t.avatar_url} size={28} />
                 <span className="truncate font-semibold">{t.display_name || `@${t.username}`}</span>
               </Link>
-              <span className="font-mono text-xs text-muted">
-                {t.helpful_count} helpful · {t.feedback_count} given
+              <span className="shrink-0 font-mono text-xs text-muted">
+                {t.helpful_count} helpful<span className="hidden sm:inline"> · {t.feedback_count} given</span>
               </span>
             </li>
           ))}

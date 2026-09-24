@@ -28,7 +28,7 @@ export default async function ThreadPage({ params }: PageProps<"/inbox/[username
           ←
         </Link>
         <Link href={`/u/${person.username}`} className="flex items-center gap-2">
-          <Avatar username={person.username} name={person.display_name} size={36} />
+          <Avatar username={person.username} name={person.display_name} src={person.avatar_url} size={36} />
           <span>
             <span className="block font-semibold">{person.display_name || `@${person.username}`}</span>
             <span className="block text-xs text-muted">@{person.username}</span>

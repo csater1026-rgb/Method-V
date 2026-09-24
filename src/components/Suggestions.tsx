@@ -24,7 +24,7 @@ export function Suggestions({ people, signedIn }: { people: Suggestion[]; signed
               style={{ "--i": i } as React.CSSProperties}
             >
               <Link href={`/u/${p.username}`} className="flex items-center gap-3">
-                <Avatar username={p.username} name={p.display_name} size={44} />
+                <Avatar username={p.username} name={p.display_name} src={p.avatar_url} size={44} />
                 <span className="min-w-0">
                   <span className="block truncate font-semibold">{p.display_name || `@${p.username}`}</span>
                   <span className="block truncate text-xs text-muted">@{p.username}</span>

@@ -67,7 +67,7 @@ await run("home (phone)", phone, async (page) => {
   ok((await justPosted.locator("article").first().getAttribute("class")).includes("snap-start"), "Just posted swipes sideways too");
   ok((await justPosted.locator("article .tag-accent").count()) === 0, "Just posted cards have no Featured-style labels");
   const order = await page.locator("main section[aria-label]").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
-  ok(order.join(" > ") === "Featured apps > Builders like you > Just posted", `Home order: ${order.join(" > ")}`);
+  ok(order.join(" > ") === "Featured apps > Builders like you > Just posted > Top testers", `Home order: ${order.join(" > ")}`);
   ok((await justPosted.getByRole("link", { name: "See all →" }).getAttribute("href")) === "/browse", "Just posted links to Browse");
   for (const gone of ["Upcoming launches", "Build in public", "Get paid"]) {
     ok((await page.getByRole("region", { name: gone }).count()) === 0, `Home has no ${gone} section`);
@@ -189,12 +189,29 @@ await run("feed tabs + For you", desktop, async (page) => {
   await page.context().clearCookies();
 });
 
+await run("menu: Profile, no jobs board", desktop, async (page) => {
+  await go(page, "/");
+  const nav = page.locator("header nav").first();
+  const links = (await nav.getByRole("link").allTextContents()).join(",");
+  ok(links === "Home,Drops,Browse,Profile,Challenges", `top menu: ${links}`);
+  ok((await nav.getByRole("link", { name: "Profile" }).getAttribute("href")) === "/login", "Profile asks you to sign in first when signed out");
+  await go(page, "/jobs");
+  ok(new URL(page.url()).pathname === "/browse", "the old jobs board sends people to Browse");
+  const top = page.getByRole("region", { name: "Top testers" });
+  await go(page, "/");
+  ok(await top.isVisible() && (await top.locator("li").count()) > 0, "Home shows this month's top testers");
+  await go(page, "/drops");
+  ok(await page.locator("article").first().locator(".tag-accent", { hasText: /Hiring|Looking for work|Open to collab|Freelancer/ }).count() === 1, "Drops show the builder's status by their avatar");
+});
+
 await run("browse", desktop, async (page) => {
   await go(page, "/browse");
   ok((await page.locator("main article").count()) === 4, "browse shows 4 apps");
   await page.getByLabel("Search apps").fill("palette");
   await page.getByRole("button", { name: "Apply" }).click();
   await page.waitForURL(/q=palette/);
+  // The URL changes a moment before the filtered results render.
+  await page.waitForFunction(() => document.querySelectorAll("main article").length === 1, null, { timeout: 5000 }).catch(() => {});
   ok((await page.locator("main article").count()) === 1, "search finds PalettePal");
   await go(page, "/browse?stack=supabase&sort=tried");
   const names = await page.locator("main article a.display").allTextContents();
@@ -229,7 +246,8 @@ await run("app page (phone)", phone, async (page) => {
 await run("profile", desktop, async (page) => {
   await go(page, "/u/ada_builds");
   ok(await page.getByRole("heading", { name: "Ada Park" }).isVisible(), "profile heading");
-  ok(await page.getByText("Open to collab").isVisible(), "role tags shown");
+  ok((await page.getByText("Open to collab").count()) === 1 && (await page.locator("main .tag-accent", { hasText: "Open to collab" }).isVisible()), "status shows once, as the badge by the avatar");
+  ok(await page.locator("main").getByText("Founder", { exact: true }).isVisible(), "other role tags still shown");
   ok((await page.locator("main article").count()) === 2, "profile lists their 2 apps");
   await page.screenshot({ path: OUT + "profile-desktop.png", fullPage: true });
 });
@@ -364,7 +382,7 @@ await run("pixel coder", phone, async (page) => {
   ok((await page.locator("footer").count()) === 0, "no footer under the full-screen Drops feed");
   await go(page, "/browse");
   const more = page.getByRole("navigation", { name: "More on Method V" });
-  for (const name of ["Jobs", "Challenges", "Credits", "Earn", "Pro", "Brands", "Developers", "Get the app"]) {
+  for (const name of ["Test & earn", "Challenges", "Credits", "Earn", "Pro", "Brands", "Developers", "Get the app"]) {
     ok(await more.getByRole("link", { name, exact: true }).isVisible(), `Browse links ${name}`);
   }
   await noSideScroll(page, "browse with more links");
@@ -481,6 +499,14 @@ await run("test & earn", desktop, async (page) => {
   await page.getByRole("link", { name: "Test it →" }).first().click();
   await page.waitForURL(/\/apps\/.+#feedback/);
   ok(await page.locator("#feedback").getByText("off in demo mode").isVisible(), "feedback panel explains demo mode");
+  const panel = page.locator("#feedback");
+  ok(await panel.getByRole("heading", { name: "Test & earn" }).isVisible() && (await panel.locator("ol li").count()) === 3, "the app page explains Test & earn in 3 steps");
+  const below = await page.evaluate(() => {
+    const d = document.querySelector("main p.leading-relaxed");
+    const f = document.getElementById("feedback");
+    return Boolean(d && f && d.compareDocumentPosition(f) & Node.DOCUMENT_POSITION_FOLLOWING && f.getBoundingClientRect().top - d.getBoundingClientRect().bottom < 60);
+  });
+  ok(below, "Test & earn sits right under the app's description");
   await page.screenshot({ path: OUT + "test-desktop.png", fullPage: true });
 });
 
@@ -497,7 +523,7 @@ await run("test & earn (phone)", phone, async (page) => {
   await noSideScroll(page, "test phone");
   const tabs = page.getByRole("navigation", { name: "Main" });
   ok(await tabs.isVisible(), "bottom tab bar on phones");
-  ok((await tabs.getByRole("link", { name: "Test" }).getAttribute("aria-current")) === "page", "Test tab is active");
+  ok((await tabs.getByRole("link").allTextContents()).map((t) => t.trim()).filter(Boolean).join(",") === "Home,Drops,Browse,Me", `phone tabs: Home, Drops, +, Browse, Me (${(await tabs.getByRole("link").allTextContents()).join(",")})`);
   await page.screenshot({ path: OUT + "test-phone.png", fullPage: true });
 });
 
@@ -527,37 +553,6 @@ await run("submit (phone)", phone, async (page) => {
 // ---------------------------------------------------------------------------
 // Phase 4: Earn
 // ---------------------------------------------------------------------------
-
-await run("jobs board (phone)", phone, async (page) => {
-  await go(page, "/jobs");
-  const cards = page.locator("main li a[href^='/jobs/demo-job']");
-  ok((await cards.count()) === 3, "three demo posts on the board");
-  await page.getByRole("navigation", { name: "Kind" }).getByRole("link", { name: "Gig" }).click();
-  await page.waitForURL(/kind=gig/);
-  ok((await page.locator("main li a[href^='/jobs/demo-job']").count()) === 1, "filter by kind");
-  await go(page, "/jobs/demo-job-studio");
-  ok((await page.getByRole("heading", { level: 1 }).textContent()).includes("Front-end developer"), "job page shows the title");
-  await page.getByRole("link", { name: "React", exact: true }).click();
-  await page.waitForURL(/skill=React/);
-  ok((await page.locator("main li a[href^='/jobs/demo-job']").count()) === 1, "skill chips filter the board");
-  await go(page, "/jobs/demo-job-studio");
-  await page.getByRole("button", { name: "Apply" }).click();
-  await page.getByLabel("Why you?").fill("I built the NoteFlow landing page.");
-  await page.getByRole("button", { name: "Send application" }).click();
-  await page.getByRole("form", { name: "Apply" }).getByText(/demo mode/i).waitFor();
-  ok(true, "applying explains demo mode");
-  await go(page, "/jobs/demo-job-marco");
-  ok(await page.getByRole("button", { name: "Connect" }).isVisible(), "looking-for-work posts use Connect instead of Apply");
-  ok((await page.getByRole("button", { name: "Apply" }).count()) === 0, "no Apply on a looking-for-work post");
-  await go(page, "/jobs/new");
-  await page.getByRole("radio", { name: "Gig" }).click();
-  await page.getByLabel("Title").fill("Logo for my study app");
-  await page.getByRole("button", { name: "Post it" }).click();
-  await page.getByText(/Add your Supabase keys/).first().waitFor({ timeout: 10_000 });
-  ok(true, "posting a job explains demo mode");
-  await noSideScroll(page, "jobs form");
-  await page.screenshot({ path: `${OUT}jobs-phone.png`, fullPage: true });
-});
 
 await run("back an app + sponsor (desktop)", desktop, async (page) => {
   await go(page, "/apps/quizpop");
@@ -637,13 +632,13 @@ await run("challenges (desktop)", desktop, async (page) => {
 });
 
 await run("phase 4 pages (phone)", phone, async (page) => {
-  for (const path of ["/jobs", "/jobs/demo-job-studio", "/earn", "/pro", "/challenges", "/challenges/build-for-teachers", "/apps/quizpop"]) {
+  for (const path of ["/earn", "/pro", "/challenges", "/challenges/build-for-teachers", "/apps/quizpop"]) {
     await go(page, path);
     await noSideScroll(page, path);
   }
 });
 
-ok((await fetch(BASE + "/jobs/nope")).status === 404, "unknown job is 404");
+ok((await fetch(BASE + "/jobs/nope", { redirect: "manual" })).headers.get("location")?.endsWith("/browse"), "old job links redirect to Browse");
 ok((await fetch(BASE + "/challenges/nope")).status === 404, "unknown challenge is 404");
 let res = await fetch(BASE + "/api/stripe/webhook", { method: "POST", body: "{}" });
 ok(res.status === 404, `webhook is off without Stripe keys (${res.status})`);
@@ -753,7 +748,7 @@ await run("developers + install (phone)", phone, async (page) => {
   const user = await (await fetch(BASE + "/api/v1/users/ada_builds")).json();
   ok(user.user.pro === true && user.apps.length === 2, "builder profile with their apps");
   ok(!("credits" in user.user) && !("payouts_enabled" in user.user), "profiles leave out private fields");
-  ok((await (await fetch(BASE + "/api/v1/jobs?kind=gig")).json()).jobs.length === 1, "jobs endpoint filters by kind");
+  ok((await fetch(BASE + "/api/v1/jobs")).status === 404, "no jobs endpoint any more");
   ok((await (await fetch(BASE + "/api/v1/challenges")).json()).challenges.length === 2, "challenges endpoint");
   const pre = await fetch(BASE + "/api/v1/apps", { method: "OPTIONS" });
   ok(pre.status === 204 && pre.headers.get("access-control-allow-methods")?.includes("GET"), "CORS preflight");

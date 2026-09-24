@@ -8,9 +8,10 @@ import { ConnectButton } from "@/components/ConnectButton";
 import { FollowButton } from "@/components/FollowButton";
 import { PassportCard } from "@/components/Passport";
 import { Updates } from "@/components/Updates";
-import { Chip, RoleTags } from "@/components/Tags";
+import { Chip, RoleTags, StatusBadge, primaryStatus } from "@/components/Tags";
 import { getConnectionState, getMyApps, getPassport, getProfile, getUpdates, getViewer, isPro } from "@/lib/data";
 import { formatCount } from "@/lib/format";
+import { publicFileUrl } from "@/lib/supabase/env";
 
 export async function generateMetadata({ params }: PageProps<"/u/[username]">): Promise<Metadata> {
   const { username } = await params;
@@ -44,7 +45,11 @@ export default async function ProfilePage({ params }: PageProps<"/u/[username]">
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8">
       <section className="flex flex-col gap-6 sm:flex-row sm:items-start">
-        <Avatar username={profile.username} name={profile.display_name} size={96} />
+        {/* Photo with the status people message about right under it. */}
+        <div className="flex shrink-0 flex-col items-start gap-2 sm:items-center">
+          <Avatar username={profile.username} name={profile.display_name} src={publicFileUrl(profile.avatar_path ?? null)} size={96} />
+          <StatusBadge roles={profile.roles} />
+        </div>
         <div className="flex min-w-0 flex-1 flex-col gap-3">
           <div className="flex flex-wrap items-center gap-3">
             <div>
@@ -88,7 +93,7 @@ export default async function ProfilePage({ params }: PageProps<"/u/[username]">
             </div>
           </div>
 
-          <RoleTags roles={profile.roles} />
+          <RoleTags roles={profile.roles} except={primaryStatus(profile.roles)} />
           {profile.bio && <p className="max-w-2xl whitespace-pre-line text-ink/90">{profile.bio}</p>}
 
           <p className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted">

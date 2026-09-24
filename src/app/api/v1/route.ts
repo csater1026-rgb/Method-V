@@ -11,7 +11,6 @@ export function GET(request: Request) {
       apps: `${origin}/api/v1/apps?q=&category=&stack=&pricing=&stage=&sort=latest|tried&limit=20`,
       app: `${origin}/api/v1/apps/{slug}`,
       user: `${origin}/api/v1/users/{username}`,
-      jobs: `${origin}/api/v1/jobs?kind=hiring|gig|looking&skill=`,
       challenges: `${origin}/api/v1/challenges`,
     },
   });

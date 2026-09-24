@@ -26,8 +26,10 @@ export function ProfileForm({ profile }: { profile: Profile }) {
       </Field>
 
       <fieldset>
-        <legend className="text-sm font-medium">I am…</legend>
-        <p className="text-xs text-muted">Shown on your profile so people know how to work with you.</p>
+        <legend className="text-sm font-medium">Your status</legend>
+        <p className="text-xs text-muted">
+          Shown next to your photo. Hiring, looking for work or open to collab? People connect and message you from there.
+        </p>
         <div className="mt-2 flex flex-wrap gap-2">
           {ROLES.map((r) => (
             <label

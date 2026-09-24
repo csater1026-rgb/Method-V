@@ -53,7 +53,7 @@ export function FeaturedCard({ app, rank }: { app: AppCard & { reason?: Featured
           </a>
         </div>
         <div className="mt-auto flex items-center gap-1.5 text-xs text-muted">
-          <Avatar username={app.owner.username} name={app.owner.display_name} size={18} />
+          <Avatar username={app.owner.username} name={app.owner.display_name} src={app.owner.avatar_url} size={18} />
           <Link href={`/u/${app.owner.username}`} className="truncate hover:text-ink">
             @{app.owner.username}
           </Link>

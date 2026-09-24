@@ -9,7 +9,6 @@ import {
   demoBrands,
   demoChallenges,
   demoDay,
-  demoJobs,
   demoSponsors,
   demoCommentDate,
   demoComments,
@@ -34,8 +33,6 @@ import type {
   Challenge,
   ChallengeEntry,
   Earnings,
-  Job,
-  JobApplication,
   SponsorCard,
   Sponsorship,
   AppDetail,
@@ -69,7 +66,37 @@ import type {
 
 export type FeedTab = "foryou" | "trending" | "following";
 
-const PROFILE_SUMMARY = "id, username, display_name, roles";
+const PROFILE_SUMMARY = "id, username, display_name, roles" as const;
+
+// Profile photos need the avatar_path column (migration 20261001000000_avatars).
+// Until it's there, everything keeps working with letter avatars; checked again
+// every minute until it shows up.
+let avatarColumn = false;
+let avatarCheckedAt = 0;
+async function checkAvatarColumn() {
+  if (avatarColumn || !isSupabaseConfigured || Date.now() - avatarCheckedAt < 60_000) return;
+  avatarCheckedAt = Date.now();
+  const supabase = await createClient();
+  const { error } = await supabase.from("profiles").select("avatar_path").limit(1);
+  avatarColumn = !error;
+}
+export async function avatarsReady(): Promise<boolean> {
+  await checkAvatarColumn();
+  return avatarColumn;
+}
+// Typed as the base list so Supabase's select parser keeps working; the rows
+// are untyped anyway, and toSummary reads avatar_path when it's there.
+// Photo URLs for people whose rows came from a function without them.
+async function photoUrls(ids: string[]): Promise<Map<string, string | null>> {
+  const out = new Map<string, string | null>();
+  if (ids.length === 0 || !(await avatarsReady())) return out;
+  const supabase = await createClient();
+  const { data } = await supabase.from("profiles").select("id, avatar_path").in("id", ids);
+  for (const p of data ?? []) out.set(p.id as string, publicFileUrl((p.avatar_path as string | null) ?? null));
+  return out;
+}
+
+const summaryCols = () => (avatarColumn ? `${PROFILE_SUMMARY}, avatar_path` : PROFILE_SUMMARY) as typeof PROFILE_SUMMARY;
 const TRENDING_WINDOW_DAYS = 14;
 const PAGE_SIZE = 30;
 // How many recent Drops "For you" ranks to pick its page from.
@@ -78,7 +105,13 @@ const FOR_YOU_POOL = 200;
 /* eslint-disable @typescript-eslint/no-explicit-any -- rows come back untyped without generated types */
 
 function toSummary(row: any): ProfileSummary {
-  return { id: row.id, username: row.username, display_name: row.display_name ?? "", roles: row.roles ?? [] };
+  return {
+    id: row.id,
+    username: row.username,
+    display_name: row.display_name ?? "",
+    roles: row.roles ?? [],
+    avatar_url: publicFileUrl(row.avatar_path ?? null),
+  };
 }
 
 function toDrop(row: any): Drop {
@@ -146,8 +179,15 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
   const { data } = await supabase.auth.getClaims();
   const id = data?.claims?.sub;
   if (!id) return null;
-  const { data: profile } = await supabase.from("profiles").select("username, credits").eq("id", id).maybeSingle();
-  return profile ? { id, username: profile.username, credits: profile.credits ?? 0 } : null;
+  await checkAvatarColumn();
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select(avatarColumn ? "username, credits, avatar_path" : "username, credits")
+    .eq("id", id)
+    .maybeSingle<{ username: string; credits: number | null; avatar_path?: string | null }>();
+  return profile
+    ? { id, username: profile.username, credits: profile.credits ?? 0, avatar_url: publicFileUrl(profile.avatar_path ?? null) }
+    : null;
 });
 
 async function likedDropIds(viewer: Viewer | null, dropIds: string[]): Promise<Set<string>> {
@@ -177,7 +217,7 @@ export async function getFeed({ tab, interests = {} }: { tab: FeedTab; interests
     .select(
       `id, app_id, owner_id, video_path, poster_path, duration_seconds, caption, like_count, comment_count, created_at,
        app:apps!inner(id, slug, name, tagline, category, try_count, link_checked_at),
-       owner:profiles!drops_owner_id_fkey(${PROFILE_SUMMARY})`,
+       owner:profiles!drops_owner_id_fkey(${summaryCols()})`,
     )
     .not("app.link_checked_at", "is", null);
 
@@ -285,7 +325,7 @@ export async function getApps(filters: BrowseFilters, max = 60): Promise<AppCard
   const supabase = await createClient();
   let query = supabase
     .from("apps")
-    .select(`*, owner:profiles!apps_owner_id_fkey(${PROFILE_SUMMARY}), drops(poster_path, created_at)`)
+    .select(`*, owner:profiles!apps_owner_id_fkey(${summaryCols()}), drops(poster_path, created_at)`)
     .not("link_checked_at", "is", null)
     .order("created_at", { referencedTable: "drops", ascending: false })
     .limit(1, { referencedTable: "drops" })
@@ -326,7 +366,7 @@ export async function getApp(slug: string): Promise<AppDetail | null> {
   const supabase = await createClient();
   const { data: row } = await supabase
     .from("apps")
-    .select(`*, owner:profiles!apps_owner_id_fkey(${PROFILE_SUMMARY})`)
+    .select(`*, owner:profiles!apps_owner_id_fkey(${summaryCols()})`)
     .eq("slug", slug)
     .maybeSingle();
   if (!row) return null;
@@ -360,7 +400,7 @@ export async function getComments(dropId: string): Promise<Comment[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("comments")
-    .select(`id, body, created_at, user:profiles!comments_user_id_fkey(${PROFILE_SUMMARY})`)
+    .select(`id, body, created_at, user:profiles!comments_user_id_fkey(${summaryCols()})`)
     .eq("drop_id", dropId)
     .order("created_at", { ascending: true })
     .limit(200);
@@ -435,8 +475,8 @@ export async function getOwnProfile(): Promise<Profile | null> {
 // Phase 3: credits and feedback
 // ---------------------------------------------------------------------------
 
-const FEEDBACK_FIELDS = `id, would_use, rating, worked, confusing, earned, helpful_at, created_at,
-  user:profiles!feedback_user_id_fkey(${PROFILE_SUMMARY}, feedback_given_count, feedback_helpful_count)`;
+const FEEDBACK_FIELDS = () => `id, would_use, rating, worked, confusing, earned, helpful_at, created_at,
+  user:profiles!feedback_user_id_fkey(${summaryCols()}, feedback_given_count, feedback_helpful_count)` as const;
 
 const RANK_ORDER: string[] = TESTER_RANKS.map((r) => r.slug);
 
@@ -460,7 +500,7 @@ export async function getFeedbackPanel(app: App, viewer: Viewer | null): Promise
   if (viewer.id === app.owner_id) {
     const { data } = await supabase
       .from("feedback")
-      .select(FEEDBACK_FIELDS)
+      .select(FEEDBACK_FIELDS())
       .eq("app_id", app.id)
       .order("created_at", { ascending: false })
       .limit(200);
@@ -472,7 +512,7 @@ export async function getFeedbackPanel(app: App, viewer: Viewer | null): Promise
   }
 
   const [{ data: mine }, { data: tried }] = await Promise.all([
-    supabase.from("feedback").select(FEEDBACK_FIELDS).eq("app_id", app.id).eq("user_id", viewer.id).maybeSingle(),
+    supabase.from("feedback").select(FEEDBACK_FIELDS()).eq("app_id", app.id).eq("user_id", viewer.id).maybeSingle(),
     supabase.from("try_clicks").select("id").eq("app_id", app.id).eq("user_id", viewer.id).limit(1).maybeSingle(),
   ]);
   return { mode: "tester", request, tried: Boolean(tried), mine: mine ? toFeedback(mine) : null };
@@ -496,7 +536,7 @@ export async function getTestQueue(viewer: Viewer | null): Promise<QueueItem[]> 
     .from("test_requests")
     .select(
       `slots_total, slots_filled, opened_at,
-       app:apps!inner(*, owner:profiles!apps_owner_id_fkey(${PROFILE_SUMMARY}), drops(poster_path, created_at))`,
+       app:apps!inner(*, owner:profiles!apps_owner_id_fkey(${summaryCols()}), drops(poster_path, created_at))`,
     )
     .not("app.link_checked_at", "is", null)
     .order("opened_at", { ascending: true })
@@ -549,7 +589,7 @@ export async function getCreditHistory(viewer: Viewer): Promise<CreditEvent[]> {
 const HOT_WINDOW_DAYS = 30;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-const CARD_SELECT = `*, owner:profiles!apps_owner_id_fkey(${PROFILE_SUMMARY}), drops(poster_path, created_at)`;
+const CARD_SELECT = () => `*, owner:profiles!apps_owner_id_fkey(${summaryCols()}), drops(poster_path, created_at)` as const;
 
 /* eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped rows */
 function toCard(row: any): AppCard {
@@ -606,7 +646,7 @@ export async function getFeatured(): Promise<{ apps: FeaturedApp[]; curated: boo
   } else {
     const supabase = await createClient();
     const nowIso = new Date(now).toISOString();
-    const base = () => supabase.from("apps").select(CARD_SELECT).not("link_checked_at", "is", null);
+    const base = () => supabase.from("apps").select(CARD_SELECT()).not("link_checked_at", "is", null);
     const [p, l, b] = await Promise.all([
       base().gt("featured_until", nowIso).order("featured_until", { ascending: false }).limit(8),
       base().lte("launch_at", nowIso).gt("launch_at", new Date(now - DAY_MS).toISOString()).order("launch_at").limit(8),
@@ -634,7 +674,7 @@ export async function getFeatured(): Promise<{ apps: FeaturedApp[]; curated: boo
   const supabase = await createClient();
   const { data: hot } = await supabase
     .from("apps")
-    .select(CARD_SELECT)
+    .select(CARD_SELECT())
     .not("link_checked_at", "is", null)
     .gte("created_at", new Date(now - HOT_WINDOW_DAYS * DAY_MS).toISOString())
     .order("like_count", { ascending: false })
@@ -654,7 +694,7 @@ export async function getUpcomingLaunches(): Promise<AppCard[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("apps")
-    .select(CARD_SELECT)
+    .select(CARD_SELECT())
     .not("link_checked_at", "is", null)
     .gt("launch_at", new Date(now).toISOString())
     .lt("launch_at", new Date(now + 7 * DAY_MS).toISOString())
@@ -698,7 +738,14 @@ export async function getTopTesters(): Promise<TopTester[]> {
   }
   const supabase = await createClient();
   const { data } = await supabase.rpc("top_testers", { p_limit: 10 });
-  return (data ?? []).map((r: TopTester) => ({ ...r, feedback_count: Number(r.feedback_count), helpful_count: Number(r.helpful_count) }));
+  const rows = (data ?? []) as TopTester[];
+  const photos = await photoUrls(rows.map((r) => r.user_id));
+  return rows.map((r) => ({
+    ...r,
+    feedback_count: Number(r.feedback_count),
+    helpful_count: Number(r.helpful_count),
+    avatar_url: photos.get(r.user_id) ?? null,
+  }));
 }
 
 // ---------------------------------------------------------------------------
@@ -728,7 +775,7 @@ export async function getUpdates({ appId, userId, following, limit = 20 }: Updat
   const supabase = await createClient();
   let query = supabase
     .from("updates")
-    .select(`id, body, created_at, user:profiles!updates_user_id_fkey(${PROFILE_SUMMARY}), app:apps(slug, name)`)
+    .select(`id, body, created_at, user:profiles!updates_user_id_fkey(${summaryCols()}), app:apps(slug, name)`)
     .order("created_at", { ascending: false })
     .limit(limit);
   if (appId) query = query.eq("app_id", appId);
@@ -791,7 +838,7 @@ export async function getSwapPartners(appId: string): Promise<{ friends: AppCard
   const rows = data ?? [];
   const otherIds = [...new Set(rows.map((r) => (r.from_app === appId ? r.to_app : r.from_app) as string))];
   if (otherIds.length === 0) return { friends: [], colaunch: [] };
-  const { data: apps } = await supabase.from("apps").select(CARD_SELECT).in("id", otherIds);
+  const { data: apps } = await supabase.from("apps").select(CARD_SELECT()).in("id", otherIds);
   const byId = new Map((apps ?? []).map((a) => [a.id as string, toCard(a)]));
   const pick = (kind: string) =>
     rows
@@ -840,7 +887,7 @@ export async function getNotifications(viewer: Viewer): Promise<Notification[]> 
   const supabase = await createClient();
   const { data } = await supabase
     .from("notifications")
-    .select(`id, kind, created_at, read_at, ref_id, actor:profiles!notifications_actor_id_fkey(${PROFILE_SUMMARY}), app:apps(slug, name)`)
+    .select(`id, kind, created_at, read_at, ref_id, actor:profiles!notifications_actor_id_fkey(${summaryCols()}), app:apps(slug, name)`)
     .eq("user_id", viewer.id)
     .order("created_at", { ascending: false })
     .limit(60);
@@ -855,15 +902,15 @@ export async function getNotifications(viewer: Viewer): Promise<Notification[]> 
   }));
 }
 
-const CONNECTION_PEOPLE = `id, reason, note, status, created_at, requester_id, addressee_id,
-  requester:profiles!connections_requester_id_fkey(${PROFILE_SUMMARY}),
-  addressee:profiles!connections_addressee_id_fkey(${PROFILE_SUMMARY})`;
+const CONNECTION_PEOPLE = () => `id, reason, note, status, created_at, requester_id, addressee_id,
+  requester:profiles!connections_requester_id_fkey(${summaryCols()}),
+  addressee:profiles!connections_addressee_id_fkey(${summaryCols()})` as const;
 
 export async function getConnectionRequests(viewer: Viewer): Promise<{ received: ConnectionRequest[]; sent: ConnectionRequest[] }> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("connections")
-    .select(CONNECTION_PEOPLE)
+    .select(CONNECTION_PEOPLE())
     .eq("status", "pending")
     .or(`requester_id.eq.${viewer.id},addressee_id.eq.${viewer.id}`)
     .order("created_at", { ascending: false });
@@ -925,7 +972,7 @@ export async function getConversations(viewer: Viewer): Promise<Conversation[]> 
     threads.set(other, t);
   }
   if (threads.size === 0) return [];
-  const { data: people } = await supabase.from("profiles").select(PROFILE_SUMMARY).in("id", [...threads.keys()]);
+  const { data: people } = await supabase.from("profiles").select(summaryCols()).in("id", [...threads.keys()]);
   const byId = new Map((people ?? []).map((p) => [p.id as string, toSummary(p)]));
   return [...threads.entries()]
     .filter(([id]) => byId.has(id))
@@ -937,7 +984,7 @@ export async function getThread(
   username: string,
 ): Promise<{ person: ProfileSummary; messages: Message[]; connection: ConnectionState } | null> {
   const supabase = await createClient();
-  const { data: person } = await supabase.from("profiles").select(PROFILE_SUMMARY).eq("username", username).maybeSingle();
+  const { data: person } = await supabase.from("profiles").select(summaryCols()).eq("username", username).maybeSingle();
   if (!person || person.id === viewer.id) return null;
   const [{ data }, connection] = await Promise.all([
     supabase
@@ -987,8 +1034,8 @@ export async function getQuestions(appId: string, viewer: Viewer | null): Promis
   const { data } = await supabase
     .from("questions")
     .select(
-      `id, body, created_at, vote_count, best_answer_id, user:profiles!questions_user_id_fkey(${PROFILE_SUMMARY}),
-       answers(id, body, created_at, vote_count, user:profiles!answers_user_id_fkey(${PROFILE_SUMMARY}))`,
+      `id, body, created_at, vote_count, best_answer_id, user:profiles!questions_user_id_fkey(${summaryCols()}),
+       answers(id, body, created_at, vote_count, user:profiles!answers_user_id_fkey(${summaryCols()}))`,
     )
     .eq("app_id", appId)
     .order("vote_count", { ascending: false })
@@ -1044,8 +1091,12 @@ export async function getSuggestions(viewer: Viewer | null): Promise<Suggestion[
   if (!viewer) return [];
   const supabase = await createClient();
   const { data } = await supabase.rpc("suggest_builders", { p_limit: 8 });
-  return (data ?? []).map((r: Suggestion) => ({
+  const rows = (data ?? []) as Suggestion[];
+  // suggest_builders doesn't return photos.
+  const photos = await photoUrls(rows.map((r) => r.id));
+  return rows.map((r) => ({
     ...toSummary(r),
+    avatar_url: photos.get(r.id) ?? null,
     shared_categories: r.shared_categories ?? [],
     shared_skills: r.shared_skills ?? [],
   }));
@@ -1101,124 +1152,6 @@ export async function getSponsorCards(hostIds: string[]): Promise<Map<string, Sp
   return out;
 }
 
-// --- Jobs ---
-
-const JOB_SELECT = `id, kind, title, body, pay, location, remote, skills, status, application_count, expires_at, created_at,
-  user:profiles!jobs_user_id_fkey(${PROFILE_SUMMARY}), app:apps(slug, name)`;
-
-function toJob(row: any): Job {
-  return {
-    id: row.id,
-    kind: row.kind,
-    title: row.title,
-    body: row.body ?? "",
-    pay: row.pay ?? "",
-    location: row.location ?? "",
-    remote: row.remote,
-    skills: row.skills ?? [],
-    status: row.status,
-    application_count: row.application_count ?? 0,
-    expires_at: row.expires_at,
-    created_at: row.created_at,
-    user: toSummary(row.user),
-    app: row.app ? { slug: row.app.slug, name: row.app.name } : null,
-  };
-}
-
-function demoJobList(): Job[] {
-  return demoJobs.map((j) => {
-    const app = demoApps.find((a) => a.id === j.app);
-    return {
-      id: j.id,
-      kind: j.kind,
-      title: j.title,
-      body: j.body,
-      pay: j.pay,
-      location: j.location,
-      remote: j.remote,
-      skills: j.skills,
-      status: "open",
-      application_count: j.applications,
-      expires_at: new Date(Date.now() + (30 - j.days) * DAY_MS).toISOString(),
-      created_at: demoDay(j.days),
-      user: toSummary(demoProfile(j.user)),
-      app: app ? { slug: app.slug, name: app.name } : null,
-    };
-  });
-}
-
-export function isJobOpen(job: Pick<Job, "status" | "expires_at">, now = Date.now()): boolean {
-  return job.status === "open" && new Date(job.expires_at).getTime() > now;
-}
-
-export async function getJobs(filters: { kind?: string; skill?: string }): Promise<Job[]> {
-  const kind = ["hiring", "gig", "looking"].includes(filters.kind ?? "") ? filters.kind : undefined;
-  const skill = filters.skill?.trim().slice(0, 40);
-  if (!isSupabaseConfigured) {
-    return demoJobList().filter(
-      (j) => (!kind || j.kind === kind) && (!skill || j.skills.some((s) => s.toLowerCase() === skill.toLowerCase())),
-    );
-  }
-  const supabase = await createClient();
-  let query = supabase
-    .from("jobs")
-    .select(JOB_SELECT)
-    .eq("status", "open")
-    .gt("expires_at", new Date().toISOString())
-    .order("created_at", { ascending: false })
-    .limit(50);
-  if (kind) query = query.eq("kind", kind);
-  if (skill) query = query.contains("skills", [skill]);
-  const { data } = await query;
-  return (data ?? []).map(toJob);
-}
-
-export async function getMyJobs(viewer: Viewer | null): Promise<Job[]> {
-  if (!viewer) return [];
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("jobs")
-    .select(JOB_SELECT)
-    .eq("user_id", viewer.id)
-    .order("created_at", { ascending: false })
-    .limit(20);
-  return (data ?? []).map(toJob);
-}
-
-export async function getJob(
-  id: string,
-  viewer: Viewer | null,
-): Promise<{ job: Job; applications: JobApplication[]; mine: JobApplication | null } | null> {
-  if (!isSupabaseConfigured) {
-    const job = demoJobList().find((j) => j.id === id);
-    return job ? { job, applications: [], mine: null } : null;
-  }
-  if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
-  const supabase = await createClient();
-  const { data } = await supabase.from("jobs").select(JOB_SELECT).eq("id", id).maybeSingle();
-  if (!data) return null;
-  const job = toJob(data);
-  if (!viewer) return { job, applications: [], mine: null };
-
-  // RLS returns every application to the poster, and only your own to anyone else.
-  const { data: rows } = await supabase
-    .from("job_applications")
-    .select(`id, note, status, created_at, user:profiles!job_applications_user_id_fkey(${PROFILE_SUMMARY}), app:apps(slug, name)`)
-    .eq("job_id", id)
-    .order("created_at", { ascending: false })
-    .limit(100);
-  const applications: JobApplication[] = (rows ?? []).map((r: any) => ({
-    id: r.id,
-    note: r.note,
-    status: r.status,
-    created_at: r.created_at,
-    user: toSummary(r.user),
-    app: r.app ? { slug: r.app.slug, name: r.app.name } : null,
-  }));
-  if (job.user.id === viewer.id) return { job, applications, mine: null };
-  return { job, applications: [], mine: applications.find((a) => a.user.id === viewer.id) ?? null };
-}
-
 // --- Backers ---
 
 export async function getBackers(appId: string): Promise<Backer[]> {
@@ -1233,7 +1166,7 @@ export async function getBackers(appId: string): Promise<Backer[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("backings")
-    .select(`id, note, created_at, user:profiles!backings_user_id_fkey(${PROFILE_SUMMARY})`)
+    .select(`id, note, created_at, user:profiles!backings_user_id_fkey(${summaryCols()})`)
     .eq("app_id", appId)
     .eq("is_public", true)
     .order("created_at", { ascending: false })
@@ -1346,7 +1279,7 @@ export async function getChallenge(
   const [{ data: rows }, vote] = await Promise.all([
     supabase
       .from("challenge_entries")
-      .select(`id, vote_count, app:apps!inner(${CARD_SELECT})`)
+      .select(`id, vote_count, app:apps!inner(${CARD_SELECT()})`)
       .eq("challenge_id", challenge.id)
       .order("vote_count", { ascending: false })
       .order("created_at", { ascending: true })
@@ -1426,7 +1359,7 @@ export async function getBrand(slug: string): Promise<{ brand: Brand; sponsoring
   const ids = ((rows ?? []) as { app_id: string }[]).map((r) => r.app_id);
   let sponsoring: AppCard[] = [];
   if (ids.length > 0) {
-    const { data: apps } = await supabase.from("apps").select(CARD_SELECT).in("id", ids);
+    const { data: apps } = await supabase.from("apps").select(CARD_SELECT()).in("id", ids);
     sponsoring = (apps ?? []).map(toCard);
   }
   return { brand: toBrand(data), sponsoring };

@@ -121,15 +121,6 @@ export const EARN = {
   payoutMin: 500,
 } as const;
 
-// Must match the check on public.jobs.kind.
-export const JOB_KINDS = [
-  { slug: "hiring", label: "Hiring" },
-  { slug: "gig", label: "Gig" },
-  { slug: "looking", label: "Looking for work" },
-] as const;
-
-export const JOB_LIMITS = { openPerPerson: 5, days: 30, skills: 8 } as const;
-
 export function formatCents(cents: number): string {
   const dollars = cents / 100;
   return `$${Number.isInteger(dollars) ? dollars.toLocaleString("en-US") : dollars.toFixed(2)}`;

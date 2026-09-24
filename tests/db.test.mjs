@@ -750,5 +750,19 @@ ok((await db.query("select tries, spent_cents from public.sponsorships where id 
 ok(!!(await fails("authenticated", F, "delete from public.brands where id = $1", [brand])), "a brand with a running deal can't be deleted");
 ok(!!(await fails("anon", null, "insert into public.sponsorships (sponsor_brand, sponsor_user, host_user, price_cents, budget_cents) values ($1, $2, $3, 10, 1000)", [brand, F, H])), "can't write brand deals directly");
 
+// --- Profile photos ---
+{
+  const setPhoto = "update public.profiles set avatar_path = $1 where id = $2";
+  await as("authenticated", A, setPhoto, [`${A}/avatar-1727000000000.jpg`, A]);
+  ok((await db.query("select avatar_path from public.profiles where id = $1", [A])).rows[0].avatar_path === `${A}/avatar-1727000000000.jpg`, "you can set your own photo");
+  ok(!!(await fails("authenticated", A, setPhoto, [`${B}/avatar-1.jpg`, A])), "your photo must be in your own folder");
+  ok(!!(await fails("authenticated", A, setPhoto, [`${A}/../x.jpg`, A])), "photo paths are only avatar-<time>.jpg");
+  const before = (await db.query("select avatar_path from public.profiles where id = $1", [B])).rows[0].avatar_path;
+  await as("authenticated", A, setPhoto, [`${B}/avatar-2.jpg`, B]);
+  ok((await db.query("select avatar_path from public.profiles where id = $1", [B])).rows[0].avatar_path === before, "you can't change someone else's photo");
+  await as("authenticated", A, setPhoto, [null, A]);
+  ok((await db.query("select avatar_path from public.profiles where id = $1", [A])).rows[0].avatar_path === null, "you can remove your photo");
+}
+
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");
 process.exit(failures ? 1 : 0);

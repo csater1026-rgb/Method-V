@@ -12,7 +12,7 @@ import { DropPlaceholder } from "./DropVideo";
 import { LikeButton } from "./LikeButton";
 import { ShareButton } from "./ShareButton";
 import { SponsoredBy } from "./Sponsored";
-import { CategoryChip } from "./Tags";
+import { CategoryChip, StatusBadge } from "./Tags";
 
 // Vertical, swipeable feed. Each Drop fills the screen; the one in view plays
 // (muted until someone taps for sound), the rest pause, and its caption
@@ -176,7 +176,8 @@ function DropSlide({ item, first, signedIn, muted, onToggleSound }: SlideProps) 
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 via-black/65 to-transparent p-4 pt-20">
           <div className={reveal}>
             <Link href={`/u/${owner.username}`} className="mb-2 flex w-fit items-center gap-2 text-sm font-semibold">
-              <Avatar username={owner.username} name={owner.display_name} size={26} />@{owner.username}
+              <Avatar username={owner.username} name={owner.display_name} src={owner.avatar_url} size={26} />@{owner.username}
+              <StatusBadge roles={owner.roles} />
             </Link>
             <Link href={`/apps/${app.slug}`} className="display block text-[42px] hover:text-accent">
               {app.name}

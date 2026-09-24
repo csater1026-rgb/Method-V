@@ -8,9 +8,7 @@ import {
   BOOST,
   CONNECT_REASONS,
   EARN,
-  JOB_KINDS,
   MIN_PASSWORD,
-  JOB_LIMITS,
   ROLES,
   TESTER_PACKS,
   WOULD_USE,
@@ -31,7 +29,7 @@ import {
   isStripeConfigured,
 } from "@/lib/stripe";
 import { sitePreview, type SitePreview } from "@/lib/site-preview";
-import { DEMO_MODE_MESSAGE, authProviders, isSupabaseConfigured, type AuthProvider } from "@/lib/supabase/env";
+import { DEMO_MODE_MESSAGE, DROPS_BUCKET, authProviders, isSupabaseConfigured, type AuthProvider } from "@/lib/supabase/env";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import type { ActionResult, Viewer } from "@/lib/types";
 
@@ -275,6 +273,28 @@ export async function updateProfile(_prev: ProfileState, formData: FormData): Pr
   }
   revalidatePath("/", "layout");
   return { status: "saved" };
+}
+
+// Saves (or with null, removes) the profile photo the browser just uploaded
+// to drops/<your id>/avatar-<time>.jpg, and deletes the one it replaces.
+export async function setAvatar(path: string | null): Promise<ActionResult> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  const id = auth.viewer.id;
+  if (path !== null && !new RegExp(`^${id}/avatar-[0-9]+\\.jpg$`).test(path)) {
+    return { ok: false, error: "That photo didn't upload properly. Try again." };
+  }
+  const supabase = await createClient();
+  const { data: before, error: readError } = await supabase.from("profiles").select("avatar_path").eq("id", id).maybeSingle();
+  if (readError) {
+    return { ok: false, error: "Profile photos need the latest database update. Open /api/health to see what to run." };
+  }
+  const { error } = await supabase.from("profiles").update({ avatar_path: path }).eq("id", id);
+  if (error) return { ok: false, error: "Couldn't save your photo." };
+  const old = before?.avatar_path as string | null | undefined;
+  if (old && old !== path) await supabase.storage.from(DROPS_BUCKET).remove([old]);
+  revalidatePath("/", "layout");
+  return { ok: true };
 }
 
 // ---------------------------------------------------------------------------
@@ -643,107 +663,6 @@ export async function deletePost(kind: "question" | "answer", id: string, appSlu
   if (error) return { ok: false, error: "Couldn't delete it." };
   revalidatePath(qaPath(appSlug));
   return { ok: true };
-}
-
-// ---------------------------------------------------------------------------
-// Phase 4: jobs board
-// ---------------------------------------------------------------------------
-
-export type JobInput = {
-  kind: string;
-  title: string;
-  body: string;
-  pay: string;
-  location: string;
-  remote: boolean;
-  skills: string;
-  appId: string | null;
-};
-
-export async function postJob(input: JobInput): Promise<ActionResult & { id?: string }> {
-  const auth = await requireViewer();
-  if ("error" in auth) return { ok: false, error: auth.error };
-  if (!isOneOf(JOB_KINDS, input.kind)) return { ok: false, error: "Pick what kind of post this is." };
-  const title = input.title.trim();
-  if (title.length < 5 || title.length > 80) return { ok: false, error: "Give it a title (5 to 80 characters)." };
-  const body = input.body.trim();
-  if (body.length > 2000) return { ok: false, error: "Keep the details under 2,000 characters." };
-  const pay = input.pay.trim();
-  const location = input.location.trim();
-  if (pay.length > 60 || location.length > 60) return { ok: false, error: "Keep pay and location short." };
-  const skills = parseList(input.skills, JOB_LIMITS.skills);
-  if (input.appId && !UUID.test(input.appId)) return { ok: false, error: "Unknown app." };
-
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("jobs")
-    .insert({
-      user_id: auth.viewer.id,
-      kind: input.kind,
-      title,
-      body,
-      pay,
-      location,
-      remote: Boolean(input.remote),
-      skills,
-      app_id: input.appId || null,
-    })
-    .select("id")
-    .single();
-  if (error) return { ok: false, error: rpcError(error.message, "Couldn't post that.") };
-  revalidatePath("/jobs");
-  return { ok: true, id: data.id };
-}
-
-export async function setJobOpen(jobId: string, open: boolean): Promise<ActionResult> {
-  const auth = await requireViewer();
-  if ("error" in auth) return { ok: false, error: auth.error };
-  if (!UUID.test(jobId)) return { ok: false, error: "Unknown post." };
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("jobs")
-    .update({ status: open ? "open" : "closed" })
-    .eq("id", jobId)
-    .eq("user_id", auth.viewer.id);
-  if (error) return { ok: false, error: rpcError(error.message, "Couldn't update the post.") };
-  revalidatePath("/jobs");
-  revalidatePath(`/jobs/${jobId}`);
-  return { ok: true };
-}
-
-export async function applyToJob(jobId: string, note: string, appId: string | null): Promise<ActionResult> {
-  const auth = await requireViewer();
-  if ("error" in auth) return { ok: false, error: auth.error };
-  if (!UUID.test(jobId)) return { ok: false, error: "Unknown post." };
-  const trimmed = note.trim();
-  if (!trimmed) return { ok: false, error: "Say a little about why you're a fit." };
-  if (trimmed.length > 500) return { ok: false, error: "Keep it under 500 characters." };
-  if (appId && !UUID.test(appId)) return { ok: false, error: "Unknown app." };
-
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("job_applications")
-    .insert({ job_id: jobId, user_id: auth.viewer.id, note: trimmed, app_id: appId || null });
-  if (error?.code === "23505") return { ok: false, error: "You've already applied." };
-  if (error) return { ok: false, error: rpcError(error.message, "Couldn't send your application.") };
-  revalidatePath(`/jobs/${jobId}`);
-  return { ok: true };
-}
-
-export async function withdrawApplication(jobId: string): Promise<ActionResult> {
-  const auth = await requireViewer();
-  if ("error" in auth) return { ok: false, error: auth.error };
-  if (!UUID.test(jobId)) return { ok: false, error: "Unknown post." };
-  const supabase = await createClient();
-  const { error } = await supabase.from("job_applications").delete().eq("job_id", jobId).eq("user_id", auth.viewer.id);
-  if (error) return { ok: false, error: "Couldn't withdraw." };
-  revalidatePath(`/jobs/${jobId}`);
-  return { ok: true };
-}
-
-export async function respondApplication(id: string, jobId: string, shortlist: boolean): Promise<ActionResult> {
-  const invalid = UUID.test(id) && UUID.test(jobId) ? null : "Unknown application.";
-  return callRpc("respond_application", { p_id: id, p_shortlist: shortlist }, "Couldn't update the application.", [`/jobs/${jobId}`], invalid);
 }
 
 // ---------------------------------------------------------------------------

@@ -76,7 +76,7 @@ export function Comments({ dropId, appSlug, comments, viewerId, bare = false }: 
         {comments.map((c) => (
           <li key={c.id} className="flex gap-3">
             <Link href={`/u/${c.user.username}`}>
-              <Avatar username={c.user.username} name={c.user.display_name} size={32} />
+              <Avatar username={c.user.username} name={c.user.display_name} src={c.user.avatar_url} size={32} />
             </Link>
             <div className="min-w-0 flex-1">
               <p className="text-sm">

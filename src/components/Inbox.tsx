@@ -72,7 +72,8 @@ function describe(n: Notification): { text: string; href: string } {
     case "sponsor_ended":
       return { text: `ended your sponsorship deal`, href: "/earn" };
     case "job_application":
-      return { text: "applied to your post", href: n.ref_id ? `/jobs/${n.ref_id}` : "/jobs" };
+      // From the old jobs board; the post itself is gone.
+      return { text: "applied to your post", href: n.actor ? `/u/${n.actor.username}` : "/inbox" };
     case "application_shortlisted":
       return { text: "shortlisted you. Say hi!", href: n.actor ? `/inbox/${n.actor.username}` : "/inbox" };
     default:
@@ -97,7 +98,7 @@ export function ActivityList({ items }: { items: Notification[] }) {
           <li key={n.id}>
             <Link href={href} className="flex items-center gap-3 px-4 py-3 hover:bg-surface-2">
               {n.actor ? (
-                <Avatar username={n.actor.username} name={n.actor.display_name} size={36} />
+                <Avatar username={n.actor.username} name={n.actor.display_name} src={n.actor.avatar_url} size={36} />
               ) : (
                 <span className="h-9 w-9" />
               )}
@@ -134,7 +135,7 @@ export function RequestRow({ request, incoming }: { request: ConnectionRequest; 
   return (
     <li className="flex flex-wrap items-start gap-3 px-4 py-3">
       <Link href={`/u/${request.person.username}`}>
-        <Avatar username={request.person.username} name={request.person.display_name} size={40} />
+        <Avatar username={request.person.username} name={request.person.display_name} src={request.person.avatar_url} size={40} />
       </Link>
       <div className="min-w-0 flex-1 text-sm">
         <p>

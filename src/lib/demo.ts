@@ -244,64 +244,6 @@ export const demoTestRequests: Record<string, { slots_total: number; slots_fille
 };
 
 // Phase 4 samples.
-export const demoJobs: {
-  id: string;
-  user: string;
-  kind: "hiring" | "gig" | "looking";
-  title: string;
-  body: string;
-  pay: string;
-  location: string;
-  remote: boolean;
-  skills: string[];
-  app: string | null;
-  days: number;
-  applications: number;
-}[] = [
-  {
-    id: "demo-job-studio",
-    user: "demo-june",
-    kind: "hiring",
-    title: "Front-end developer for a small design studio",
-    body: "We design and ship marketing sites and small apps for indie founders. Looking for someone who cares about motion and accessibility. Part-time to start.",
-    pay: "$55–70/hr",
-    location: "Lagos or remote",
-    remote: true,
-    skills: ["React", "Tailwind", "Motion"],
-    app: "demo-app-palettepal",
-    days: 2,
-    applications: 4,
-  },
-  {
-    id: "demo-job-landing",
-    user: "demo-ada",
-    kind: "gig",
-    title: "Landing page refresh for NoteFlow",
-    body: "One-week gig: a new landing page with a short demo loop. Figma file is ready.",
-    pay: "$800 fixed",
-    location: "",
-    remote: true,
-    skills: ["Next.js", "Figma"],
-    app: "demo-app-noteflow",
-    days: 4,
-    applications: 2,
-  },
-  {
-    id: "demo-job-marco",
-    user: "demo-marco",
-    kind: "looking",
-    title: "Ex-teacher who ships edtech fast",
-    body: "Six years in classrooms, one year shipping with Lovable and Supabase. Looking for part-time work on tools for teachers or students.",
-    pay: "Open to offers",
-    location: "Madrid",
-    remote: true,
-    skills: ["Lovable", "Supabase", "Teaching"],
-    app: "demo-app-quizpop",
-    days: 1,
-    applications: 0,
-  },
-];
-
 export const demoBackers: Record<string, { user: string; note: string; days: number }[]> = {
   "demo-app-noteflow": [
     { user: "demo-marco", note: "Saves me every Monday standup.", days: 1 },

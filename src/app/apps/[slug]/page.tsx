@@ -18,7 +18,7 @@ import { LikeButton } from "@/components/LikeButton";
 import { ShareButton } from "@/components/ShareButton";
 import { ShareKit } from "@/components/ShareKit";
 import { TeamUp } from "@/components/Swaps";
-import { CategoryChip, Chip, PricingStage, RoleTags } from "@/components/Tags";
+import { CategoryChip, Chip, PricingStage, RoleTags, StatusBadge, primaryStatus } from "@/components/Tags";
 import {
   appStatus,
   getApp,
@@ -150,6 +150,9 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
 
         {app.description && <p className="leading-relaxed whitespace-pre-line text-ink/90">{app.description}</p>}
 
+        {/* Test & earn for this app, right under what it is. */}
+        <FeedbackPanel panel={feedbackPanel} app={{ id: app.id, slug: app.slug, name: app.name }} />
+
         {app.tech_stack.length > 0 && (
           <div>
             <h2 className="mb-2 text-sm font-semibold text-muted">Built with</h2>
@@ -165,11 +168,14 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
 
         <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-line bg-surface p-4">
           <Link href={`/u/${app.owner.username}`} className="flex items-center gap-3">
-            <Avatar username={app.owner.username} name={app.owner.display_name} size={44} />
+            <Avatar username={app.owner.username} name={app.owner.display_name} src={app.owner.avatar_url} size={44} />
             <div>
-              <span className="block font-semibold">{app.owner.display_name || `@${app.owner.username}`}</span>
+              <span className="flex flex-wrap items-center gap-2 font-semibold">
+                {app.owner.display_name || `@${app.owner.username}`}
+                <StatusBadge roles={app.owner.roles} />
+              </span>
               <span className="block text-sm text-muted">@{app.owner.username}</span>
-              <RoleTags roles={app.owner.roles} className="mt-1" />
+              <RoleTags roles={app.owner.roles} except={primaryStatus(app.owner.roles)} className="mt-1" />
             </div>
           </Link>
           {!isOwner && (
@@ -201,8 +207,6 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
           </GrowPanel>
         )}
 
-        <FeedbackPanel panel={feedbackPanel} app={{ id: app.id, slug: app.slug, name: app.name }} />
-
         {(partners.friends.length > 0 || partners.colaunch.length > 0) && (
           <section aria-label="Friends of this app">
             <h2 className="display text-4xl">Friends of {app.name}</h2>
@@ -219,7 +223,7 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
                     href={`/apps/${friend.slug}`}
                     className="flex h-full items-center gap-3 rounded-lg border border-line bg-surface p-3 hover:border-accent"
                   >
-                    <Avatar username={friend.owner.username} name={friend.owner.display_name} size={32} />
+                    <Avatar username={friend.owner.username} name={friend.owner.display_name} src={friend.owner.avatar_url} size={32} />
                     <span className="min-w-0">
                       <span className="display block truncate text-2xl">{friend.name}</span>
                       <span className="block truncate text-xs text-muted">{friend.tagline}</span>

@@ -21,9 +21,13 @@ export type Profile = {
   pro_until: string | null;
   pinned_app_id: string | null;
   payouts_enabled: boolean;
+  // Profile photo in the drops bucket; null means the letter avatar.
+  avatar_path?: string | null;
 };
 
-export type ProfileSummary = Pick<Profile, "id" | "username" | "display_name" | "roles">;
+export type ProfileSummary = Pick<Profile, "id" | "username" | "display_name" | "roles"> & {
+  avatar_url?: string | null;
+};
 
 export type App = {
   id: string;
@@ -93,6 +97,7 @@ export type Viewer = {
   id: string;
   username: string;
   credits: number;
+  avatar_url?: string | null;
 };
 
 export type TestRequest = {
@@ -140,6 +145,7 @@ export type TopTester = {
   display_name: string;
   feedback_count: number;
   helpful_count: number;
+  avatar_url?: string | null;
 };
 
 export type Update = {
@@ -225,35 +231,6 @@ export type ActionResult = { ok: true } | { ok: false; error: string };
 // Phase 4: Earn
 // ---------------------------------------------------------------------------
 
-export type JobKind = "hiring" | "gig" | "looking";
-
-export type Job = {
-  id: string;
-  kind: JobKind;
-  title: string;
-  body: string;
-  pay: string;
-  location: string;
-  remote: boolean;
-  skills: string[];
-  status: "open" | "closed";
-  application_count: number;
-  expires_at: string;
-  created_at: string;
-  user: ProfileSummary;
-  app: { slug: string; name: string } | null;
-};
-
-export type JobApplication = {
-  id: string;
-  note: string;
-  status: "new" | "shortlisted" | "passed";
-  created_at: string;
-  user: ProfileSummary;
-  app: { slug: string; name: string } | null;
-};
-
-// A "Sponsored by" card shown on the host app and its Drops.
 export type SponsorCard = { id: string; kind: "app" | "brand"; slug: string; name: string; tagline: string };
 
 export type SponsorshipStatus = "offered" | "accepted" | "declined" | "active" | "completed" | "ended";

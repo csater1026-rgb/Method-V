@@ -86,7 +86,7 @@ async function Conversations({ viewer }: { viewer: NonNullable<Awaited<ReturnTyp
       {conversations.map((c) => (
         <li key={c.person.id}>
           <Link href={`/inbox/${c.person.username}`} className="flex items-center gap-3 px-4 py-3 hover:bg-surface-2">
-            <Avatar username={c.person.username} name={c.person.display_name} size={40} />
+            <Avatar username={c.person.username} name={c.person.display_name} src={c.person.avatar_url} size={40} />
             <span className="min-w-0 flex-1">
               <span className="flex items-baseline justify-between gap-2">
                 <span className={`truncate ${c.unread ? "font-bold" : "font-semibold"}`}>

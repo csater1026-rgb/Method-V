@@ -106,7 +106,7 @@ function UpdateRow({ update, mine }: { update: Update; mine: boolean }) {
   return (
     <li className="flex gap-3 p-3 sm:p-4">
       <Link href={`/u/${update.user.username}`} className="shrink-0">
-        <Avatar username={update.user.username} name={update.user.display_name} size={36} />
+        <Avatar username={update.user.username} name={update.user.display_name} src={update.user.avatar_url} size={36} />
       </Link>
       <div className="min-w-0 flex-1">
         <p className="flex flex-wrap items-center gap-x-2 text-sm">

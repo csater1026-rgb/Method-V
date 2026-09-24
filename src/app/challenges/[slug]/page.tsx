@@ -97,7 +97,7 @@ export default async function ChallengePage({ params }: PageProps<"/challenges/[
               <li key={e.id} className="flex items-center gap-3 px-4 py-3">
                 <span className="w-6 shrink-0 text-center font-mono text-sm text-muted">{i + 1}</span>
                 <Link href={`/apps/${e.app.slug}`} className="flex min-w-0 flex-1 items-center gap-3">
-                  <Avatar username={e.app.owner.username} name={e.app.owner.display_name} size={36} />
+                  <Avatar username={e.app.owner.username} name={e.app.owner.display_name} src={e.app.owner.avatar_url} size={36} />
                   <span className="min-w-0">
                     <span className="display block truncate text-2xl">
                       {e.app.name}

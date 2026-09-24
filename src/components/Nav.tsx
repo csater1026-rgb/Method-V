@@ -25,7 +25,7 @@ export async function Nav() {
             <Wordmark className="text-[20px] sm:text-[22px]" />
           </Link>
 
-          <NavLinks />
+          <NavLinks profileHref={viewer ? `/u/${viewer.username}` : "/login"} />
 
           <div className="ml-auto flex items-center gap-2">
             <ThemeToggle />
@@ -37,7 +37,7 @@ export async function Nav() {
                 <CreditsChip credits={viewer.credits} />
                 <InboxIcon count={counts.notifications + counts.messages + counts.requests} />
                 <Link href={`/u/${viewer.username}`} aria-label="Your profile">
-                  <Avatar username={viewer.username} size={32} />
+                  <Avatar username={viewer.username} src={viewer.avatar_url} size={32} />
                 </Link>
                 <form action={signOut} className="hidden sm:block">
                   <button className="text-sm text-muted hover:text-ink">Sign out</button>

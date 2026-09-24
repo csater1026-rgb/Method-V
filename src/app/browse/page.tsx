@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: "Browse apps" };
 
 // The rest of the site, for phones (where the top nav only has the main tabs).
 const MORE_LINKS = [
-  { href: "/jobs", label: "Jobs" },
+  { href: "/test", label: "Test & earn" },
   { href: "/challenges", label: "Challenges" },
   { href: "/credits", label: "Credits" },
   { href: "/earn", label: "Earn" },

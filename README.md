@@ -17,11 +17,11 @@ See [PLAN.md](PLAN.md) for the full product plan and build phases.
 
 **Phase 1 ("Show it") is built:** sign-in by email link, profiles with role tags, posting an app with a 60-second Drop, the Drops feed (For you, which learns what each person is into from what they watch, like, try and skip; Trending; Following), the Browse directory with search and filters, app pages with likes and comments, follows, and a "Try it" button that counts real tries. 
 
-**Phase 3 ("Grow"), part 1 is built:** try-to-earn credits and structured feedback. Everyone starts with ⚡10. Builders spend ⚡2 per tester to put an app in the **Test & earn** queue (`/test`); people who open the app with Try it and leave feedback (would you use it, a rating, what worked, what confused you) earn ⚡2, plus ⚡1 when the builder marks it helpful. Feedback is private to the tester and builder; app pages show the totals (testers, % who'd use it, average rating). Balance and history are at `/credits`.
+**Phase 3 ("Grow"), part 1 is built:** try-to-earn credits and structured feedback. Everyone starts with ⚡10. Builders spend ⚡2 per tester to put an app in the **Test & earn** queue (`/test`, linked from Browse; each app page explains Test & earn right under its description); people who open the app with Try it and leave feedback (would you use it, a rating, what worked, what confused you) earn ⚡2, plus ⚡1 when the builder marks it helpful. Feedback is private to the tester and builder; app pages show the totals (testers, % who'd use it, average rating). Balance and history are at `/credits`.
 
 **Phase 3 ("Grow") is built:**
 
-- **Tester Passport:** every app you give feedback on stamps your passport. Ranks (Scout → Tester → Pro Tester → Trusted Tester) come from feedback given and feedback marked helpful, with perks built into the database: Testers earn ⚡3 per paid feedback, Pro Testers can earn from 20 a day, Trusted Testers' feedback shows first to builders. 4 weeks in a row earns a ⚡5 bonus. Profiles show the passport (rank, progress, a stamp per category, streak) and Test & earn shows the month's top testers. Ranks never go down.
+- **Tester Passport:** every app you give feedback on stamps your passport. Ranks (Scout → Tester → Pro Tester → Trusted Tester) come from feedback given and feedback marked helpful, with perks built into the database: Testers earn ⚡3 per paid feedback, Pro Testers can earn from 20 a day, Trusted Testers' feedback shows first to builders. 4 weeks in a row earns a ⚡5 bonus. Profiles show the passport (rank, progress, a stamp per category, streak) and Home (and the Test & earn queue) show the month's top testers. Ranks never go down.
 - **Launch days:** schedule one free launch day per app (1 hour to 30 days out). It shows under *Launching soon* on Browse with a countdown, then sits in the Featured row for 24 hours.
 - **Boosts:** spend ⚡10 a day (1, 3 or 7 days) to put an app in the Featured row with a *Boosted* label.
 - **Build in public:** a one-box composer ("What did you ship today?") on Home, your profile and your app pages. Home shows updates from you and who you follow.
@@ -46,7 +46,8 @@ Builder tools (launch day, boosts, share kit) live in the *Grow* panel on your o
 
 **Phase 4 ("Earn") is built:**
 
-- **Jobs board (`/jobs`):** post a job, a gig or a "looking for work" post (free, up to 5 open, 30 days each). People apply with a short note and one of their apps. Shortlisting someone connects you both so you can message straight away. On "looking for work" posts you Connect instead.
+- **Status, not a jobs board:** there's no jobs board. Everyone picks a status in their profile (Hiring, Looking for work, Open to collab, Freelancer), shown as a badge next to their photo on their profile, their Drops and their app pages. To hire or get hired you Connect with a reason and then message privately. Old `/jobs` links go to Browse; the jobs tables stay in the database, unused.
+- **Profile photos:** upload one under Edit profile. It's cropped to a square and shrunk in the browser, stored in your own folder of the `drops` bucket, and shown everywhere your avatar appears (letters until then). Needs `supabase/migrations/20261001000000_avatars.sql`.
 - **Backers:** *Back it* on any app sends the builder a one-off tip ($1–$500) through Stripe Checkout. The builder gets 95%. The app page has a backers wall with names and notes, never amounts, and backers can choose to stay off it.
 - **Boost Exchange, paid:** on another builder's app, *Make an offer* to sponsor it with one of your apps: a price per try ($0.10–$5) and a budget ($10–$1,000). When they accept, you pay the budget and a labeled **Sponsored** card for your app appears on their app page and their Drops. You're charged only for real tries: one per person, from accounts at least a day old, never either builder. The host earns 88% of each try. The deal ends when the budget runs out, or either side can end it and the unspent budget is refunded. Each app shows one sponsor at a time. Deals live on `/earn`.
 - **Challenges (`/challenges`):** sponsored prizes like "Best app built on Supabase". Builders enter their own apps (up to 3; the app must use the required stack or category). Everyone gets one vote per challenge, and new accounts can vote after their first day. The Method V team creates challenges and picks winners (see below).
@@ -57,14 +58,14 @@ Builder tools (launch day, boosts, share kit) live in the *Grow* panel on your o
 
 - **Get the app (`/app`):** Method V installs to the home screen on iPhone (Safari → Share → Add to Home Screen) and Android/desktop Chrome (Install). It opens full screen with the tab bar and shows a friendly page when offline. Native App Store and Google Play apps come later.
 - **Stats (`/dashboard`):** for each of your apps: tries, likes, feedback and sponsored tries per day, and where tries come from (Drops feed, app page, embeds, cards, sponsor cards, shared links, API, direct). The last 7 days are free; 30 and 90 days and CSV export come with Pro.
-- **Public API (`/api/v1`) and embeds:** read-only JSON for apps, builders, jobs and challenges, open to any site. There's an embeddable app card (`/embed/<app>`, an iframe with a Try it button) and the badge. Builders get the embed snippet in their Share kit, and the docs are at `/developers`.
+- **Public API (`/api/v1`) and embeds:** read-only JSON for apps, builders and challenges, open to any site. There's an embeddable app card (`/embed/<app>`, an iframe with a Try it button) and the badge. Builders get the embed snippet in their Share kit, and the docs are at `/developers`.
 - **Brand sponsors (`/brands`):** companies outside Method V list a brand (its site is link-checked). Once the Method V team verifies it, the brand can make pay-per-try offers on any app, with the same rules and labels as app-to-app deals. To verify a brand, set `verified_at` on its row in the `brands` table.
 
 **Native app (in progress):** the iPhone and Android app lives in [`mobile/`](mobile/README.md) and is built with Expo. It has Home, the Drops feed, posting with the camera, Browse, app pages, profiles and sign-in. Store builds run on EAS, so no Mac is needed. See `mobile/README.md` to run it or ship it.
 
 **Sign in, on the website and in the app:** email and password (sign in or create an account), Google and Apple (plus GitHub on the website), or an emailed link or code. The emailed option is also "forgot password", and you can set a new password under Edit profile. It's one account everywhere.
 
-Payments are off until Stripe is connected (step 6 below). Until then offers, jobs and challenges still work, and anything that takes money says payments aren't switched on.
+Payments are off until Stripe is connected (step 6 below). Until then offers and challenges still work, and anything that takes money says payments aren't switched on.
 
 ## Run it locally
 
@@ -112,7 +113,6 @@ To deploy, import the repo into [Vercel](https://vercel.com) and add the same en
 | Builders like you | `src/components/Suggestions.tsx` |
 | All database reads (plus demo data when Supabase isn't set up) | `src/lib/data.ts`, `src/lib/demo.ts` |
 | Link check before an app goes live (blocks private/internal addresses) | `src/lib/link-check.ts` |
-| Jobs board `/jobs`, `/jobs/new`, `/jobs/[id]` | `src/app/jobs/`, `src/components/Jobs.tsx`, `src/components/JobCard.tsx` |
 | Back it, sponsor offers, deal rows, payouts, Pro buttons | `src/components/Earn.tsx`, `src/components/Sponsored.tsx`, `src/components/Backers.tsx` |
 | Earn `/earn`, Pro `/pro`, Challenges `/challenges` | `src/app/earn/`, `src/app/pro/`, `src/app/challenges/`, `src/components/Challenges.tsx` |
 | Stats dashboard and CSV export | `src/app/dashboard/`, `src/lib/dashboard.ts`, `src/components/StatsChart.tsx` |

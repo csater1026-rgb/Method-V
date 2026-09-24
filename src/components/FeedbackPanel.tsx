@@ -22,13 +22,27 @@ export function FeedbackPanel({ panel, app }: { panel: Panel; app: AppRef }) {
   return (
     <section id="feedback" className="scroll-mt-20 rounded-xl border border-line bg-surface p-4 sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="display text-4xl">Feedback</h2>
+        <h2 className="display text-4xl">Test &amp; earn</h2>
         {open && panel.mode !== "owner" && (
           <span className="tag-accent">
             ⚡ Earn {CREDITS.feedbackReward} credits · {open.slots_total - open.slots_filled} spots left
           </span>
         )}
       </div>
+
+      {panel.mode !== "owner" && (
+        <ol className="mt-3 grid gap-2 text-sm sm:grid-cols-3">
+          <HowStep n={1} title="Try it">
+            Use {app.name} for a minute.
+          </HowStep>
+          <HowStep n={2} title="Give feedback">
+            Would you use it? What worked, what didn&apos;t? Only the builder sees it.
+          </HowStep>
+          <HowStep n={3} title={`Earn ⚡${CREDITS.feedbackReward}`}>
+            Spend credits to get testers for your own app.
+          </HowStep>
+        </ol>
+      )}
 
       {panel.mode === "demo" && (
         <p className="mt-2 text-sm text-muted">
@@ -67,6 +81,16 @@ export function FeedbackPanel({ panel, app }: { panel: Panel; app: AppRef }) {
         <OwnerView app={app} request={panel.request} feedback={panel.feedback} credits={panel.credits} />
       )}
     </section>
+  );
+}
+
+function HowStep({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
+  return (
+    <li className="rounded-lg border border-line bg-bg p-3">
+      <span className="eyebrow">0{n}</span>
+      <span className="ml-2 font-semibold">{title}</span>
+      <p className="mt-1 text-muted">{children}</p>
+    </li>
   );
 }
 
@@ -298,7 +322,7 @@ function FeedbackItem({ item, appSlug, canMarkHelpful }: { item: Feedback; appSl
     <article className="mt-3 rounded-lg border border-line bg-bg/50 p-4 text-sm">
       <header className="flex flex-wrap items-center gap-2">
         <Link href={`/u/${item.user.username}`} className="flex items-center gap-2 font-semibold hover:underline">
-          <Avatar username={item.user.username} name={item.user.display_name} size={24} />@{item.user.username}
+          <Avatar username={item.user.username} name={item.user.display_name} src={item.user.avatar_url} size={24} />@{item.user.username}
         </Link>
         <RankTag rank={item.user_rank} />
         <span className="text-accent" aria-label={`${item.rating} out of 5 stars`}>

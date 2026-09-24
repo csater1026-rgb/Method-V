@@ -15,7 +15,7 @@ export function UpcomingLaunches({ apps }: { apps: AppCard[] }) {
         {apps.map((app) => (
           <li key={app.id}>
             <Link href={`/apps/${app.slug}`} className="flex items-center gap-3 px-4 py-3 hover:bg-surface-2">
-              <Avatar username={app.owner.username} name={app.owner.display_name} size={32} />
+              <Avatar username={app.owner.username} name={app.owner.display_name} src={app.owner.avatar_url} size={32} />
               <span className="min-w-0 flex-1">
                 <span className="display block truncate text-2xl">{app.name}</span>
                 <span className="block truncate text-xs text-muted">{app.tagline}</span>

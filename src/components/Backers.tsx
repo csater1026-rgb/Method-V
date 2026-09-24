@@ -19,7 +19,7 @@ export function Backers({ backers, count, appName }: { backers: Backer[]; count:
           {backers.map((b) => (
             <li key={b.id} className="flex items-start gap-3 rounded-lg border border-line bg-surface p-3">
               <Link href={`/u/${b.user.username}`}>
-                <Avatar username={b.user.username} name={b.user.display_name} size={32} />
+                <Avatar username={b.user.username} name={b.user.display_name} src={b.user.avatar_url} size={32} />
               </Link>
               <div className="min-w-0 text-sm">
                 <Link href={`/u/${b.user.username}`} className="font-semibold hover:underline">

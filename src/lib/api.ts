@@ -2,7 +2,7 @@ import "server-only";
 
 import { NextResponse } from "next/server";
 
-import type { AppCard, AppDetail, Challenge, Job, Profile } from "./types";
+import type { AppCard, AppDetail, Challenge, Profile } from "./types";
 
 // The public, read-only API (/api/v1). Everything here is already public on
 // the site; nothing private (feedback, earnings, messages) is ever included.
@@ -81,24 +81,6 @@ export function publicProfile(p: Profile, origin: string) {
       feedback_given: p.feedback_given_count,
     },
     pro: Boolean(p.pro_until && new Date(p.pro_until).getTime() > Date.now()),
-  };
-}
-
-export function publicJob(j: Job, origin: string) {
-  return {
-    id: j.id,
-    kind: j.kind,
-    title: j.title,
-    body: j.body,
-    pay: j.pay,
-    location: j.location,
-    remote: j.remote,
-    skills: j.skills,
-    url: `${origin}/jobs/${j.id}`,
-    posted_by: { username: j.user.username, display_name: j.user.display_name },
-    app: j.app ? { slug: j.app.slug, name: j.app.name } : null,
-    created_at: j.created_at,
-    expires_at: j.expires_at,
   };
 }
 

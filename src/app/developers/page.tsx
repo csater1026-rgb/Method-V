@@ -6,7 +6,6 @@ const ENDPOINTS = [
   { path: "/api/v1/apps", about: "Live apps, newest first.", params: "q, category, stack, pricing, stage, sort=latest|tried, limit (1–50)" },
   { path: "/api/v1/apps/{slug}", about: "One app, with its latest Drop and stats.", params: "" },
   { path: "/api/v1/users/{username}", about: "A builder's public profile and their apps.", params: "" },
-  { path: "/api/v1/jobs", about: "Open posts on the jobs board.", params: "kind=hiring|gig|looking, skill" },
   { path: "/api/v1/challenges", about: "Sponsored challenges.", params: "" },
 ];
 
