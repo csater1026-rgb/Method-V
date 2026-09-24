@@ -1,5 +1,8 @@
 import * as Haptics from "expo-haptics";
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View, type TextProps, type ViewStyle } from "react-native";
+import Svg, { Rect } from "react-native-svg";
+
+import { V_HEIGHT, V_WIDTH, pixelVRects } from "@shared/pixel-v";
 
 import { MINT, MINT_INK, fonts, useTheme } from "@/theme";
 
@@ -139,14 +142,22 @@ export function ErrorText({ children }: { children: React.ReactNode }) {
   return children ? <Body style={{ color: t.danger }} size={13}>{children}</Body> : null;
 }
 
-// "METHOD V" in the pixel logo font, with the mint V and its blue pixel
-// shadow (same as the website's Wordmark).
+// "METHOD" in the logo font, then the pixel V (mint, blue pixel shadow),
+// the same as the website's Wordmark. The V's shape comes from the website's
+// src/lib/pixel-v.ts.
+const V_PIXELS = pixelVRects();
+
 export function Wordmark({ size = 22 }: { size?: number }) {
   const t = useTheme();
+  const vHeight = size * 0.84;
   return (
-    <Text accessibilityRole="header" accessibilityLabel="Method V" style={{ fontFamily: fonts.logo, fontSize: size, color: t.ink, textTransform: "uppercase" }}>
-      Method{" "}
-      <Text style={{ color: MINT, textShadowColor: "#0379d9", textShadowOffset: { width: size * 0.125, height: size * 0.125 }, textShadowRadius: 0 }}>V</Text>
-    </Text>
+    <View accessible accessibilityRole="header" accessibilityLabel="Method V" style={{ flexDirection: "row", alignItems: "center" }}>
+      <Text style={{ fontFamily: fonts.logo, fontSize: size, lineHeight: size * 1.1, color: t.ink, textTransform: "uppercase", letterSpacing: -0.2 }}>Method</Text>
+      <Svg width={(vHeight * V_WIDTH) / V_HEIGHT} height={vHeight} viewBox={`0 0 ${V_WIDTH} ${V_HEIGHT}`} style={{ marginLeft: size * 0.2, marginTop: size * 0.12 }}>
+        {V_PIXELS.map((r, i) => (
+          <Rect key={i} x={r.x} y={r.y} width={r.w} height={r.h} fill={r.fill} />
+        ))}
+      </Svg>
+    </View>
   );
 }

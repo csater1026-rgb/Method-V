@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { demoApps } from "@/lib/demo";
 import { formatCount } from "@/lib/format";
-import { PIXEL_ICON_SVG } from "@/lib/pixel-icon";
+import { PIXEL_ICON_SIZE, PIXEL_ICON_SVG } from "@/lib/pixel-icon";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 
@@ -14,7 +14,7 @@ const THEMES = {
   light: { bg: "#ffffff", ink: "#0b1b2b", muted: "#56687a", accent: "#0379d9", accentInk: "#ffffff", line: "#d9e5f1" },
 };
 
-// The pixel builder app icon, drawn inside the badge (no V box, which read too much like other brands).
+// The app icon (the pixel V on black), drawn at the left of the badge.
 const ICON_BODY = PIXEL_ICON_SVG.replace(/^<svg[^>]*>/, "").replace(/<\/svg>$/, "");
 
 function esc(s: string) {
@@ -46,10 +46,9 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/badge/[slug]
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="232" height="54" viewBox="0 0 232 54" role="img" aria-label="Try ${esc(app.name)} on Method V">
   <title>Try ${esc(app.name)} on Method V</title>
   <rect x="0.5" y="0.5" width="231" height="53" rx="10" fill="${theme.bg}" stroke="${theme.line}"/>
-  <svg x="11" y="11" width="32" height="32" viewBox="0 0 32 32">${ICON_BODY}</svg>
+  <svg x="11" y="11" width="32" height="32" viewBox="0 0 ${PIXEL_ICON_SIZE} ${PIXEL_ICON_SIZE}">${ICON_BODY}</svg>
   <text x="56" y="22" font-family="${mono}" font-size="9" letter-spacing="1.2" fill="${theme.muted}">TRY IT ON</text>
-  <text x="57.5" y="41.5" font-family="${font}" font-size="17" font-weight="800" letter-spacing="0.3"><tspan fill="transparent">METHOD </tspan><tspan fill="#0379d9">V</tspan></text>
-  <text x="56" y="40" font-family="${font}" font-size="17" font-weight="800" letter-spacing="0.3" fill="${theme.ink}">METHOD <tspan fill="#82ed9d">V</tspan></text>
+  <text x="56" y="40" font-family="${font}" font-size="17" font-weight="800" letter-spacing="0.3" fill="${theme.ink}">METHOD V</text>
   <text x="220" y="31" text-anchor="end" font-family="${mono}" font-size="10" font-weight="700" fill="${theme.accent}">${esc(tries)}</text>
 </svg>`;
 

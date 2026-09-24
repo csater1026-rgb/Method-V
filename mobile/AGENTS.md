@@ -3,7 +3,7 @@
 Read `README.md` here and `../AGENTS.md` (the website's rules; the database rules apply to the app too).
 
 - The app reads and writes Supabase directly as the signed-in person, so row level security does the enforcing. Anything the website does with the secret key (the link check when posting) goes through the website: `/api/mobile/*`, authenticated with the app's access token (`src/lib/supabase/bearer.ts` in the website). Never put a secret key in `EXPO_PUBLIC_*`.
-- Shared, dependency-free files come from the website as `@shared/*` (`../src/lib/constants.ts`, `types.ts`, `demo.ts`, `format.ts`; see `metro.config.js`). Don't copy them. Don't import anything from `../src` that imports `server-only`, Next or Supabase server code.
+- Shared, dependency-free files come from the website as `@shared/*` (`../src/lib/constants.ts`, `types.ts`, `demo.ts`, `format.ts`, `pixel-v.ts`; see `metro.config.js`). Don't copy them. Don't import anything from `../src` that imports `server-only`, Next or Supabase server code.
 - Every screen works in demo mode (no `EXPO_PUBLIC_SUPABASE_*`), using the shared sample data. Writes return `DEMO_MESSAGE`.
 - "Try it" goes through `recordTry()` (source `app`, or `sponsor` for sponsor cards) and opens the app in an in-app browser. Sponsor cards stay labeled Sponsored.
 - Use the palette and fonts in `src/theme.ts` (the same tokens as the website). Video and posters stay dark (`media`). Keep tap targets at least 44pt, and respect Reduce Motion.

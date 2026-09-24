@@ -257,7 +257,7 @@ await run("build in public", desktop, async (page) => {
 {
   const res = await fetch(BASE + "/badge/noteflow");
   const svg = await res.text();
-  ok(res.headers.get("content-type").startsWith("image/svg+xml") && /METHOD <tspan fill="#82ed9d">V<\/tspan>/.test(svg) && svg.includes("412 tries"), "badge is an SVG with the app's tries and the mint V");
+  ok(res.headers.get("content-type").startsWith("image/svg+xml") && svg.includes("METHOD V") && svg.includes("#82ed9d") && svg.includes("412 tries"), "badge is an SVG with the app's tries and the pixel V icon");
   ok(!svg.includes("skewX"), "badge no longer has the V in a box");
   ok((await fetch(BASE + "/badge/nope")).status === 404, "badge for an unknown app is 404");
   ok((await (await fetch(BASE + "/badge/noteflow?theme=light")).text()).includes("#0b1b2b"), "light badge");
