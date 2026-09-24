@@ -18,6 +18,8 @@ import {
 } from "@shared/demo";
 import type { App, AppCard, AppDetail, Comment, Drop, FeedItem, Profile, ProfileSummary, SponsorCard, Suggestion } from "@shared/types";
 
+import { SIGNALS, bumpInterest, mergeInterests, rankFeed, type Interests } from "@shared/interests";
+
 import { DEMO_MESSAGE, DROPS_BUCKET, SITE_URL, SUPABASE_KEY, SUPABASE_URL, fileUrl } from "./config";
 import { fail, friendly, ok, type Result } from "./result";
 import { supabase } from "./supabase";
@@ -27,6 +29,8 @@ import { supabase } from "./supabase";
 const SUMMARY = "id, username, display_name, roles";
 const CARD_SELECT = `*, owner:profiles!apps_owner_id_fkey(${SUMMARY}), drops(poster_path, created_at)`;
 const DAY = 24 * 60 * 60 * 1000;
+// How many recent Drops "For you" ranks to pick its page from.
+const FOR_YOU_POOL = 200;
 
 const toSummary = (row: any): ProfileSummary => ({
   id: row.id,
@@ -165,33 +169,65 @@ export async function getHome(
   return { featured: top, suggestions, newest: (newest.data ?? []).map(toCard) };
 }
 
-export async function getFeed(viewerId: string | null): Promise<FeedItem[]> {
+// "For you": recent Drops ranked by how new and popular they are and what
+// this person is into (learned on the device, plus their likes, comments,
+// feedback and follows when signed in). Same ranking as the website.
+export async function getFeed(viewerId: string | null, interests: Interests = {}): Promise<FeedItem[]> {
   if (!supabase) {
-    return demoDrops.map((d) => {
+    const items = demoDrops.map((d) => {
       const app = demoApps.find((a) => a.id === d.app_id)!;
       return { ...d, app, owner: toSummary(demoProfile(d.owner_id)), liked: false, sponsor: demoSponsor(app.id) };
     });
+    return rankFeed(items, { interests });
   }
-  const { data, error } = await supabase
-    .from("drops")
-    .select(
-      `id, app_id, owner_id, video_path, poster_path, duration_seconds, caption, like_count, comment_count, created_at,
-       app:apps!inner(id, slug, name, tagline, category, try_count, link_checked_at),
-       owner:profiles!drops_owner_id_fkey(${SUMMARY})`,
-    )
-    .not("app.link_checked_at", "is", null)
-    .order("created_at", { ascending: false })
-    .limit(30);
+  const [{ data, error }, following, learned] = await Promise.all([
+    supabase
+      .from("drops")
+      .select(
+        `id, app_id, owner_id, video_path, poster_path, duration_seconds, caption, like_count, comment_count, created_at,
+         app:apps!inner(id, slug, name, tagline, category, try_count, link_checked_at),
+         owner:profiles!drops_owner_id_fkey(${SUMMARY})`,
+      )
+      .not("app.link_checked_at", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(FOR_YOU_POOL),
+    viewerId ? followingIds(viewerId) : Promise.resolve(new Set<string>()),
+    viewerId ? viewerInterests(viewerId) : Promise.resolve({}),
+  ]);
   if (error) throw new Error("Couldn't load Drops.");
   const rows = (data ?? []) as any[];
-  const [liked, sponsors] = await Promise.all([likedIds(viewerId, rows.map((r) => r.id)), sponsorCards(rows.map((r) => r.app_id))]);
-  return rows.map((r) => ({
+  const liked = await likedIds(viewerId, rows.map((r) => r.id));
+  const all = rows.map((r) => ({
     ...toDrop(r),
     app: { id: r.app.id, slug: r.app.slug, name: r.app.name, tagline: r.app.tagline, category: r.app.category, try_count: r.app.try_count },
     owner: toSummary(r.owner),
     liked: liked.has(r.id),
-    sponsor: sponsors.get(r.app_id) ?? null,
   }));
+  const page = rankFeed(all, { interests: mergeInterests(interests, learned), following, viewerId }).slice(0, 30);
+  const sponsors = await sponsorCards(page.map((d) => d.app_id));
+  return page.map((d) => ({ ...d, sponsor: sponsors.get(d.app_id) ?? null }));
+}
+
+async function followingIds(viewerId: string): Promise<Set<string>> {
+  const { data } = await supabase!.from("follows").select("following_id").eq("follower_id", viewerId);
+  return new Set((data ?? []).map((f: any) => f.following_id as string));
+}
+
+// What a signed-in person's likes, comments and feedback say they're into.
+async function viewerInterests(viewerId: string): Promise<Interests> {
+  const [likes, comments, feedback] = await Promise.all([
+    supabase!.from("likes").select("drop:drops(app:apps(category))").eq("user_id", viewerId).order("created_at", { ascending: false }).limit(100),
+    supabase!.from("comments").select("drop:drops(app:apps(category))").eq("user_id", viewerId).order("created_at", { ascending: false }).limit(50),
+    supabase!.from("feedback").select("app:apps(category)").eq("user_id", viewerId).order("created_at", { ascending: false }).limit(50),
+  ]);
+  let out: Interests = {};
+  const add = (category: unknown, amount: number) => {
+    if (typeof category === "string") out = bumpInterest(out, category, amount);
+  };
+  for (const row of (likes.data ?? []) as any[]) add(row.drop?.app?.category, SIGNALS.liked);
+  for (const row of (comments.data ?? []) as any[]) add(row.drop?.app?.category, SIGNALS.comments);
+  for (const row of (feedback.data ?? []) as any[]) add(row.app?.category, SIGNALS.feedback);
+  return out;
 }
 
 export async function browseApps({ q, category }: { q?: string; category?: string }): Promise<AppCard[]> {

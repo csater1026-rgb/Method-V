@@ -5,7 +5,7 @@ The native Method V app, built with [Expo](https://expo.dev) (React Native). It 
 ## What's in it
 
 - **Home:** Featured, then everybody's projects.
-- **Drops:** a full-screen, swipeable feed of 60-second demos. The one on screen plays (tap for sound), with like, share and Try it. Sponsored Drops are labeled.
+- **Drops:** a full-screen, swipeable feed of 60-second demos. The one on screen plays (tap for sound), with like, share and Try it. Sponsored Drops are labeled. Ordered "For you", the same ranking as the website: it learns what each person is into from what they watch, like, open, try and skip (kept on the device), plus their likes, comments, feedback and follows when signed in.
 - **Post (+):** record a Drop with the camera or pick a video (60 seconds max), then paste your link. The app reads your site to fill in the name, tagline and category, then uploads with a progress screen.
 - **Browse:** search and categories.
 - **App pages:** the Drop, Try it, likes, stats, sponsor card, builder and comments.

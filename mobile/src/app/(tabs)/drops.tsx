@@ -15,17 +15,22 @@ import { Avatar, Body, Button, Display, ErrorText, Mono, Tag, tap } from "@/comp
 import { useAuth } from "@/lib/auth";
 import { SITE_URL } from "@/lib/config";
 import { getFeed, setLike } from "@/lib/data";
+import { learn, loadInterests } from "@/lib/interests";
 import { tryApp } from "@/lib/tryApp";
 import { useLoad } from "@/lib/useLoad";
 import { media, useTheme } from "@/theme";
 
-// The Drops feed: one full-screen Drop at a time. The one on screen plays
-// (muted until you tap), the rest pause.
+// The Drops feed, "For you": one full-screen Drop at a time. The one on
+// screen plays (muted until you tap), the rest pause. What people watch,
+// like, open, try and skip teaches the ranking what they're into.
+
+const WATCHED_MS = 4000;
+const SKIPPED_MS = 1500;
 export default function DropsScreen() {
   const t = useTheme();
   const { viewer } = useAuth();
   const focused = useIsFocused();
-  const { data, error, refreshing, reload } = useLoad(() => getFeed(viewer?.id ?? null), [viewer?.id]);
+  const { data, error, refreshing, reload } = useLoad(async () => getFeed(viewer?.id ?? null, await loadInterests()), [viewer?.id]);
   const [height, setHeight] = useState(0);
   const [active, setActive] = useState(0);
   const [muted, setMuted] = useState(true);
@@ -56,6 +61,7 @@ export default function DropsScreen() {
             <DropPage
               item={item}
               height={height}
+              current={index === active}
               playing={focused && index === active}
               muted={muted}
               onToggleSound={() => setMuted((m) => !m)}
@@ -75,12 +81,14 @@ export default function DropsScreen() {
 function DropPage({
   item,
   height,
+  current,
   playing,
   muted,
   onToggleSound,
 }: {
   item: FeedItem;
   height: number;
+  current: boolean;
   playing: boolean;
   muted: boolean;
   onToggleSound: () => void;
@@ -95,6 +103,25 @@ function DropPage({
     p.muted = true;
   });
 
+  // Once per Drop per visit: watched for a few seconds, or swiped past fast.
+  const learned = useRef(false);
+  const category = item.app.category;
+  useEffect(() => {
+    if (!current || learned.current) return;
+    const shownAt = Date.now();
+    const timer = setTimeout(() => {
+      learned.current = true;
+      learn(category, "watched");
+    }, WATCHED_MS);
+    return () => {
+      clearTimeout(timer);
+      if (!learned.current && Date.now() - shownAt < SKIPPED_MS) {
+        learned.current = true;
+        learn(category, "skipped");
+      }
+    };
+  }, [current, category]);
+
   useEffect(() => {
     if (!item.video_url) return;
     player.muted = muted;
@@ -106,6 +133,7 @@ function DropPage({
     if (!viewer) return router.push("/sign-in");
     tap();
     const next = !liked;
+    if (next) learn(category, "liked");
     setLiked(next);
     setLikes((n) => n + (next ? 1 : -1));
     const r = await setLike(item.id, next);
@@ -113,7 +141,7 @@ function DropPage({
       setLiked(!next);
       setLikes((n) => n + (next ? -1 : 1));
     }
-  }, [viewer, liked, item.id, router]);
+  }, [viewer, liked, item.id, router, category]);
 
   const share = () =>
     Share.share({ message: `${item.app.name}: ${item.app.tagline}. Try it on Method V ${SITE_URL ? `${SITE_URL}/apps/${item.app.slug}` : ""}`.trim() });
@@ -161,7 +189,13 @@ function DropPage({
             @{item.owner.username}
           </Body>
         </Pressable>
-        <Pressable accessibilityRole="link" onPress={() => router.push(`/apps/${item.app.slug}`)}>
+        <Pressable
+          accessibilityRole="link"
+          onPress={() => {
+            learn(category, "comments");
+            router.push(`/apps/${item.app.slug}`);
+          }}
+        >
           <Display size={40} style={{ color: media.ink }} numberOfLines={1}>
             {item.app.name}
           </Display>
@@ -170,7 +204,13 @@ function DropPage({
           {item.caption || item.app.tagline}
         </Body>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 4 }}>
-          <Button label="Try it →" onPress={() => void tryApp(item.app.slug)} />
+          <Button
+            label="Try it →"
+            onPress={() => {
+              learn(category, "tried");
+              void tryApp(item.app.slug);
+            }}
+          />
           <Tag>{labelFor(CATEGORIES, item.app.category)}</Tag>
           <Mono style={{ color: media.muted }}>{formatCount(item.app.try_count)} tries</Mono>
         </View>

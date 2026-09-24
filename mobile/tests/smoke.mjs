@@ -67,6 +67,27 @@ ok(true, "Follow while signed out goes to sign-in");
 await visit("/drops", "drops");
 ok((await page.getByText("Try it →").count()) > 0, "Drops feed shows Try it");
 ok((await page.getByText("Sponsored").count()) > 0, "sponsored Drops are labeled");
+{
+  // For you: watching a Drop for a few seconds is remembered on the device…
+  await page.evaluate(() => localStorage.removeItem("method-v-interests"));
+  await visit("/drops");
+  await page.waitForTimeout(4600);
+  const saved = await page.evaluate(() => localStorage.getItem("method-v-interests"));
+  ok(/^[a-z_]+:1$/.test(saved ?? ""), `watching a Drop saves an interest (${saved})`);
+  // …and what someone's into comes first.
+  const topFor = async (interests) => {
+    await page.evaluate((v) => localStorage.setItem("method-v-interests", v), interests);
+    await visit("/drops");
+    const ys = {};
+    for (const name of ["NoteFlow", "QuizPop", "PalettePal", "Splitsy"]) {
+      ys[name] = (await page.getByRole("link", { name, exact: true }).first().boundingBox())?.y ?? Infinity;
+    }
+    return Object.entries(ys).sort((a, b) => a[1] - b[1])[0][0];
+  };
+  ok((await topFor("finance:20")) === "Splitsy", "into finance: Splitsy's Drop comes first");
+  ok((await topFor("education:20")) === "QuizPop", "into education: QuizPop's Drop comes first");
+  await page.evaluate(() => localStorage.removeItem("method-v-interests"));
+}
 
 await visit("/browse", "browse");
 await page.getByRole("button", { name: "Education" }).click();
