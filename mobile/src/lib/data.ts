@@ -603,6 +603,15 @@ export async function setFollow(profileId: string, follow: boolean): Promise<Res
   return error && error.code !== "23505" ? fail("Couldn't update that.") : ok(undefined);
 }
 
+// The asker or the app's builder picks the best answer (a top-level one,
+// not a reply): +5 reputation to whoever wrote it. Picking another moves it.
+export async function markBestAnswer(questionId: string, answerId: string): Promise<Result> {
+  const auth = await signedIn();
+  if (!auth.ok) return auth;
+  const { error } = await supabase!.rpc("mark_best_answer", { p_question: questionId, p_answer: answerId });
+  return error ? fail(error.code === "P0001" ? error.message : "Couldn't mark the best answer.") : ok(undefined);
+}
+
 // Upvote (or take back) a question or an answer. Not your own: the database
 // refuses those.
 export async function setQaVote(kind: "question" | "answer", id: string, on: boolean): Promise<Result> {

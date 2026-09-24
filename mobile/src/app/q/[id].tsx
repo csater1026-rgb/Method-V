@@ -10,7 +10,7 @@ import { Poll } from "@/components/Poll";
 import { VoteButton } from "@/components/VoteButton";
 import { Avatar, Body, Button, Card, Display, ErrorText, Mono, Tag } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
-import { answerQuestion, getQuestion } from "@/lib/data";
+import { answerQuestion, getQuestion, markBestAnswer } from "@/lib/data";
 import { useLoad } from "@/lib/useLoad";
 import { fonts, useTheme } from "@/theme";
 
@@ -26,6 +26,7 @@ export default function QuestionScreen() {
   const [replyTo, setReplyTo] = useState<Answer | null>(null);
   const [busy, setBusy] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+  const [marking, setMarking] = useState<string | null>(null);
 
   if (q === null && !error) return <Loading />;
   if (!q) {
@@ -46,6 +47,18 @@ export default function QuestionScreen() {
     if (!r.ok) return setSendError(r.error);
     setBody("");
     setReplyTo(null);
+    await reload();
+  }
+
+  // Only the person who asked, or the app's builder, picks the best answer.
+  const canPickBest = Boolean(viewer && (viewer.id === q.user.id || viewer.id === q.app.owner_id));
+
+  async function pickBest(answerId: string) {
+    setMarking(answerId);
+    setSendError(null);
+    const r = await markBestAnswer(q!.id, answerId);
+    setMarking(null);
+    if (!r.ok) return setSendError(r.error);
     await reload();
   }
 
@@ -108,16 +121,26 @@ export default function QuestionScreen() {
                   <Byline user={a.user} at={a.created_at} />
                   <VoteButton key={`a-${a.id}-${a.voted}`} kind="answer" id={a.id} count={a.vote_count} voted={a.voted} authorId={a.user.id} onError={setSendError} />
                 </View>
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={() => (viewer ? setReplyTo(a) : router.push("/sign-in"))}
-                  hitSlop={8}
-                  style={{ alignSelf: "flex-start" }}
-                >
-                  <Body bold size={13} style={{ color: t.accent }}>
-                    Reply
-                  </Body>
-                </Pressable>
+                <View style={{ flexDirection: "row", gap: 18 }}>
+                  <Pressable accessibilityRole="button" onPress={() => (viewer ? setReplyTo(a) : router.push("/sign-in"))} hitSlop={8}>
+                    <Body bold size={13} style={{ color: t.accent }}>
+                      Reply
+                    </Body>
+                  </Pressable>
+                  {canPickBest && !best && !a.parent_id && (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`Mark @${a.user.username}'s answer as best`}
+                      disabled={marking !== null}
+                      onPress={() => void pickBest(a.id)}
+                      hitSlop={8}
+                    >
+                      <Body bold size={13} style={{ color: t.accent, opacity: marking === a.id ? 0.5 : 1 }}>
+                        {marking === a.id ? "Marking…" : "✓ Mark as best"}
+                      </Body>
+                    </Pressable>
+                  )}
+                </View>
               </Card>
             </View>
           );

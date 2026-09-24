@@ -112,6 +112,7 @@ await page.getByText("Tailwind config, easy.", { exact: false }).first().waitFor
 ok(await page.getByText("Same, and CSS variables would cover everyone else.").isVisible(), "the thread shows answers and replies");
 ok(await page.getByRole("button", { name: "Upvote, 9" }).isVisible(), "the question has an upvote button with its count");
 ok((await page.getByRole("button", { name: /^Upvote, \d+$/ }).count()) === 3, "so does every answer and reply");
+ok((await page.getByText("✓ Mark as best").count()) === 0, "only the asker or the builder can pick the best answer (hidden when signed out)");
 await page.screenshot({ path: `${OUT}question-thread.png` });
 await page.getByRole("button", { name: "Upvote, 5" }).click();
 await page.waitForURL(/sign-in/);
