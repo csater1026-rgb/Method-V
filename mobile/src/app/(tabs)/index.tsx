@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { RefreshControl, ScrollView, View } from "react-native";
+import { Pressable, RefreshControl, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppCard } from "@/components/AppCard";
@@ -12,7 +12,8 @@ import { getHome } from "@/lib/data";
 import { useLoad } from "@/lib/useLoad";
 import { useTheme } from "@/theme";
 
-// Home: just Featured and builders to follow. Everything else is on Browse.
+// Home: Featured, builders to follow, then the newest projects. Everything
+// else is on Browse.
 export default function HomeScreen() {
   const t = useTheme();
   const router = useRouter();
@@ -24,6 +25,7 @@ export default function HomeScreen() {
 
   const featured = data?.featured ?? [];
   const suggestions = data?.suggestions ?? [];
+  const newest = data?.newest ?? [];
 
   return (
     <ScrollView
@@ -69,6 +71,22 @@ export default function HomeScreen() {
           )
         )}
       </View>
+
+      {newest.length > 0 && (
+        <View style={{ gap: 10, marginTop: 10 }}>
+          <View style={{ flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", paddingHorizontal: 16 }}>
+            <Display size={36}>Just posted</Display>
+            <Pressable accessibilityRole="link" onPress={() => router.push("/browse")} hitSlop={10}>
+              <Mono style={{ color: t.accent, textTransform: "uppercase", paddingBottom: 8 }}>See all →</Mono>
+            </Pressable>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingHorizontal: 16 }}>
+            {newest.map((app) => (
+              <AppCard key={app.id} app={app} wide />
+            ))}
+          </ScrollView>
+        </View>
+      )}
     </ScrollView>
   );
 }

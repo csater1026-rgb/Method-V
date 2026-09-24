@@ -227,13 +227,14 @@ export type BrowseFilters = {
   sort?: string;
 };
 
-export async function getApps(filters: BrowseFilters): Promise<AppCard[]> {
+export async function getApps(filters: BrowseFilters, max = 60): Promise<AppCard[]> {
   const category = isOneOf(CATEGORIES, filters.category) ? filters.category : undefined;
   const pricing = isOneOf(PRICING, filters.pricing) ? filters.pricing : undefined;
   const stage = isOneOf(STAGES, filters.stage) ? filters.stage : undefined;
   const stack = filters.stack?.trim().slice(0, 40) || undefined;
   const q = filters.q?.trim().slice(0, 100) || undefined;
   const sortByTries = filters.sort === "tried";
+  const limit = Math.min(Math.max(max, 1), 60);
 
   if (!isSupabaseConfigured) {
     const needle = q?.toLowerCase();
@@ -244,6 +245,7 @@ export async function getApps(filters: BrowseFilters): Promise<AppCard[]> {
       .filter((a) => !stack || a.tech_stack.some((s) => s.toLowerCase() === stack.toLowerCase()))
       .filter((a) => !needle || `${a.name} ${a.tagline} ${a.description}`.toLowerCase().includes(needle))
       .sort((a, b) => (sortByTries ? b.try_count - a.try_count : b.created_at.localeCompare(a.created_at)))
+      .slice(0, limit)
       .map((a) => ({ ...a, owner: toSummary(demoProfile(a.owner_id)), poster_url: null }));
   }
 
@@ -254,7 +256,7 @@ export async function getApps(filters: BrowseFilters): Promise<AppCard[]> {
     .not("link_checked_at", "is", null)
     .order("created_at", { referencedTable: "drops", ascending: false })
     .limit(1, { referencedTable: "drops" })
-    .limit(60);
+    .limit(limit);
 
   if (category) query = query.eq("category", category);
   if (pricing) query = query.eq("pricing", pricing);

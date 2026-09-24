@@ -61,6 +61,14 @@ await run("home (phone)", phone, async (page) => {
   ok((await featured.locator("article").count()) === 4, "Featured row: 2 picked apps, then launch day and boosted");
   ok((await featured.locator("article").first().getAttribute("class")).includes("snap-start"), "Featured row swipes sideways");
   ok(await page.getByRole("region", { name: "Builders like you" }).isVisible(), "Home shows builders to follow");
+  const justPosted = page.getByRole("region", { name: "Just posted" });
+  const newest = await justPosted.locator("article a.font-semibold").allTextContents();
+  ok(newest.length === 4 && newest[0] === "NoteFlow", `Just posted lists the newest projects first (${newest.join(",")})`);
+  ok((await justPosted.locator("article").first().getAttribute("class")).includes("snap-start"), "Just posted swipes sideways too");
+  ok((await justPosted.locator("article .tag-accent").count()) === 0, "Just posted cards have no Featured-style labels");
+  const order = await page.locator("main section[aria-label]").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
+  ok(order.join(" > ") === "Featured apps > Builders like you > Just posted", `Home order: ${order.join(" > ")}`);
+  ok((await justPosted.getByRole("link", { name: "See all →" }).getAttribute("href")) === "/browse", "Just posted links to Browse");
   for (const gone of ["Upcoming launches", "Build in public", "Get paid"]) {
     ok((await page.getByRole("region", { name: gone }).count()) === 0, `Home has no ${gone} section`);
   }

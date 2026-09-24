@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { formatCount } from "@/lib/format";
-import type { FeaturedApp } from "@/lib/types";
+import type { AppCard, FeaturedApp } from "@/lib/types";
 
 import { Avatar } from "./Avatar";
 import { DropPlaceholder } from "./DropVideo";
@@ -13,10 +13,11 @@ const LABELS: Record<FeaturedApp["reason"], string> = {
   hot: "Hot",
 };
 
-// Compact card for the Featured row on Home: a 16:9 thumbnail, then the
-// name, tagline, builder and a Try button. Several fit side by side, and
-// the next one peeks in on phones so it's clear the row swipes.
-export function FeaturedCard({ app, rank }: { app: FeaturedApp; rank: number }) {
+// Compact card for the rows on Home (Featured, Just posted): a 16:9
+// thumbnail, then the name, tagline, builder and a Try button. Several fit
+// side by side, and the next one peeks in on phones so it's clear the row
+// swipes. A Featured app says why it's there unless it was simply picked.
+export function FeaturedCard({ app, rank }: { app: AppCard & { reason?: FeaturedApp["reason"] }; rank: number }) {
   return (
     <article
       className="rise flex w-[68vw] max-w-[260px] shrink-0 snap-start flex-col overflow-hidden rounded-xl border border-line bg-surface"
@@ -35,7 +36,7 @@ export function FeaturedCard({ app, rank }: { app: FeaturedApp; rank: number }) 
           </>
         )}
         {/* Under the Featured heading, only say why when it's something else. */}
-        {app.reason !== "featured" && <span className="tag-accent absolute top-2 left-2">{LABELS[app.reason]}</span>}
+        {app.reason && app.reason !== "featured" && <span className="tag-accent absolute top-2 left-2">{LABELS[app.reason]}</span>}
       </Link>
 
       <div className="flex flex-1 flex-col gap-2 p-3">

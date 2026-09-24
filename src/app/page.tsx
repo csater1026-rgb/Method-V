@@ -2,13 +2,14 @@ import Link from "next/link";
 
 import { FeaturedCard } from "@/components/FeaturedCard";
 import { Suggestions } from "@/components/Suggestions";
-import { getFeatured, getSuggestions, getViewer } from "@/lib/data";
+import { getApps, getFeatured, getSuggestions, getViewer } from "@/lib/data";
 
-// Home: just Featured and builders to follow. Everything else lives on Browse.
+// Home: Featured, builders to follow, then the newest projects. Everything
+// else lives on Browse.
 
 export default async function HomePage() {
   const viewer = await getViewer();
-  const [featured, suggestions] = await Promise.all([getFeatured(), getSuggestions(viewer)]);
+  const [featured, suggestions, newest] = await Promise.all([getFeatured(), getSuggestions(viewer), getApps({}, 10)]);
 
   return (
     <div className="mx-auto w-full max-w-6xl py-6">
@@ -45,6 +46,22 @@ export default async function HomePage() {
             </Link>
           </section>
         )
+      )}
+
+      {newest.length > 0 && (
+        <section aria-label="Just posted" className="mt-8">
+          <div className="flex items-end justify-between gap-3 px-4">
+            <h2 className="display text-3xl">Just posted</h2>
+            <Link href="/browse" className="font-mono text-xs font-semibold text-accent hover:underline">
+              See all →
+            </Link>
+          </div>
+          <div className="no-scrollbar mt-3 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-2">
+            {newest.map((app, i) => (
+              <FeaturedCard key={app.id} app={app} rank={i} />
+            ))}
+          </div>
+        </section>
       )}
     </div>
   );

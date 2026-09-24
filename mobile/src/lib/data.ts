@@ -118,12 +118,16 @@ async function likedIds(viewerId: string | null, dropIds: string[]): Promise<Set
 // ---------------------------------------------------------------------------
 
 // Home: Featured (picked by the team, launching today, or boosted, else
-// what's hot this month) and builders to follow. Everything else is on Browse.
-export async function getHome(viewerId: string | null): Promise<{ featured: AppCard[]; suggestions: Suggestion[] }> {
+// what's hot this month), builders to follow, then the newest projects.
+// Everything else is on Browse.
+export async function getHome(
+  viewerId: string | null,
+): Promise<{ featured: AppCard[]; suggestions: Suggestion[]; newest: AppCard[] }> {
   if (!supabase) {
     const cards = demoCards();
     return {
       featured: demoFeaturedIds.map((id) => cards.find((c) => c.id === id)!).filter(Boolean),
+      newest: [...cards].sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 10),
       suggestions: [
         { ...toSummary(demoProfile("demo-june")), shared_categories: ["design"], shared_skills: ["React"] },
         { ...toSummary(demoProfile("demo-marco")), shared_categories: ["education", "productivity"], shared_skills: [] },
@@ -131,7 +135,7 @@ export async function getHome(viewerId: string | null): Promise<{ featured: AppC
     };
   }
   const now = new Date().toISOString();
-  const [featured, suggested] = await Promise.all([
+  const [featured, suggested, newest] = await Promise.all([
     supabase
       .from("apps")
       .select(CARD_SELECT)
@@ -139,6 +143,7 @@ export async function getHome(viewerId: string | null): Promise<{ featured: AppC
       .or(`featured_until.gt.${now},boosted_until.gt.${now}`)
       .limit(10),
     viewerId ? supabase.rpc("suggest_builders", { p_limit: 8 }) : Promise.resolve({ data: [] }),
+    supabase.from("apps").select(CARD_SELECT).not("link_checked_at", "is", null).order("created_at", { ascending: false }).limit(10),
   ]);
   let top = (featured.data ?? []).map(toCard);
   if (top.length === 0) {
@@ -157,7 +162,7 @@ export async function getHome(viewerId: string | null): Promise<{ featured: AppC
     shared_categories: r.shared_categories ?? [],
     shared_skills: r.shared_skills ?? [],
   }));
-  return { featured: top, suggestions };
+  return { featured: top, suggestions, newest: (newest.data ?? []).map(toCard) };
 }
 
 export async function getFeed(viewerId: string | null): Promise<FeedItem[]> {
