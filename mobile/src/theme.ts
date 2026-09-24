@@ -50,6 +50,7 @@ export const fonts = {
   mono: "MartianMono_400Regular",
   monoBold: "MartianMono_600SemiBold",
   logo: "Sora_800ExtraBold",
+  eyebrow: "Sora_700Bold",
 };
 
 // Video and posters stay dark in both themes, like the website's media-dark.

@@ -26,7 +26,7 @@ export default function GetTheAppPage() {
       <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
         <PixelCoder size={110} title="The Method V pixel coder" />
         <div>
-          <p className="font-mono text-[11px] tracking-widest text-accent uppercase">iPhone · Android · desktop</p>
+          <p className="eyebrow">iPhone · Android · desktop</p>
           <h1 className="display rise mt-1 text-6xl">Get the app</h1>
           <p className="mt-1 text-muted">
             Put Method V on your home screen. It opens full screen with the tab bar, like any other app, and there&apos;s

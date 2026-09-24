@@ -14,7 +14,7 @@ export default async function ChallengesPage() {
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8">
-      <p className="font-mono text-[11px] tracking-widest text-accent uppercase">Build it · enter it · win it</p>
+      <p className="eyebrow">Build it · enter it · win it</p>
       <h1 className="display rise mt-1 text-6xl sm:text-7xl">Challenges</h1>
       <p className="mt-1 max-w-xl text-muted">
         Sponsors put up prizes for apps built a certain way or for a certain crowd. Enter one of your apps, and everyone

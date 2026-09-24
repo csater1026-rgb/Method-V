@@ -27,7 +27,7 @@ export default async function JobsPage({ searchParams }: PageProps<"/jobs">) {
     <div className="mx-auto w-full max-w-6xl px-4 py-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="font-mono text-[11px] tracking-widest text-accent uppercase">Get hired · hire builders</p>
+          <p className="eyebrow">Get hired · hire builders</p>
           <h1 className="display rise mt-1 text-6xl sm:text-7xl">Jobs</h1>
           <p className="mt-1 max-w-xl text-muted">
             Jobs and gigs from builders on Method V, and people looking for work. Every post links to real apps, so you can

@@ -15,7 +15,7 @@ export default async function BrandsPage() {
     <div className="mx-auto w-full max-w-6xl px-4 py-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="font-mono text-[11px] tracking-widest text-accent uppercase">Boost Exchange · brands</p>
+          <p className="eyebrow">Boost Exchange · brands</p>
           <h1 className="display rise mt-1 text-6xl sm:text-7xl">Brand sponsors</h1>
           <p className="mt-1 max-w-xl text-muted">
             Companies that back small apps and pay only for real tries. Every sponsored spot is labeled, and only brands the

@@ -24,7 +24,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
 
   return (
     <div className="mx-auto w-full max-w-4xl px-4 py-8">
-      <p className="font-mono text-[11px] tracking-widest text-accent uppercase">Analytics</p>
+      <p className="eyebrow">Analytics</p>
       <h1 className="display rise mt-1 text-6xl">Stats</h1>
       <p className="mt-1 text-muted">How your apps are doing, and where people find them.</p>
       {!isSupabaseConfigured && <p className="mt-2 text-sm text-muted">Demo mode: sample numbers for Ada&apos;s apps.</p>}

@@ -158,6 +158,17 @@ body {
   vertical-align: -0.12em;
 }
 
+/* Small label above a page title ("Get hired · hire builders"): the logo's
+   font, bold, spaced-out capitals in the accent color. */
+@utility eyebrow {
+  font-family: var(--font-logo);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+
 /* Small mono label, like a price tag or a line of code. */
 @utility tag {
   @apply inline-flex items-center gap-1 rounded-[4px] border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-[10.5px] font-medium tracking-wide text-muted uppercase;

@@ -52,7 +52,7 @@ export default async function HomePage() {
         <section aria-label="Just posted" className="mt-8">
           <div className="flex items-end justify-between gap-3 px-4">
             <h2 className="display text-3xl">Just posted</h2>
-            <Link href="/browse" className="font-mono text-xs font-semibold text-accent hover:underline">
+            <Link href="/browse" className="eyebrow hover:underline">
               See all →
             </Link>
           </div>

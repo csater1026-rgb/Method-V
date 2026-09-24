@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppCard } from "@/components/AppCard";
 import { Loading } from "@/components/PixelCoder";
 import { Suggestions } from "@/components/Suggestions";
-import { Body, Button, Card, Display, ErrorText, Mono, Wordmark } from "@/components/ui";
+import { Body, Button, Card, Display, ErrorText, Eyebrow, Mono, Wordmark } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import { isLive } from "@/lib/config";
 import { getHome } from "@/lib/data";
@@ -41,7 +41,7 @@ export default function HomeScreen() {
       )}
       <ErrorText>{error}</ErrorText>
       <View style={{ paddingHorizontal: 16 }}>
-        <Mono style={{ color: t.accent, textTransform: "uppercase", letterSpacing: 2 }}>What builders shipped</Mono>
+        <Eyebrow>What builders shipped</Eyebrow>
         <Display size={52}>Featured</Display>
       </View>
       {featured.length > 0 ? (
@@ -77,7 +77,7 @@ export default function HomeScreen() {
           <View style={{ flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", paddingHorizontal: 16 }}>
             <Display size={36}>Just posted</Display>
             <Pressable accessibilityRole="link" onPress={() => router.push("/browse")} hitSlop={10}>
-              <Mono style={{ color: t.accent, textTransform: "uppercase", paddingBottom: 8 }}>See all →</Mono>
+              <Eyebrow style={{ paddingBottom: 8 }}>See all →</Eyebrow>
             </Pressable>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingHorizontal: 16 }}>

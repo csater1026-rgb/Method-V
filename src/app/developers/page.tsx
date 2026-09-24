@@ -29,7 +29,7 @@ const SAMPLE = `{
 export default function DevelopersPage() {
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-8">
-      <p className="font-mono text-[11px] tracking-widest text-accent uppercase">API · embeds · badges</p>
+      <p className="eyebrow">API · embeds · badges</p>
       <h1 className="display rise mt-1 text-6xl">Developers</h1>
       <p className="mt-1 text-muted">
         Put Method V apps on your own site: a read-only JSON API, an embeddable app card and a badge. All free, no key

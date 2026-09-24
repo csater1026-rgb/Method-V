@@ -33,6 +33,18 @@ export function Mono({ style, muted = true, size = 11, ...rest }: TextProps & { 
   return <Text {...rest} style={[{ fontFamily: fonts.mono, fontSize: size, color: muted ? t.muted : t.ink, letterSpacing: 0.5 }, style]} />;
 }
 
+// Small label above a title ("What builders shipped"): the logo's font, bold,
+// spaced-out capitals in the accent color. Same as the website's .eyebrow.
+export function Eyebrow({ style, ...rest }: TextProps) {
+  const t = useTheme();
+  return (
+    <Text
+      style={[{ fontFamily: fonts.eyebrow, fontSize: 11.5, letterSpacing: 1.6, textTransform: "uppercase", color: t.accent }, style]}
+      {...rest}
+    />
+  );
+}
+
 export function Tag({ children, tone = "plain" }: { children: React.ReactNode; tone?: "plain" | "accent" }) {
   const t = useTheme();
   const accent = tone === "accent";

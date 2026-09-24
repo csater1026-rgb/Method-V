@@ -29,7 +29,7 @@ export default async function ProPage({ searchParams }: PageProps<"/pro">) {
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-8">
-      <p className="font-mono text-[11px] tracking-widest text-accent uppercase">
+      <p className="eyebrow">
         {formatCents(EARN.pro.price)} for {EARN.pro.days} days · no subscription
       </p>
       <h1 className="display rise mt-1 text-6xl">

@@ -5,6 +5,7 @@ import { MartianMono_600SemiBold } from "@expo-google-fonts/martian-mono/600Semi
 import { SchibstedGrotesk_400Regular } from "@expo-google-fonts/schibsted-grotesk/400Regular";
 import { SchibstedGrotesk_500Medium } from "@expo-google-fonts/schibsted-grotesk/500Medium";
 import { SchibstedGrotesk_700Bold } from "@expo-google-fonts/schibsted-grotesk/700Bold";
+import { Sora_700Bold } from "@expo-google-fonts/sora/700Bold";
 import { Sora_800ExtraBold } from "@expo-google-fonts/sora/800ExtraBold";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
@@ -25,6 +26,7 @@ export default function RootLayout() {
     SchibstedGrotesk_700Bold,
     MartianMono_400Regular,
     MartianMono_600SemiBold,
+    Sora_700Bold,
     Sora_800ExtraBold,
   });
   if (!loaded) return null;

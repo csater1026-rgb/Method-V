@@ -47,7 +47,7 @@ export default async function EarnPage({ searchParams }: PageProps<"/earn">) {
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-8">
-      <p className="font-mono text-[11px] tracking-widest text-accent uppercase">Backers · sponsors · payouts</p>
+      <p className="eyebrow">Backers · sponsors · payouts</p>
       <h1 className="display rise mt-1 text-6xl">Earn</h1>
       <p className="mt-1 text-muted">
         Fans can back your apps, and other apps can sponsor them and pay per real try. It all lands here.

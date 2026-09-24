@@ -17,7 +17,7 @@ const poster = Big_Shoulders({ variable: "--font-poster", subsets: ["latin"], ax
 const body = Schibsted_Grotesk({ variable: "--font-body", subsets: ["latin"] });
 const code = Martian_Mono({ variable: "--font-code", subsets: ["latin"], axes: ["wdth"] });
 // The Method V logo's word (the V itself is pixels, see Wordmark).
-const logo = Sora({ variable: "--font-logo-word", subsets: ["latin"], weight: "800" });
+const logo = Sora({ variable: "--font-logo-word", subsets: ["latin"], weight: ["700", "800"] });
 
 export const metadata: Metadata = {
   title: {
