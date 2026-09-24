@@ -10,7 +10,7 @@ import { formatCount } from "@/lib/format";
 
 const THEMES = {
   dark: { bg: "#0a1624", surface: "#0f2031", ink: "#ffffff", muted: "#9db2c7", accent: "#40f4f5", accentInk: "#04213a", line: "#243a50" },
-  light: { bg: "#ffffff", surface: "#ffffff", ink: "#0b1b2b", muted: "#56687a", accent: "#0379d9", accentInk: "#ffffff", line: "#8fa2b6" },
+  light: { bg: "#ffffff", surface: "#ffffff", ink: "#0b1b2b", muted: "#56687a", accent: "#0379d9", accentInk: "#ffffff", line: "#7a8fa5" },
 };
 
 function esc(s: string) {
