@@ -29,6 +29,7 @@ import {
   isStripeConfigured,
 } from "@/lib/stripe";
 import { sitePreview, type SitePreview } from "@/lib/site-preview";
+import { SOCIALS, cleanHandle } from "@/lib/socials";
 import { DEMO_MODE_MESSAGE, DROPS_BUCKET, authProviders, isSupabaseConfigured, type AuthProvider } from "@/lib/supabase/env";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import type { ActionResult, Viewer } from "@/lib/types";
@@ -224,11 +225,6 @@ export async function setFollow(profileId: string, follow: boolean): Promise<Act
 
 export type ProfileState = { status: "idle" } | { status: "saved" } | { status: "error"; error: string };
 
-function optionalHandle(value: string): string | null {
-  const v = value.replace(/^@/, "").trim();
-  return v ? v : null;
-}
-
 export async function updateProfile(_prev: ProfileState, formData: FormData): Promise<ProfileState> {
   const auth = await requireViewer();
   if ("error" in auth) return { status: "error", error: auth.error };
@@ -244,28 +240,37 @@ export async function updateProfile(_prev: ProfileState, formData: FormData): Pr
   if (linkedin && !/^https:\/\/([a-z]+\.)?linkedin\.com\//i.test(linkedin)) {
     return { status: "error", error: "LinkedIn must be a https://linkedin.com/... link." };
   }
-  const x = optionalHandle(text(formData, "x_handle"));
-  if (x && !/^[A-Za-z0-9_]{1,15}$/.test(x)) return { status: "error", error: "That X handle doesn't look right." };
-  const github = optionalHandle(text(formData, "github_handle"));
-  if (github && !/^[A-Za-z0-9-]{1,39}$/.test(github)) {
-    return { status: "error", error: "That GitHub username doesn't look right." };
+  // Social handles: "@june", "june" or a pasted profile link all work.
+  const handles: Record<string, string | null> = {};
+  const newer: Record<string, string | null> = {};
+  for (const s of SOCIALS) {
+    const handle = cleanHandle(text(formData, s.column));
+    if (handle && !s.pattern.test(handle)) return { status: "error", error: `That ${s.label} handle doesn't look right.` };
+    (s.newer ? newer : handles)[s.column] = handle || null;
   }
 
+  const base = {
+    username,
+    display_name: text(formData, "display_name").slice(0, 60),
+    bio: text(formData, "bio").slice(0, 280),
+    roles,
+    skills: parseList(text(formData, "skills"), 20),
+    website_url: website || null,
+    linkedin_url: linkedin || null,
+    ...handles,
+  };
   const supabase = await createClient();
-  const { error } = await supabase
+  let { error } = await supabase
     .from("profiles")
-    .update({
-      username,
-      display_name: text(formData, "display_name").slice(0, 60),
-      bio: text(formData, "bio").slice(0, 280),
-      roles,
-      skills: parseList(text(formData, "skills"), 20),
-      website_url: website || null,
-      linkedin_url: linkedin || null,
-      x_handle: x,
-      github_handle: github,
-    })
+    .update({ ...base, ...newer })
     .eq("id", auth.viewer.id);
+  // The newer networks need 20261002000000_socials.sql; without it, save the rest.
+  if (error && (error.code === "PGRST204" || error.code === "42703")) {
+    if (Object.values(newer).some(Boolean)) {
+      return { status: "error", error: "Instagram, TikTok, YouTube and Threads need the latest database update. Open /api/health to see what to run." };
+    }
+    ({ error } = await supabase.from("profiles").update(base).eq("id", auth.viewer.id));
+  }
 
   if (error) {
     if (error.code === "23505") return { status: "error", error: "That username is taken." };

@@ -11,6 +11,7 @@ import { createHmac } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { PIXEL_ICON_SVG } from "../src/lib/pixel-icon.ts";
 import { bundle } from "../scripts/bundle-migrations.mjs";
+import { SOCIALS, cleanHandle, socialLinks } from "../src/lib/socials.ts";
 import { bumpInterest, mergeInterests, parseInterests, rankFeed, serializeInterests } from "../src/lib/interests.ts";
 
 let failures = 0;
@@ -126,6 +127,19 @@ ok(formatCents(500) === "$5" && formatCents(1425) === "$14.25" && formatCents(10
   const same = [drop("a1", "games", "a", 1), drop("a2", "games", "a", 1.1), drop("b1", "design", "b", 3)];
   ok(ids(rankFeed(same, { now })) === "a1,b1,a2", `the same builder twice in a row gets split up (${ids(rankFeed(same, { now }))})`);
   ok(rankFeed(pool, { now }).length === 3, "nothing is dropped");
+}
+
+// --- Social handles ---
+ok(cleanHandle("@june") === "june" && cleanHandle(" june ") === "june", "handles drop the @ and spaces");
+ok(cleanHandle("https://www.instagram.com/june.designs/") === "june.designs", "a pasted Instagram link becomes the handle");
+ok(cleanHandle("https://www.tiktok.com/@junedesigns?lang=en") === "junedesigns", "a pasted TikTok link becomes the handle");
+ok(cleanHandle("https://youtube.com/@june-d") === "june-d", "a pasted YouTube link becomes the handle");
+ok(cleanHandle("") === "", "empty stays empty");
+{
+  const links = socialLinks({ website_url: "https://www.example.com/me", x_handle: "june", instagram_handle: "june.d", linkedin_url: "https://linkedin.com/in/june" });
+  ok(links.map((l) => l.key).join(",") === "website,x,instagram,linkedin", `links in a steady order (${links.map((l) => l.key).join(",")})`);
+  ok(links[0].text === "example.com" && links[2].href === "https://instagram.com/june.d", "website shows its domain; Instagram links to the profile");
+  ok(SOCIALS.every((so) => so.pattern.test("june")), "every network accepts a plain handle");
 }
 
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");

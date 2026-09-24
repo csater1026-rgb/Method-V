@@ -11,6 +11,7 @@ import { Updates } from "@/components/Updates";
 import { Chip, RoleTags, StatusBadge, primaryStatus } from "@/components/Tags";
 import { getConnectionState, getMyApps, getPassport, getProfile, getUpdates, getViewer, isPro } from "@/lib/data";
 import { formatCount } from "@/lib/format";
+import { socialLinks } from "@/lib/socials";
 import { publicFileUrl } from "@/lib/supabase/env";
 
 export async function generateMetadata({ params }: PageProps<"/u/[username]">): Promise<Metadata> {
@@ -35,12 +36,7 @@ export default async function ProfilePage({ params }: PageProps<"/u/[username]">
     getConnectionState(viewer, profile.id),
   ]);
 
-  const links = [
-    profile.website_url && { href: profile.website_url, label: hostnameOf(profile.website_url) },
-    profile.x_handle && { href: `https://x.com/${profile.x_handle}`, label: `X @${profile.x_handle}` },
-    profile.github_handle && { href: `https://github.com/${profile.github_handle}`, label: `GitHub ${profile.github_handle}` },
-    profile.linkedin_url && { href: profile.linkedin_url, label: "LinkedIn" },
-  ].filter((l): l is { href: string; label: string } => Boolean(l));
+  const links = socialLinks(profile);
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8">
@@ -62,6 +58,30 @@ export default async function ProfilePage({ params }: PageProps<"/u/[username]">
                 )}
               </h1>
               <p className="text-muted">@{profile.username}</p>
+              {/* Their socials, right under their name. */}
+              {links.length > 0 ? (
+                <ul aria-label="Social links" className="mt-2 flex flex-wrap gap-1.5">
+                  {links.map((l) => (
+                    <li key={l.key}>
+                      <a
+                        href={l.href}
+                        target="_blank"
+                        rel="noopener noreferrer nofollow me"
+                        className="inline-flex items-center gap-1.5 rounded-md border border-line bg-surface px-2 py-1 text-xs transition hover:border-accent"
+                      >
+                        <span className="font-semibold">{l.label}</span>
+                        {l.text !== l.label && <span className="text-muted">{l.text}</span>}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                isSelf && (
+                  <Link href="/settings#socials" className="mt-2 inline-block text-sm text-accent hover:underline">
+                    + Add your social handles
+                  </Link>
+                )
+              )}
             </div>
             <div className="sm:ml-auto">
               {isSelf ? (
@@ -132,17 +152,6 @@ export default async function ProfilePage({ params }: PageProps<"/u/[username]">
             </div>
           )}
 
-          {links.length > 0 && (
-            <ul className="flex flex-wrap gap-3 text-sm">
-              {links.map((l) => (
-                <li key={l.href}>
-                  <a href={l.href} target="_blank" rel="noopener noreferrer nofollow" className="text-accent hover:underline">
-                    {l.label} ↗
-                  </a>
-                </li>
-              ))}
-            </ul>
-          )}
         </div>
       </section>
 
@@ -188,12 +197,4 @@ export default async function ProfilePage({ params }: PageProps<"/u/[username]">
       )}
     </div>
   );
-}
-
-function hostnameOf(url: string): string {
-  try {
-    return new URL(url).hostname.replace(/^www\./, "");
-  } catch {
-    return "Website";
-  }
 }

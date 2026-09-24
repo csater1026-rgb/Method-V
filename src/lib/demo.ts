@@ -57,6 +57,8 @@ export const demoProfiles: Profile[] = [
     x_handle: null,
     github_handle: null,
     linkedin_url: null,
+    instagram_handle: "june.designs",
+    tiktok_handle: "junedesigns",
     follower_count: 1032,
     following_count: 76,
     feedback_given_count: 8,

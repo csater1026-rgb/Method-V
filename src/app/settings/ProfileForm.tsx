@@ -5,6 +5,7 @@ import { useActionState } from "react";
 
 import { updateProfile, type ProfileState } from "@/app/actions";
 import { ROLES } from "@/lib/constants";
+import { SOCIALS } from "@/lib/socials";
 import type { Profile } from "@/lib/types";
 
 export function ProfileForm({ profile }: { profile: Profile }) {
@@ -53,26 +54,37 @@ export function ProfileForm({ profile }: { profile: Profile }) {
         <input name="skills" defaultValue={profile.skills.join(", ")} className="field" />
       </Field>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Website">
-          <input name="website_url" type="url" defaultValue={profile.website_url ?? ""} placeholder="https://" className="field" />
-        </Field>
-        <Field label="LinkedIn">
-          <input
-            name="linkedin_url"
-            type="url"
-            defaultValue={profile.linkedin_url ?? ""}
-            placeholder="https://linkedin.com/in/…"
-            className="field"
-          />
-        </Field>
-        <Field label="X handle">
-          <input name="x_handle" defaultValue={profile.x_handle ?? ""} placeholder="@you" className="field" />
-        </Field>
-        <Field label="GitHub username">
-          <input name="github_handle" defaultValue={profile.github_handle ?? ""} className="field" />
-        </Field>
-      </div>
+      <fieldset id="socials" className="scroll-mt-24">
+        <legend className="text-sm font-medium">Social handles</legend>
+        <p className="text-xs text-muted">Shown right under your name. Type your handle, or paste your profile link.</p>
+        <div className="mt-2 grid gap-4 sm:grid-cols-2">
+          <Field label="Website">
+            <input name="website_url" type="url" defaultValue={profile.website_url ?? ""} placeholder="https://" className="field" />
+          </Field>
+          <Field label="LinkedIn">
+            <input
+              name="linkedin_url"
+              type="url"
+              defaultValue={profile.linkedin_url ?? ""}
+              placeholder="https://linkedin.com/in/…"
+              className="field"
+            />
+          </Field>
+          {SOCIALS.map((so) => (
+            <Field key={so.key} label={so.label}>
+              <input
+                name={so.column}
+                defaultValue={(profile[so.column as keyof Profile] as string | null | undefined) ?? ""}
+                placeholder="@you"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                className="field"
+              />
+            </Field>
+          ))}
+        </div>
+      </fieldset>
 
       <div className="flex items-center gap-3">
         <button className="btn-accent" disabled={pending}>

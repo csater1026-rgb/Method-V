@@ -103,6 +103,8 @@ await visit("/u/ada_builds", "profile");
 ok(await page.getByText("Pro", { exact: true }).isVisible(), "Pro badge on a Pro profile");
 ok((await page.getByText("Open to collab", { exact: true }).count()) === 1, "status shows once, as the badge by the photo");
 ok(await page.getByText("Founder", { exact: true }).isVisible(), "other role tags still show");
+await visit("/u/june_designs");
+ok(await page.getByRole("link", { name: "Instagram @june.designs" }).isVisible(), "profile shows social handles under the name");
 await visit("/u/marco_ships");
 ok(await page.getByText("Looking for work", { exact: true }).first().isVisible(), "Marco's status badge");
 await visit("/drops");

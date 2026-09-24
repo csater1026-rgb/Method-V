@@ -11,6 +11,11 @@ export type Profile = {
   x_handle: string | null;
   github_handle: string | null;
   linkedin_url: string | null;
+  // Added in 20261002000000_socials.sql.
+  instagram_handle?: string | null;
+  tiktok_handle?: string | null;
+  youtube_handle?: string | null;
+  threads_handle?: string | null;
   follower_count: number;
   following_count: number;
   feedback_given_count: number;

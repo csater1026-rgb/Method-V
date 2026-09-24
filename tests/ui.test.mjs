@@ -243,6 +243,21 @@ await run("app page (phone)", phone, async (page) => {
   await page.screenshot({ path: OUT + "app-phone.png", fullPage: true });
 });
 
+await run("profile socials", phone, async (page) => {
+  await go(page, "/u/june_designs");
+  const links = page.getByRole("list", { name: "Social links" });
+  ok((await links.getByRole("link").allTextContents()).join(" | ") === "Websiteexample.com | Instagram@june.designs | TikTok@junedesigns", `socials: ${(await links.getByRole("link").allTextContents()).join(" | ")}`);
+  const under = await page.evaluate(() => {
+    const at = [...document.querySelectorAll("main p")].find((p) => p.textContent === "@june_designs");
+    const list = document.querySelector('main [aria-label="Social links"]');
+    return Boolean(at && list && at.nextElementSibling === list);
+  });
+  ok(under, "they sit right under the name");
+  ok((await links.getByRole("link", { name: /Instagram/ }).getAttribute("href")) === "https://instagram.com/june.designs", "Instagram opens their profile");
+  await noSideScroll(page, "profile with socials");
+  await page.screenshot({ path: OUT + "profile-socials-phone.png", clip: { x: 0, y: 0, width: 390, height: 560 } });
+});
+
 await run("profile", desktop, async (page) => {
   await go(page, "/u/ada_builds");
   ok(await page.getByRole("heading", { name: "Ada Park" }).isVisible(), "profile heading");

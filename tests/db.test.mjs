@@ -764,5 +764,15 @@ ok(!!(await fails("anon", null, "insert into public.sponsorships (sponsor_brand,
   ok((await db.query("select avatar_path from public.profiles where id = $1", [A])).rows[0].avatar_path === null, "you can remove your photo");
 }
 
+// --- Social handles ---
+{
+  const setSocial = (col) => `update public.profiles set ${col} = $1 where id = $2`;
+  await as("authenticated", A, "update public.profiles set instagram_handle = 'june.designs', tiktok_handle = 'june_d', youtube_handle = 'june-designs', threads_handle = 'june.d' where id = $1", [A]);
+  const row = (await db.query("select instagram_handle, tiktok_handle, youtube_handle, threads_handle from public.profiles where id = $1", [A])).rows[0];
+  ok(row.instagram_handle === "june.designs" && row.youtube_handle === "june-designs", "you can add Instagram, TikTok, YouTube and Threads");
+  ok(!!(await fails("authenticated", A, setSocial("instagram_handle"), ["https://instagram.com/x", A])), "handles are handles, not links");
+  ok(!!(await fails("authenticated", A, setSocial("tiktok_handle"), ["a", A])), "TikTok handles are at least 2 characters");
+}
+
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");
 process.exit(failures ? 1 : 0);

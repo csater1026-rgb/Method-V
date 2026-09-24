@@ -1,9 +1,10 @@
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
-import { RefreshControl, ScrollView, View } from "react-native";
+import { Linking, Pressable, RefreshControl, ScrollView, View } from "react-native";
 
 import { ROLES, labelFor, primaryStatus } from "@shared/constants";
 import { formatCount } from "@shared/format";
+import { socialLinks } from "@shared/socials";
 
 import { AppCard } from "@/components/AppCard";
 import { Loading } from "@/components/PixelCoder";
@@ -74,6 +75,29 @@ export default function ProfileScreen() {
           {pro && <Tag tone="accent">Pro</Tag>}
         </View>
         <Body muted>@{profile.username}</Body>
+        {/* Their socials, right under their name. */}
+        {socialLinks(profile).length > 0 && (
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+            {socialLinks(profile).map((l) => (
+              <Pressable
+                key={l.key}
+                accessibilityRole="link"
+                accessibilityLabel={`${l.label} ${l.text}`}
+                onPress={() => void Linking.openURL(l.href)}
+                style={{ flexDirection: "row", gap: 6, borderWidth: 1, borderColor: t.line, backgroundColor: t.surface, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 5 }}
+              >
+                <Body bold size={12}>
+                  {l.label}
+                </Body>
+                {l.text !== l.label && (
+                  <Body muted size={12}>
+                    {l.text}
+                  </Body>
+                )}
+              </Pressable>
+            ))}
+          </View>
+        )}
       </View>
       {profile.roles.some((r) => r !== primaryStatus(profile.roles)) && (
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
