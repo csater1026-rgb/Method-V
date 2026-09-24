@@ -204,7 +204,7 @@ const BIG_ART = [
 ];
 
 // Greys and black only: K is the outline, 1 (darkest) to 9 (lightest), S the screen.
-const BIG_COLORS: Record<string, string> = {
+export const BIG_COLORS: Record<string, string> = {
   K: "#0a0a0a",
   "1": "#161616",
   "2": "#262626",

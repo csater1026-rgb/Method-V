@@ -71,7 +71,7 @@
     --color-bg: #ffffff;
     --color-surface: #ffffff;
     --color-surface-2: #eef5fc;
-    --color-line: #d9e5f1;
+    --color-line: #b3c3d3;
     --color-ink: #0b1b2b;
     --color-muted: #56687a;
     --color-accent: #0379d9;
@@ -88,7 +88,7 @@
   --color-bg: #ffffff;
   --color-surface: #ffffff;
   --color-surface-2: #eef5fc;
-  --color-line: #d9e5f1;
+  --color-line: #b3c3d3;
   --color-ink: #0b1b2b;
   --color-muted: #56687a;
   --color-accent: #0379d9;
@@ -255,5 +255,69 @@ body {
     animation-delay: 0ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 1ms !important;
+  }
+}
+
+/* PixelBot (the AI computer in the footer): blinking eyes and lights, data
+   streaming to its code window, and a build bar. Typing and hands reuse the
+   PixelCoder animations. */
+.bot-eyes {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: bot-blink 4.2s steps(1) infinite;
+}
+.bot-led {
+  animation: pc-blink 1.3s steps(1) infinite;
+}
+.bot-antenna {
+  animation: pc-blink 2s steps(1) infinite;
+}
+.bot-data {
+  opacity: 0;
+  animation: bot-stream 1.2s linear infinite;
+}
+.bot-building .bot-data {
+  animation-duration: 0.4s;
+}
+.bot-building .pc-code {
+  animation-duration: 1.2s;
+}
+.bot-building .pc-hands {
+  animation-duration: 0.15s;
+}
+.bot-progress {
+  transform-box: fill-box;
+  transform-origin: left;
+  animation: bot-fill 1.6s steps(14, end) forwards;
+}
+@keyframes bot-blink {
+  0%,
+  93%,
+  100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.2);
+  }
+}
+@keyframes bot-stream {
+  0% {
+    transform: translateX(0);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-6px);
+    opacity: 0;
+  }
+}
+@keyframes bot-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
   }
 }

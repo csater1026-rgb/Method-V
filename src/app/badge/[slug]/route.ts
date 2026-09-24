@@ -11,7 +11,7 @@ import { createClient } from "@/lib/supabase/server";
 
 const THEMES = {
   dark: { bg: "#0a1624", ink: "#ffffff", muted: "#9db2c7", accent: "#40f4f5", accentInk: "#04213a", line: "#243a50" },
-  light: { bg: "#ffffff", ink: "#0b1b2b", muted: "#56687a", accent: "#0379d9", accentInk: "#ffffff", line: "#d9e5f1" },
+  light: { bg: "#ffffff", ink: "#0b1b2b", muted: "#56687a", accent: "#0379d9", accentInk: "#ffffff", line: "#b3c3d3" },
 };
 
 // The app icon (the pixel V on black), drawn at the left of the badge.
