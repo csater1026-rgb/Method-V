@@ -61,6 +61,7 @@ function Screens() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="apps/[slug]" options={{ title: "" }} />
         <Stack.Screen name="u/[username]" options={{ title: "" }} />
+        <Stack.Screen name="q/[id]" options={{ title: "" }} />
         <Stack.Screen name="sign-in" options={{ presentation: "modal", title: "Sign in" }} />
       </Stack>
     </>

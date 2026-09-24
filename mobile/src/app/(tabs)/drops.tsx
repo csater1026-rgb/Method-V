@@ -14,7 +14,8 @@ import { Sponsored } from "@/components/Sponsored";
 import { Avatar, Body, Button, Display, ErrorText, Mono, StatusBadge, Tag, tap } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import { SITE_URL } from "@/lib/config";
-import { getFeed, setLike } from "@/lib/data";
+import { QuestionPager } from "@/components/QuestionPager";
+import { getFeed, getQuestionFeed, setLike } from "@/lib/data";
 import { learn, loadInterests } from "@/lib/interests";
 import { tryApp } from "@/lib/tryApp";
 import { useLoad } from "@/lib/useLoad";
@@ -28,9 +29,15 @@ const WATCHED_MS = 4000;
 const SKIPPED_MS = 1500;
 export default function DropsScreen() {
   const t = useTheme();
+  const insets = useSafeAreaInsets();
   const { viewer } = useAuth();
   const focused = useIsFocused();
+  const [mode, setMode] = useState<"drops" | "questions">("drops");
   const { data, error, refreshing, reload } = useLoad(async () => getFeed(viewer?.id ?? null, await loadInterests()), [viewer?.id]);
+  const questions = useLoad(
+    async () => (mode === "questions" ? getQuestionFeed(viewer?.id ?? null, await loadInterests()) : null),
+    [viewer?.id, mode],
+  );
   const [height, setHeight] = useState(0);
   const [active, setActive] = useState(0);
   const [muted, setMuted] = useState(true);
@@ -42,8 +49,67 @@ export default function DropsScreen() {
 
   if (!data && !error) return <Loading />;
 
+  const toggle = (
+    <View
+      style={{
+        position: "absolute",
+        top: insets.top + 8,
+        alignSelf: "center",
+        flexDirection: "row",
+        gap: 4,
+        padding: 3,
+        borderRadius: 10,
+        backgroundColor: "rgba(0,0,0,0.55)",
+        zIndex: 10,
+      }}
+    >
+      {(["drops", "questions"] as const).map((m) => (
+        <Pressable
+          key={m}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: mode === m }}
+          onPress={() => {
+            tap();
+            setMode(m);
+          }}
+          style={{ paddingHorizontal: 14, paddingVertical: 6, borderRadius: 8, backgroundColor: mode === m ? t.accent : "transparent" }}
+        >
+          <Body bold size={14} style={{ color: mode === m ? t.accentInk : media.ink }}>
+            {m === "drops" ? "Drops" : "Questions"}
+          </Body>
+        </Pressable>
+      ))}
+    </View>
+  );
+
+  if (mode === "questions") {
+    return (
+      <View style={{ flex: 1, backgroundColor: media.bg }} onLayout={(e) => setHeight(e.nativeEvent.layout.height)}>
+        {toggle}
+        {!questions.data && !questions.error ? (
+          <Loading />
+        ) : questions.error ? (
+          <View style={{ paddingTop: insets.top + 64, paddingHorizontal: 18 }}>
+            <ErrorText>{questions.error}</ErrorText>
+          </View>
+        ) : (
+          height > 0 && (
+            <QuestionPager
+              items={questions.data ?? []}
+              height={height}
+              topInset={insets.top}
+              refreshing={questions.refreshing}
+              onRefresh={() => void questions.reload()}
+            />
+          )
+        )}
+      </View>
+    );
+  }
+
   return (
     <View style={{ flex: 1, backgroundColor: media.bg }} onLayout={(e) => setHeight(e.nativeEvent.layout.height)}>
+      {toggle}
       {error && <ErrorText>{error}</ErrorText>}
       {height > 0 && (
         <FlatList
@@ -156,7 +222,7 @@ function DropPage({
         )}
       </Pressable>
 
-      <View style={{ position: "absolute", top: insets.top + 10, left: 12, flexDirection: "row", gap: 6 }}>
+      <View style={{ position: "absolute", top: insets.top + 56, left: 12, flexDirection: "row", gap: 6 }}>
         <Mono style={{ color: media.ink, backgroundColor: "rgba(0,0,0,0.55)", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
           {formatDuration(item.duration_seconds)}
         </Mono>

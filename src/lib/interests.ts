@@ -130,3 +130,36 @@ export function rankFeed<T extends RankableDrop>(drops: T[], ctx: RankContext): 
   }
   return out;
 }
+
+export type RankableQuestion = {
+  created_at: string;
+  answer_count: number;
+  vote_count: number;
+  by_builder: boolean;
+  poll?: unknown;
+  user: { id: string };
+  app: { category: string };
+};
+
+// The Questions feed: fresh ones and ones still waiting for answers first,
+// then builders asking about their own app, polls, and the categories this
+// person is into. Their own questions sink.
+export function rankQuestions<T extends RankableQuestion>(questions: T[], ctx: RankContext): T[] {
+  const now = ctx.now ?? Date.now();
+  const interests = ctx.interests ?? {};
+  const top = Math.max(0, ...Object.values(interests).map((n) => n ?? 0));
+  const score = (q: T) => {
+    const ageHours = Math.max(0, (now - Date.parse(q.created_at)) / 3_600_000);
+    const affinity = top > 0 ? (interests[q.app.category as Category] ?? 0) / top : 0;
+    return (
+      1 / (1 + ageHours / 48) +
+      0.8 / (1 + q.answer_count) +
+      (q.by_builder ? 0.5 : 0) +
+      (q.poll ? 0.3 : 0) +
+      affinity +
+      Math.min(0.5, q.vote_count / 20) -
+      (ctx.viewerId && q.user.id === ctx.viewerId ? 1 : 0)
+    );
+  };
+  return [...questions].sort((a, b) => score(b) - score(a));
+}

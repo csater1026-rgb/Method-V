@@ -16,11 +16,12 @@ import {
   demoDrops,
   demoFeaturedIds,
   demoProfiles,
+  demoQuestions,
   demoSponsors,
 } from "@shared/demo";
-import type { App, AppCard, AppDetail, Comment, Drop, FeedItem, Profile, ProfileSummary, SponsorCard, Suggestion } from "@shared/types";
+import type { Answer, App, AppCard, AppDetail, Comment, Drop, FeedItem, Profile, ProfileSummary, QuestionCard, SponsorCard, Suggestion } from "@shared/types";
 
-import { SIGNALS, bumpInterest, mergeInterests, rankFeed, type Interests } from "@shared/interests";
+import { SIGNALS, bumpInterest, mergeInterests, rankFeed, rankQuestions, type Interests } from "@shared/interests";
 
 import { DEMO_MESSAGE, DROPS_BUCKET, SITE_URL, SUPABASE_KEY, SUPABASE_URL, fileUrl } from "./config";
 import { fail, friendly, ok, type Result } from "./result";
@@ -325,6 +326,129 @@ export async function getProfileBundle(
 }
 
 // ---------------------------------------------------------------------------
+// Questions (the Questions side of Drops, and a question's thread)
+// ---------------------------------------------------------------------------
+
+const QUESTION_SELECT = `id, body, created_at, vote_count, answer_count, best_answer_id, user_id, poll_options, poll_counts,
+  user:profiles!questions_user_id_fkey(${SUMMARY}),
+  answers(id, body, created_at, vote_count, parent_id, user:profiles!answers_user_id_fkey(${SUMMARY})),
+  app:apps!inner(id, slug, name, tagline, category, owner_id, link_checked_at, drops(poster_path, created_at))`;
+
+// Best first, then votes, then oldest; replies right under their answer.
+function orderAnswers(answers: Answer[], bestId: string | null): Answer[] {
+  const top = answers
+    .filter((a) => !a.parent_id)
+    .sort((a, b) => Number(b.id === bestId) - Number(a.id === bestId) || b.vote_count - a.vote_count || a.created_at.localeCompare(b.created_at));
+  const replies = answers.filter((a) => a.parent_id).sort((a, b) => a.created_at.localeCompare(b.created_at));
+  return top.flatMap((a) => [a, ...replies.filter((r) => r.parent_id === a.id)]);
+}
+
+function toQuestionCard(row: any, picks: Map<string, number>): QuestionCard {
+  const latest = [...(row.app.drops ?? [])].sort((a: any, b: any) => b.created_at.localeCompare(a.created_at))[0];
+  const answers = ((row.answers ?? []) as any[]).map((a) => ({
+    id: a.id,
+    body: a.body,
+    created_at: a.created_at,
+    vote_count: a.vote_count,
+    voted: false,
+    parent_id: a.parent_id ?? null,
+    user: toSummary(a.user),
+  }));
+  return {
+    id: row.id,
+    body: row.body,
+    created_at: row.created_at,
+    vote_count: row.vote_count,
+    voted: false,
+    best_answer_id: row.best_answer_id,
+    user: toSummary(row.user),
+    poll: row.poll_options ? { options: row.poll_options, counts: row.poll_counts ?? [], mine: picks.get(row.id) ?? null } : null,
+    answers: orderAnswers(answers, row.best_answer_id),
+    answer_count: row.answer_count ?? answers.length,
+    by_builder: row.user_id === row.app.owner_id,
+    app: {
+      id: row.app.id,
+      slug: row.app.slug,
+      name: row.app.name,
+      tagline: row.app.tagline,
+      category: row.app.category,
+      owner_id: row.app.owner_id,
+      poster_url: fileUrl(latest?.poster_path),
+    },
+  };
+}
+
+function demoQuestionCards(): QuestionCard[] {
+  const at = (hours: number) => new Date(Date.parse(demoCommentDate(0)) - hours * 3_600_000).toISOString();
+  return Object.entries(demoQuestions).flatMap(([appId, list]) => {
+    const app = demoApps.find((a) => a.id === appId)!;
+    return list.map((q, qi) => {
+      const hours = q.hours ?? 24 * (2 - qi);
+      const answers: Answer[] = q.answers.map((a, ai) => ({
+        id: `demo-a-${appId}-${qi}-${ai}`,
+        body: a.body,
+        created_at: at(hours - (ai + 1) * 0.5),
+        vote_count: a.votes,
+        voted: false,
+        parent_id: null,
+        user: toSummary(demoProfile(a.user)),
+      }));
+      q.answers.forEach((a, ai) => {
+        if (a.replyTo !== undefined) answers[ai].parent_id = answers[a.replyTo].id;
+      });
+      const best = q.answers.findIndex((a) => a.best);
+      const bestId = best >= 0 ? answers[best].id : null;
+      return {
+        id: `demo-q-${appId}-${qi}`,
+        body: q.body,
+        created_at: at(hours),
+        vote_count: q.votes,
+        voted: false,
+        best_answer_id: bestId,
+        user: toSummary(demoProfile(q.user)),
+        poll: q.poll ? { ...q.poll, mine: null } : null,
+        answers: orderAnswers(answers, bestId),
+        answer_count: answers.length,
+        by_builder: q.user === app.owner_id,
+        app: { id: app.id, slug: app.slug, name: app.name, tagline: app.tagline, category: app.category, owner_id: app.owner_id, poster_url: null },
+      };
+    });
+  });
+}
+
+async function pollPicks(viewerId: string | null, rows: any[]): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  const ids = rows.filter((r) => r.poll_options).map((r) => r.id);
+  if (!supabase || !viewerId || ids.length === 0) return out;
+  const { data } = await supabase.from("poll_votes").select("question_id, choice").eq("user_id", viewerId).in("question_id", ids);
+  for (const v of (data ?? []) as any[]) out.set(v.question_id, v.choice);
+  return out;
+}
+
+// Same ranking as the website's Questions tab.
+export async function getQuestionFeed(viewerId: string | null, interests: Interests = {}): Promise<QuestionCard[]> {
+  if (!supabase) return rankQuestions(demoQuestionCards(), { interests });
+  const [{ data, error }, learned] = await Promise.all([
+    supabase.from("questions").select(QUESTION_SELECT).not("app.link_checked_at", "is", null).order("created_at", { ascending: false }).limit(100),
+    viewerId ? viewerInterests(viewerId) : Promise.resolve({}),
+  ]);
+  if (error) throw new Error("Couldn't load questions.");
+  const rows = (data ?? []) as any[];
+  const picks = await pollPicks(viewerId, rows);
+  return rankQuestions(
+    rows.map((r) => toQuestionCard(r, picks)),
+    { interests: mergeInterests(interests, learned), viewerId },
+  ).slice(0, 30);
+}
+
+export async function getQuestion(id: string, viewerId: string | null): Promise<QuestionCard | null> {
+  if (!supabase) return demoQuestionCards().find((q) => q.id === id) ?? null;
+  const { data } = await supabase.from("questions").select(QUESTION_SELECT).eq("id", id).maybeSingle();
+  if (!data) return null;
+  return toQuestionCard(data, await pollPicks(viewerId, [data]));
+}
+
+// ---------------------------------------------------------------------------
 // Writes
 // ---------------------------------------------------------------------------
 
@@ -360,6 +484,27 @@ export async function setFollow(profileId: string, follow: boolean): Promise<Res
     ? await supabase!.from("follows").insert({ follower_id: auth.data.id, following_id: profileId })
     : await supabase!.from("follows").delete().eq("follower_id", auth.data.id).eq("following_id", profileId);
   return error && error.code !== "23505" ? fail("Couldn't update that.") : ok(undefined);
+}
+
+// Pick a poll choice (0-based), change it, or null to take it back.
+export async function votePoll(questionId: string, choice: number | null): Promise<Result<number[]>> {
+  const auth = await signedIn();
+  if (!auth.ok) return auth;
+  const { data, error } = await supabase!.rpc("vote_poll", { p_question: questionId, p_choice: choice });
+  return error ? fail(error.code === "P0001" ? error.message : "Couldn't save your vote.") : ok(data as number[]);
+}
+
+// Answer a question, or with parentId, reply to an answer on it.
+export async function answerQuestion(questionId: string, body: string, parentId: string | null = null): Promise<Result> {
+  const auth = await signedIn();
+  if (!auth.ok) return auth;
+  const text = body.trim();
+  if (!text) return fail("Write an answer first.");
+  if (text.length > 1000) return fail("Answers can be up to 1,000 characters.");
+  const { error } = await supabase!
+    .from("answers")
+    .insert({ question_id: questionId, user_id: auth.data.id, body: text, ...(parentId ? { parent_id: parentId } : {}) });
+  return error ? fail("Couldn't post your answer.") : ok(undefined);
 }
 
 // Your status (and other role tags), shown as a badge by your photo.

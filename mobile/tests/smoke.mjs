@@ -89,6 +89,20 @@ ok((await page.getByText("Sponsored").count()) > 0, "sponsored Drops are labeled
   await page.evaluate(() => localStorage.removeItem("method-v-interests"));
 }
 
+// Questions: the switch at the top of Drops, polls, and a thread.
+await visit("/drops");
+await page.getByRole("tab", { name: "Questions" }).click();
+await page.getByText("Which export should I add next?").waitFor({ timeout: 10000 });
+ok(true, "Drops switches to Questions");
+ok((await page.getByText("Builder asks").count()) >= 1, "builders asking about their own app are labeled");
+ok(await page.getByText("49 votes · tap to vote and see results").isVisible(), "polls show their choices and total");
+await page.screenshot({ path: `${OUT}questions.png` });
+await page.getByRole("button", { name: "Answer →" }).first().click();
+await page.waitForURL(/\/q\//);
+await page.getByText("Tailwind config, easy.", { exact: false }).first().waitFor({ timeout: 10000 });
+ok(await page.getByText("Same, and CSS variables would cover everyone else.").isVisible(), "the thread shows answers and replies");
+await page.screenshot({ path: `${OUT}question-thread.png` });
+
 await visit("/browse", "browse");
 await page.getByRole("button", { name: "Education" }).click();
 await page.waitForTimeout(400);

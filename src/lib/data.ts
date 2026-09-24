@@ -21,7 +21,7 @@ import {
   demoTestRequests,
   demoUpdates,
 } from "./demo";
-import { SIGNALS, bumpInterest, mergeInterests, rankFeed, type Interests } from "./interests";
+import { SIGNALS, bumpInterest, mergeInterests, rankFeed, rankQuestions, type Interests } from "./interests";
 import { isSupabaseConfigured, publicFileUrl } from "./supabase/env";
 import { createClient } from "./supabase/server";
 import type {
@@ -1241,22 +1241,7 @@ export async function getQuestionFeed(viewer: Viewer | null, interests: Interest
     cards = rows.map((r) => toQuestionCard(r, state));
     interests = mergeInterests(interests, learned);
   }
-  const top = Math.max(0, ...Object.values(interests).map((n) => n ?? 0));
-  const now = Date.now();
-  const score = (q: QuestionCard) => {
-    const ageHours = Math.max(0, (now - Date.parse(q.created_at)) / 3_600_000);
-    const affinity = top > 0 ? (interests[q.app.category as keyof Interests] ?? 0) / top : 0;
-    return (
-      1 / (1 + ageHours / 48) +
-      0.8 / (1 + q.answer_count) +
-      (q.by_builder ? 0.5 : 0) +
-      (q.poll ? 0.3 : 0) +
-      affinity +
-      Math.min(0.5, q.vote_count / 20) -
-      (viewer && q.user.id === viewer.id ? 1 : 0)
-    );
-  };
-  return cards.sort((a, b) => score(b) - score(a)).slice(0, 30);
+  return rankQuestions(cards, { interests, viewerId: viewer?.id }).slice(0, 30);
 }
 
 // ---------------------------------------------------------------------------
