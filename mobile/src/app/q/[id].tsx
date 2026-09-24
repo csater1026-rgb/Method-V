@@ -7,6 +7,7 @@ import type { Answer } from "@shared/types";
 
 import { Loading } from "@/components/PixelCoder";
 import { Poll } from "@/components/Poll";
+import { VoteButton } from "@/components/VoteButton";
 import { Avatar, Body, Button, Card, Display, ErrorText, Mono, Tag } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import { answerQuestion, getQuestion } from "@/lib/data";
@@ -72,7 +73,10 @@ export default function QuestionScreen() {
         <Body bold size={24} style={{ lineHeight: 30 }}>
           {q.body}
         </Body>
-        <Byline user={q.user} at={q.created_at} />
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+          <Byline user={q.user} at={q.created_at} />
+          <VoteButton key={`q-${q.id}-${q.voted}`} kind="question" id={q.id} count={q.vote_count} voted={q.voted} authorId={q.user.id} onError={setSendError} />
+        </View>
         {q.poll && <Poll questionId={q.id} poll={q.poll} />}
 
         <Mono style={{ marginTop: 6 }}>
@@ -100,9 +104,9 @@ export default function QuestionScreen() {
                   </View>
                 )}
                 <Body>{a.body}</Body>
-                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
                   <Byline user={a.user} at={a.created_at} />
-                  <Mono>▲ {a.vote_count}</Mono>
+                  <VoteButton key={`a-${a.id}-${a.voted}`} kind="answer" id={a.id} count={a.vote_count} voted={a.voted} authorId={a.user.id} onError={setSendError} />
                 </View>
                 <Pressable
                   accessibilityRole="button"

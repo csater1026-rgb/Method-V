@@ -421,14 +421,16 @@ function orderAnswers(answers: Answer[], bestId: string | null): Answer[] {
   return top.flatMap((a) => [a, ...replies.filter((r) => r.parent_id === a.id)]);
 }
 
-function toQuestionCard(row: any, picks: Map<string, number>): QuestionCard {
+type QaState = { picks: Map<string, number>; votedQ: Set<string>; votedA: Set<string> };
+
+function toQuestionCard(row: any, state: QaState): QuestionCard {
   const latest = [...(row.app.drops ?? [])].sort((a: any, b: any) => b.created_at.localeCompare(a.created_at))[0];
   const answers = ((row.answers ?? []) as any[]).map((a) => ({
     id: a.id,
     body: a.body,
     created_at: a.created_at,
     vote_count: a.vote_count,
-    voted: false,
+    voted: state.votedA.has(a.id),
     parent_id: a.parent_id ?? null,
     user: toSummary(a.user),
   }));
@@ -437,10 +439,10 @@ function toQuestionCard(row: any, picks: Map<string, number>): QuestionCard {
     body: row.body,
     created_at: row.created_at,
     vote_count: row.vote_count,
-    voted: false,
+    voted: state.votedQ.has(row.id),
     best_answer_id: row.best_answer_id,
     user: toSummary(row.user),
-    poll: row.poll_options ? { options: row.poll_options, counts: row.poll_counts ?? [], mine: picks.get(row.id) ?? null } : null,
+    poll: row.poll_options ? { options: row.poll_options, counts: row.poll_counts ?? [], mine: state.picks.get(row.id) ?? null } : null,
     answers: orderAnswers(answers, row.best_answer_id),
     answer_count: row.answer_count ?? answers.length,
     by_builder: row.user_id === row.app.owner_id,
@@ -494,13 +496,22 @@ function demoQuestionCards(): QuestionCard[] {
   });
 }
 
-async function pollPicks(viewerId: string | null, rows: any[]): Promise<Map<string, number>> {
-  const out = new Map<string, number>();
-  const ids = rows.filter((r) => r.poll_options).map((r) => r.id);
-  if (!supabase || !viewerId || ids.length === 0) return out;
-  const { data } = await supabase.from("poll_votes").select("question_id, choice").eq("user_id", viewerId).in("question_id", ids);
-  for (const v of (data ?? []) as any[]) out.set(v.question_id, v.choice);
-  return out;
+// What this person has picked and upvoted. Answer votes only for a thread
+// (withAnswers), where answers show their buttons.
+async function viewerQaState(viewerId: string | null, rows: any[], withAnswers = false): Promise<QaState> {
+  const state: QaState = { picks: new Map(), votedQ: new Set(), votedA: new Set() };
+  if (!supabase || !viewerId || rows.length === 0) return state;
+  const pollIds = rows.filter((r) => r.poll_options).map((r) => r.id);
+  const answerIds = withAnswers ? rows.flatMap((r) => ((r.answers ?? []) as { id: string }[]).map((a) => a.id)) : [];
+  const [pv, qv, av] = await Promise.all([
+    pollIds.length ? supabase.from("poll_votes").select("question_id, choice").eq("user_id", viewerId).in("question_id", pollIds) : Promise.resolve({ data: [] }),
+    supabase.from("question_votes").select("question_id").eq("user_id", viewerId).in("question_id", rows.map((r) => r.id)),
+    answerIds.length ? supabase.from("answer_votes").select("answer_id").eq("user_id", viewerId).in("answer_id", answerIds) : Promise.resolve({ data: [] }),
+  ]);
+  for (const v of (pv.data ?? []) as any[]) state.picks.set(v.question_id, v.choice);
+  for (const v of (qv.data ?? []) as any[]) state.votedQ.add(v.question_id);
+  for (const v of (av.data ?? []) as any[]) state.votedA.add(v.answer_id);
+  return state;
 }
 
 // Same ranking as the website's Questions tab.
@@ -512,9 +523,9 @@ export async function getQuestionFeed(viewerId: string | null, interests: Intere
   ]);
   if (error) throw new Error("Couldn't load questions.");
   const rows = (data ?? []) as any[];
-  const picks = await pollPicks(viewerId, rows);
+  const state = await viewerQaState(viewerId, rows);
   return rankQuestions(
-    rows.map((r) => toQuestionCard(r, picks)),
+    rows.map((r) => toQuestionCard(r, state)),
     { interests: mergeInterests(interests, learned), viewerId },
   ).slice(0, 30);
 }
@@ -530,8 +541,8 @@ export async function getAppQuestions(appId: string, viewerId: string | null): P
     .order("created_at", { ascending: false })
     .limit(20);
   const rows = (data ?? []) as any[];
-  const picks = await pollPicks(viewerId, rows);
-  return rows.map((r) => toQuestionCard(r, picks));
+  const state = await viewerQaState(viewerId, rows);
+  return rows.map((r) => toQuestionCard(r, state));
 }
 
 // Your live apps, for picking which one a question is about.
@@ -551,7 +562,7 @@ export async function getQuestion(id: string, viewerId: string | null): Promise<
   if (!supabase) return demoQuestionCards().find((q) => q.id === id) ?? null;
   const { data } = await supabase.from("questions").select(QUESTION_SELECT).eq("id", id).maybeSingle();
   if (!data) return null;
-  return toQuestionCard(data, await pollPicks(viewerId, [data]));
+  return toQuestionCard(data, await viewerQaState(viewerId, [data], true));
 }
 
 // ---------------------------------------------------------------------------
@@ -590,6 +601,20 @@ export async function setFollow(profileId: string, follow: boolean): Promise<Res
     ? await supabase!.from("follows").insert({ follower_id: auth.data.id, following_id: profileId })
     : await supabase!.from("follows").delete().eq("follower_id", auth.data.id).eq("following_id", profileId);
   return error && error.code !== "23505" ? fail("Couldn't update that.") : ok(undefined);
+}
+
+// Upvote (or take back) a question or an answer. Not your own: the database
+// refuses those.
+export async function setQaVote(kind: "question" | "answer", id: string, on: boolean): Promise<Result> {
+  const auth = await signedIn();
+  if (!auth.ok) return auth;
+  const table = kind === "question" ? "question_votes" : "answer_votes";
+  const column = kind === "question" ? "question_id" : "answer_id";
+  const { error } = on
+    ? await supabase!.from(table).insert({ user_id: auth.data.id, [column]: id })
+    : await supabase!.from(table).delete().eq("user_id", auth.data.id).eq(column, id);
+  if (error?.code === "42501") return fail("You can't vote on your own post.");
+  return error && error.code !== "23505" ? fail("Couldn't save your vote.") : ok(undefined);
 }
 
 // Ask about an app, optionally with a one-tap poll (2-4 choices). Returns

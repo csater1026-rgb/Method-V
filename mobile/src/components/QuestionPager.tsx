@@ -9,6 +9,7 @@ import { learn } from "@/lib/interests";
 import { media } from "@/theme";
 
 import { Poll } from "./Poll";
+import { VoteButton } from "./VoteButton";
 import { Avatar, Body, Button, Display, Mono, Tag } from "./ui";
 
 const DARK = { ink: media.ink, muted: media.muted, line: media.line };
@@ -103,9 +104,12 @@ function QuestionPage({ q, height, topInset }: { q: QuestionCard; height: number
 
       <View style={{ flex: 1 }} />
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-        <Mono style={{ color: media.muted }}>
-          {formatCount(q.answer_count)} {q.answer_count === 1 ? "answer" : "answers"} · ▲ {formatCount(q.vote_count)}
-        </Mono>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+          <VoteButton kind="question" id={q.id} count={q.vote_count} voted={q.voted} authorId={q.user.id} colors={DARK} />
+          <Mono style={{ color: media.muted }}>
+            {formatCount(q.answer_count)} {q.answer_count === 1 ? "answer" : "answers"}
+          </Mono>
+        </View>
         <Button label={q.answer_count === 0 ? "Be the first →" : "Answer →"} onPress={open} />
       </View>
     </View>
