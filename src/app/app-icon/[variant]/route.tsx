@@ -18,7 +18,7 @@ export async function GET(_request: Request, ctx: RouteContext<"/app-icon/[varia
   const src = `data:image/svg+xml;base64,${Buffer.from(PIXEL_ICON_SQUARE_SVG).toString("base64")}`;
   return new ImageResponse(
     (
-      <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "#0a1624" }}>
+      <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "#000000" }}>
         {/* eslint-disable-next-line @next/next/no-img-element -- rendered to PNG, not shown in the page */}
         <img src={src} width={art} height={art} alt="" />
       </div>

@@ -10,7 +10,7 @@ export default function AppleIcon() {
   const src = `data:image/svg+xml;base64,${Buffer.from(PIXEL_ICON_SQUARE_SVG).toString("base64")}`;
   return new ImageResponse(
     (
-      <div style={{ width: "100%", height: "100%", display: "flex", background: "#0a1624" }}>
+      <div style={{ width: "100%", height: "100%", display: "flex", background: "#000000" }}>
         <img src={src} width={180} height={180} alt="" />
       </div>
     ),
