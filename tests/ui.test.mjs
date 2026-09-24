@@ -155,18 +155,38 @@ await run("small phone", { width: 360, height: 740 }, async (page) => {
   }
 });
 
-await run("feed tabs + category", desktop, async (page) => {
+await run("feed tabs + For you", desktop, async (page) => {
   await go(page, "/drops?tab=trending");
   const first = await page.locator("article").first().getAttribute("aria-label");
   ok(first === "PalettePal Drop", `trending puts most-liked first (${first})`);
-  await page.getByRole("navigation", { name: "Categories" }).getByRole("link", { name: "Education" }).click();
-  await page.waitForURL(/category=education/);
-  ok((await page.locator("article").count()) === 1, "category filter narrows the feed");
-  ok(page.url().includes("tab=trending"), "category keeps the tab");
   await go(page, "/drops?tab=following");
   ok(await page.getByText("Follow builders you like").isVisible(), "following tab asks you to sign in");
+
   await go(page, "/drops");
+  const tabs = page.getByRole("navigation", { name: "Feed" });
+  ok((await tabs.getByRole("link").allTextContents()).join(",") === "For you,Trending,Following", "tabs: For you, Trending, Following");
+  ok((await tabs.getByRole("link", { name: "For you" }).getAttribute("aria-current")) === "page", "For you is the default");
+  ok((await page.getByRole("navigation", { name: "Categories" }).count()) === 0, "no category filter row on Drops");
   await page.screenshot({ path: OUT + "feed-desktop.png" });
+
+  // What someone's into moves those Drops to the top.
+  const firstFor = async (value) => {
+    await page.context().addCookies([{ name: "mv-interests", value, url: BASE }]);
+    await go(page, "/drops");
+    return page.locator("article").first().getAttribute("aria-label");
+  };
+  ok((await firstFor("education:20")) === "QuizPop Drop", "into education: QuizPop first");
+  ok((await firstFor("finance:20")) === "Splitsy Drop", "into finance: Splitsy first");
+  ok((await firstFor("finance:20,education:40")) === "QuizPop Drop", "the stronger interest wins");
+
+  // And it learns: watching a Drop for a few seconds counts toward its category.
+  await page.context().clearCookies();
+  await go(page, "/drops");
+  const top = await page.locator("article").first().getAttribute("aria-label");
+  await page.waitForTimeout(4600);
+  const cookie = (await page.context().cookies()).find((c) => c.name === "mv-interests");
+  ok(Boolean(cookie) && /^[a-z_]+%3A1$/.test(cookie.value), `watching ${top} saved an interest (${cookie?.value})`);
+  await page.context().clearCookies();
 });
 
 await run("browse", desktop, async (page) => {

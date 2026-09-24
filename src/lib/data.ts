@@ -22,6 +22,7 @@ import {
   demoTestRequests,
   demoUpdates,
 } from "./demo";
+import { SIGNALS, bumpInterest, mergeInterests, rankFeed, type Interests } from "./interests";
 import { isSupabaseConfigured, publicFileUrl } from "./supabase/env";
 import { createClient } from "./supabase/server";
 import type {
@@ -66,11 +67,13 @@ import type {
 
 // All reads go through here. Each function returns sample data in demo mode.
 
-export type FeedTab = "new" | "trending" | "following";
+export type FeedTab = "foryou" | "trending" | "following";
 
 const PROFILE_SUMMARY = "id, username, display_name, roles";
 const TRENDING_WINDOW_DAYS = 14;
 const PAGE_SIZE = 30;
+// How many recent Drops "For you" ranks to pick its page from.
+const FOR_YOU_POOL = 200;
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- rows come back untyped without generated types */
 
@@ -154,17 +157,17 @@ async function likedDropIds(viewer: Viewer | null, dropIds: string[]): Promise<S
   return new Set((data ?? []).map((r) => r.drop_id as string));
 }
 
-export async function getFeed({ tab, category }: { tab: FeedTab; category?: string }): Promise<FeedItem[]> {
-  const cat = isOneOf(CATEGORIES, category) ? category : undefined;
-
+// "interests" is what this visitor's browser has learned (see lib/interests);
+// signed-in people's likes, comments, feedback and follows are added to it.
+export async function getFeed({ tab, interests = {} }: { tab: FeedTab; interests?: Interests }): Promise<FeedItem[]> {
   if (!isSupabaseConfigured) {
     if (tab === "following") return [];
-    let drops = demoDrops.filter((d) => !cat || demoApps.find((a) => a.id === d.app_id)?.category === cat);
-    if (tab === "trending") drops = [...drops].sort((a, b) => b.like_count - a.like_count);
-    return drops.map((d) => {
+    const items = demoDrops.map((d) => {
       const app = demoApps.find((a) => a.id === d.app_id)!;
       return { ...d, app, owner: toSummary(demoProfile(d.owner_id)), liked: false, sponsor: demoSponsorCard(app.id) };
     });
+    if (tab === "trending") return items.sort((a, b) => b.like_count - a.like_count);
+    return rankFeed(items, { interests });
   }
 
   const viewer = await getViewer();
@@ -176,36 +179,34 @@ export async function getFeed({ tab, category }: { tab: FeedTab; category?: stri
        app:apps!inner(id, slug, name, tagline, category, try_count, link_checked_at),
        owner:profiles!drops_owner_id_fkey(${PROFILE_SUMMARY})`,
     )
-    .not("app.link_checked_at", "is", null)
-    .limit(PAGE_SIZE);
+    .not("app.link_checked_at", "is", null);
 
-  if (cat) query = query.eq("app.category", cat);
-
+  let following = new Set<string>();
+  let learned: Interests = {};
   if (tab === "following") {
     if (!viewer) return [];
     const { data: follows } = await supabase.from("follows").select("following_id").eq("follower_id", viewer.id);
     const ids = (follows ?? []).map((f) => f.following_id as string);
     if (ids.length === 0) return [];
-    query = query.in("owner_id", ids).order("created_at", { ascending: false });
+    query = query.in("owner_id", ids).order("created_at", { ascending: false }).limit(PAGE_SIZE);
   } else if (tab === "trending") {
     const since = new Date(Date.now() - TRENDING_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
     query = query
       .gte("created_at", since)
       .order("like_count", { ascending: false })
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .limit(PAGE_SIZE);
   } else {
-    query = query.order("created_at", { ascending: false });
+    query = query.order("created_at", { ascending: false }).limit(FOR_YOU_POOL);
+    if (viewer) [following, learned] = await Promise.all([followingIds(viewer.id), viewerInterests(viewer.id)]);
   }
 
   const { data, error } = await query;
   if (error) throw new Error(`Couldn't load Drops: ${error.message}`);
   const rows = data ?? [];
-  const [liked, sponsors] = await Promise.all([
-    likedDropIds(viewer, rows.map((r) => r.id as string)),
-    getSponsorCards(rows.map((r) => r.app_id as string)),
-  ]);
+  const liked = await likedDropIds(viewer, rows.map((r) => r.id as string));
 
-  return rows.map((row) => {
+  const all = rows.map((row) => {
     // Embedded one-to-one relations come back as objects at runtime.
     const app = row.app as unknown as FeedItem["app"];
     return {
@@ -213,9 +214,41 @@ export async function getFeed({ tab, category }: { tab: FeedTab; category?: stri
       app: { id: app.id, slug: app.slug, name: app.name, tagline: app.tagline, category: app.category, try_count: app.try_count },
       owner: toSummary(row.owner),
       liked: liked.has(row.id as string),
-      sponsor: sponsors.get(row.app_id as string) ?? null,
     };
   });
+  const page =
+    tab === "foryou"
+      ? rankFeed(all, { interests: mergeInterests(interests, learned), following, viewerId: viewer?.id }).slice(0, PAGE_SIZE)
+      : all;
+  const sponsors = await getSponsorCards(page.map((d) => d.app_id));
+  return page.map((d) => ({ ...d, sponsor: sponsors.get(d.app_id) ?? null }));
+}
+
+async function followingIds(viewerId: string): Promise<Set<string>> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("follows").select("following_id").eq("follower_id", viewerId);
+  return new Set((data ?? []).map((f) => f.following_id as string));
+}
+
+// What a signed-in person's likes, comments and feedback say they're into.
+async function viewerInterests(viewerId: string): Promise<Interests> {
+  const supabase = await createClient();
+  const [likes, comments, feedback] = await Promise.all([
+    supabase.from("likes").select("drop:drops(app:apps(category))").eq("user_id", viewerId).order("created_at", { ascending: false }).limit(100),
+    supabase.from("comments").select("drop:drops(app:apps(category))").eq("user_id", viewerId).order("created_at", { ascending: false }).limit(50),
+    supabase.from("feedback").select("app:apps(category)").eq("user_id", viewerId).order("created_at", { ascending: false }).limit(50),
+  ]);
+  let out: Interests = {};
+  const add = (category: unknown, amount: number) => {
+    if (typeof category === "string") out = bumpInterest(out, category, amount);
+  };
+  // Embedded rows come back as objects at runtime.
+  type Cat = { category?: string } | null;
+  type ViaDrop = { drop: { app: Cat } | null };
+  for (const row of (likes.data ?? []) as unknown as ViaDrop[]) add(row.drop?.app?.category, SIGNALS.liked);
+  for (const row of (comments.data ?? []) as unknown as ViaDrop[]) add(row.drop?.app?.category, SIGNALS.comments);
+  for (const row of (feedback.data ?? []) as unknown as { app: Cat }[]) add(row.app?.category, SIGNALS.feedback);
+  return out;
 }
 
 export type BrowseFilters = {

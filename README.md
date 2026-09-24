@@ -15,7 +15,7 @@ See [PLAN.md](PLAN.md) for the full product plan and build phases.
 
 ## Status
 
-**Phase 1 ("Show it") is built:** sign-in by email link, profiles with role tags, posting an app with a 60-second Drop, the Drops feed (New, Trending, Following, by category), the Browse directory with search and filters, app pages with likes and comments, follows, and a "Try it" button that counts real tries. 
+**Phase 1 ("Show it") is built:** sign-in by email link, profiles with role tags, posting an app with a 60-second Drop, the Drops feed (For you, which learns what each person is into from what they watch, like, try and skip; Trending; Following), the Browse directory with search and filters, app pages with likes and comments, follows, and a "Try it" button that counts real tries. 
 
 **Phase 3 ("Grow"), part 1 is built:** try-to-earn credits and structured feedback. Everyone starts with ⚡10. Builders spend ⚡2 per tester to put an app in the **Test & earn** queue (`/test`); people who open the app with Try it and leave feedback (would you use it, a rating, what worked, what confused you) earn ⚡2, plus ⚡1 when the builder marks it helpful. Feedback is private to the tester and builder; app pages show the totals (testers, % who'd use it, average rating). Balance and history are at `/credits`.
 

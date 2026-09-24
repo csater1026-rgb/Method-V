@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import { formatCount, formatDuration } from "@/lib/format";
+import { INTERESTS_COOKIE, SIGNALS, bumpInterest, parseInterests, serializeInterests } from "@/lib/interests";
 import type { FeedItem } from "@/lib/types";
 
 import { Avatar } from "./Avatar";
@@ -15,7 +16,24 @@ import { CategoryChip } from "./Tags";
 
 // Vertical, swipeable feed. Each Drop fills the screen; the one in view plays
 // (muted until someone taps for sound), the rest pause, and its caption
-// slides in as it lands.
+// slides in as it lands. What people watch, like, try and skip teaches the
+// "For you" ranking what they're into (see lib/interests).
+
+const WATCHED_MS = 4000;
+const SKIPPED_MS = 1500;
+
+// Saves a nudge to this browser's interests cookie, read by the Drops page.
+function learn(category: string, amount: number) {
+  try {
+    const prefix = `${INTERESTS_COOKIE}=`;
+    const raw = document.cookie.split("; ").find((c) => c.startsWith(prefix))?.slice(prefix.length);
+    const next = serializeInterests(bumpInterest(parseInterests(raw), category, amount));
+    const secure = location.protocol === "https:" ? "; secure" : "";
+    document.cookie = `${prefix}${encodeURIComponent(next)}; path=/; max-age=31536000; samesite=lax${secure}`;
+  } catch {
+    // Cookies blocked: the feed just doesn't learn.
+  }
+}
 export function DropFeed({ items, signedIn }: { items: FeedItem[]; signedIn: boolean }) {
   const [muted, setMuted] = useState(true);
 
@@ -50,13 +68,32 @@ function DropSlide({ item, first, signedIn, muted, onToggleSound }: SlideProps) 
   const slideRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [active, setActive] = useState(first);
+  const category = item.app.category;
 
   useEffect(() => {
     const slide = slideRef.current;
     if (!slide) return;
+    // Once per Drop per visit: watched for a few seconds, or swiped past fast.
+    let learned = false;
+    let shownAt = 0;
+    let watchTimer = 0;
     const observer = new IntersectionObserver(
       ([entry]) => {
         setActive(entry.isIntersecting);
+        if (entry.isIntersecting) {
+          shownAt = Date.now();
+          watchTimer = window.setTimeout(() => {
+            if (!learned) learn(category, SIGNALS.watched);
+            learned = true;
+          }, WATCHED_MS);
+        } else {
+          window.clearTimeout(watchTimer);
+          if (shownAt && !learned && Date.now() - shownAt < SKIPPED_MS) {
+            learn(category, SIGNALS.skipped);
+            learned = true;
+          }
+          shownAt = 0;
+        }
         const video = videoRef.current;
         if (!video) return;
         if (entry.isIntersecting) video.play().catch(() => {});
@@ -65,8 +102,11 @@ function DropSlide({ item, first, signedIn, muted, onToggleSound }: SlideProps) 
       { threshold: 0.6 },
     );
     observer.observe(slide);
-    return () => observer.disconnect();
-  }, []);
+    return () => {
+      observer.disconnect();
+      window.clearTimeout(watchTimer);
+    };
+  }, [category]);
 
   useEffect(() => {
     if (videoRef.current) videoRef.current.muted = muted;
@@ -112,10 +152,17 @@ function DropSlide({ item, first, signedIn, muted, onToggleSound }: SlideProps) 
         </span>
 
         <div className="absolute right-2.5 bottom-32 flex flex-col items-center gap-5">
-          <LikeButton dropId={item.id} initialLiked={item.liked} initialCount={item.like_count} signedIn={signedIn} />
+          <LikeButton
+            dropId={item.id}
+            initialLiked={item.liked}
+            initialCount={item.like_count}
+            signedIn={signedIn}
+            onLiked={() => learn(category, SIGNALS.liked)}
+          />
           <Link
             href={`/apps/${app.slug}#comments`}
             aria-label="Comments"
+            onClick={() => learn(category, SIGNALS.comments)}
             className="flex flex-col items-center gap-1 font-mono text-[11px] font-semibold drop-shadow"
           >
             <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
@@ -138,7 +185,13 @@ function DropSlide({ item, first, signedIn, muted, onToggleSound }: SlideProps) 
           </div>
           <div className={`mt-3 flex items-center gap-2 ${reveal} delay-100`}>
             {/* A plain link (not next/link) so prefetching never counts as a try. */}
-            <a href={`/try/${app.slug}?via=feed`} target="_blank" rel="noopener" className="btn-accent px-5">
+            <a
+              href={`/try/${app.slug}?via=feed`}
+              target="_blank"
+              rel="noopener"
+              className="btn-accent px-5"
+              onClick={() => learn(category, SIGNALS.tried)}
+            >
               Try it →
             </a>
             <CategoryChip category={app.category} />

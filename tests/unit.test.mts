@@ -11,6 +11,7 @@ import { createHmac } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { PIXEL_ICON_SVG } from "../src/lib/pixel-icon.ts";
 import { bundle } from "../scripts/bundle-migrations.mjs";
+import { bumpInterest, mergeInterests, parseInterests, rankFeed, serializeInterests } from "../src/lib/interests.ts";
 
 let failures = 0;
 const ok = (cond: boolean, msg: string) => {
@@ -95,6 +96,37 @@ ok(PIXEL_ICON_SVG === readFileSync(new URL("../src/app/icon.svg", import.meta.ur
 ok(readFileSync(new URL("../supabase/setup.sql", import.meta.url), "utf8") === bundle(), "supabase/setup.sql matches the migrations (run npm run db:bundle)");
 
 ok(formatCents(500) === "$5" && formatCents(1425) === "$14.25" && formatCents(100000) === "$1,000", "money formats as dollars");
+
+// --- For you: interests and ranking ---
+{
+  const parsed = parseInterests("design:4.5,games:1,bogus:9,finance:-2,education:abc");
+  ok(JSON.stringify(parsed) === JSON.stringify({ design: 4.5, games: 1 }), `interests cookie keeps only real categories and positive scores (${JSON.stringify(parsed)})`);
+  ok(JSON.stringify(parseInterests(encodeURIComponent("design:2,games:1"))) === JSON.stringify({ design: 2, games: 1 }), "reads an encoded cookie");
+  ok(JSON.stringify(parseInterests("%E0%A4%A")) === "{}", "a broken cookie reads as no interests");
+  ok(serializeInterests(parseInterests("design:4.5,games:1")) === "design:4.5,games:1", "round trip");
+  let big = {};
+  for (let i = 0; i < 40; i++) big = bumpInterest(big, i % 4 ? "design" : "games", 3);
+  const total = Object.values(big).reduce((a: number, b) => a + (b as number), 0);
+  ok(Math.abs(total - 60) < 0.01 && (big as { design: number }).design > (big as { games: number }).games, `scores stay capped and keep their balance (${total.toFixed(1)})`);
+  ok(JSON.stringify(bumpInterest({ design: 0.3 }, "design", -0.5)) === JSON.stringify({ design: 0 }), "skips never go below zero");
+  ok(JSON.stringify(bumpInterest({}, "not-a-category", 3)) === "{}", "unknown categories are ignored");
+  ok(JSON.stringify(mergeInterests({ design: 1 }, { design: 2, games: 1 })) === JSON.stringify({ design: 3, games: 1 }), "interests from the browser and the account add up");
+
+  const now = Date.parse("2026-09-24T12:00:00Z");
+  const hoursAgo = (h: number) => new Date(now - h * 3_600_000).toISOString();
+  const drop = (id: string, category: string, owner: string, h: number, likes = 0) => ({
+    id, owner_id: owner, like_count: likes, comment_count: 0, created_at: hoursAgo(h), app: { category, try_count: 0 },
+  });
+  const pool = [drop("new-game", "games", "a", 1), drop("design", "design", "b", 30), drop("old-hit", "finance", "c", 200, 400)];
+  const ids = (list: { id: string }[]) => list.map((d) => d.id).join(",");
+  ok(ids(rankFeed(pool, { now }))[0] === "n", `no interests: the newest leads (${ids(rankFeed(pool, { now }))})`);
+  ok(rankFeed(pool, { now, interests: { design: 10 } })[0].id === "design", "into design: the design Drop leads");
+  ok(rankFeed(pool, { now, following: new Set(["c"]) })[0].id === "old-hit", "a followed builder's popular Drop comes up");
+  ok(rankFeed(pool, { now, viewerId: "a" })[0].id !== "new-game", "your own Drop doesn't lead your feed");
+  const same = [drop("a1", "games", "a", 1), drop("a2", "games", "a", 1.1), drop("b1", "design", "b", 3)];
+  ok(ids(rankFeed(same, { now })) === "a1,b1,a2", `the same builder twice in a row gets split up (${ids(rankFeed(same, { now }))})`);
+  ok(rankFeed(pool, { now }).length === 3, "nothing is dropped");
+}
 
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");
 process.exit(failures ? 1 : 0);

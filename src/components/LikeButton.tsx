@@ -13,9 +13,11 @@ type Props = {
   initialCount: number;
   signedIn: boolean;
   layout?: "rail" | "inline";
+  // Called when someone likes (not unlikes) the Drop.
+  onLiked?: () => void;
 };
 
-export function LikeButton({ dropId, initialLiked, initialCount, signedIn, layout = "rail" }: Props) {
+export function LikeButton({ dropId, initialLiked, initialCount, signedIn, layout = "rail", onLiked }: Props) {
   const signIn = useSignIn();
   const [liked, setLiked] = useState(initialLiked);
   const [bump, setBump] = useState(0);
@@ -30,7 +32,10 @@ export function LikeButton({ dropId, initialLiked, initialCount, signedIn, layou
     }
     const next = !liked;
     setLiked(next);
-    if (next) setBump((b) => b + 1);
+    if (next) {
+      setBump((b) => b + 1);
+      onLiked?.();
+    }
     setCount((c) => c + (next ? 1 : -1));
     setError(null);
     startTransition(async () => {
