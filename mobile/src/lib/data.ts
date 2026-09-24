@@ -410,7 +410,8 @@ async function getLeaderboards(): Promise<{ builders: TopBuilder[]; testers: Top
 const QUESTION_SELECT = `id, body, created_at, vote_count, answer_count, best_answer_id, user_id, poll_options, poll_counts,
   user:profiles!questions_user_id_fkey(${SUMMARY}),
   answers(id, body, created_at, vote_count, parent_id, user:profiles!answers_user_id_fkey(${SUMMARY})),
-  app:apps!inner(id, slug, name, tagline, category, owner_id, link_checked_at, drops(poster_path, created_at))`;
+  app:apps!inner(id, slug, name, tagline, category, owner_id, link_checked_at)`;
+// (The app's question screens don't show Drop posters, so none are loaded.)
 
 // Best first, then votes, then oldest; replies right under their answer.
 function orderAnswers(answers: Answer[], bestId: string | null): Answer[] {
@@ -423,8 +424,9 @@ function orderAnswers(answers: Answer[], bestId: string | null): Answer[] {
 
 type QaState = { picks: Map<string, number>; votedQ: Set<string>; votedA: Set<string> };
 
+const NO_QA_STATE: QaState = { picks: new Map(), votedQ: new Set(), votedA: new Set() };
+
 function toQuestionCard(row: any, state: QaState): QuestionCard {
-  const latest = [...(row.app.drops ?? [])].sort((a: any, b: any) => b.created_at.localeCompare(a.created_at))[0];
   const answers = ((row.answers ?? []) as any[]).map((a) => ({
     id: a.id,
     body: a.body,
@@ -453,7 +455,7 @@ function toQuestionCard(row: any, state: QaState): QuestionCard {
       tagline: row.app.tagline,
       category: row.app.category,
       owner_id: row.app.owner_id,
-      poster_url: fileUrl(latest?.poster_path),
+      poster_url: null,
     },
   };
 }
@@ -518,16 +520,29 @@ async function viewerQaState(viewerId: string | null, rows: any[], withAnswers =
 export async function getQuestionFeed(viewerId: string | null, interests: Interests = {}): Promise<QuestionCard[]> {
   if (!supabase) return rankQuestions(demoQuestionCards(), { interests });
   const [{ data, error }, learned] = await Promise.all([
-    supabase.from("questions").select(QUESTION_SELECT).not("app.link_checked_at", "is", null).order("created_at", { ascending: false }).limit(100),
+    supabase
+      .from("questions")
+      .select(QUESTION_SELECT)
+      .not("app.link_checked_at", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(100)
+      // The card previews one answer, so the top 10 by votes is plenty.
+      .order("vote_count", { referencedTable: "answers", ascending: false })
+      .limit(10, { referencedTable: "answers" }),
     viewerId ? viewerInterests(viewerId) : Promise.resolve({}),
   ]);
   if (error) throw new Error("Couldn't load questions.");
   const rows = (data ?? []) as any[];
-  const state = await viewerQaState(viewerId, rows);
-  return rankQuestions(
-    rows.map((r) => toQuestionCard(r, state)),
+  // Rank first, then load this person's votes for the 30 that make the page.
+  const byId = new Map(rows.map((r) => [r.id as string, r]));
+  const page = rankQuestions(
+    rows.map((r) => toQuestionCard(r, NO_QA_STATE)),
     { interests: mergeInterests(interests, learned), viewerId },
-  ).slice(0, 30);
+  )
+    .slice(0, 30)
+    .map((q) => byId.get(q.id));
+  const state = await viewerQaState(viewerId, page);
+  return page.map((r) => toQuestionCard(r, state));
 }
 
 // An app's questions for its page, most upvoted first.

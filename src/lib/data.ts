@@ -1071,7 +1071,7 @@ const questionSelect = (withApp: boolean) =>
   `id, body, created_at, vote_count, answer_count, best_answer_id, user_id${qaColumns ? ", poll_options, poll_counts" : ""},
    user:profiles!questions_user_id_fkey(${summaryCols()}),
    answers(id, body, created_at, vote_count${qaColumns ? ", parent_id" : ""}, user:profiles!answers_user_id_fkey(${summaryCols()}))${
-     withApp ? ", app:apps!inner(id, slug, name, tagline, category, owner_id, link_checked_at, drops(poster_path, created_at))" : ""
+     withApp ? ", app:apps!inner(id, slug, name, tagline, category, owner_id, link_checked_at)" : ""
    }`;
 
 type AnswerRow = { id: string; body: string; created_at: string; vote_count: number; parent_id?: string | null; user: unknown };
@@ -1134,8 +1134,30 @@ function toQuestion(row: any, state: Awaited<ReturnType<typeof viewerQaState>>):
   };
 }
 
-function toQuestionCard(row: any, state: Awaited<ReturnType<typeof viewerQaState>>): QuestionCard {
-  const latest = [...(row.app.drops ?? [])].sort((a: any, b: any) => b.created_at.localeCompare(a.created_at))[0];
+// Each app's newest Drop poster, one row per app (the same newest-Drop query
+// Browse uses), instead of every Drop of every app.
+async function latestPosters(appIds: string[]): Promise<Map<string, string | null>> {
+  const out = new Map<string, string | null>();
+  const ids = [...new Set(appIds)];
+  if (ids.length === 0) return out;
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("apps")
+    .select("id, drops(poster_path, created_at)")
+    .in("id", ids)
+    .order("created_at", { referencedTable: "drops", ascending: false })
+    .limit(1, { referencedTable: "drops" });
+  for (const a of (data ?? []) as any[]) out.set(a.id, publicFileUrl(a.drops?.[0]?.poster_path ?? null));
+  return out;
+}
+
+const NO_QA_STATE = { votedQ: new Set<string>(), votedA: new Set<string>(), picks: new Map<string, number>() };
+
+function toQuestionCard(
+  row: any,
+  state: Awaited<ReturnType<typeof viewerQaState>>,
+  posters: Map<string, string | null>,
+): QuestionCard {
   return {
     ...toQuestion(row, state),
     answer_count: row.answer_count ?? (row.answers ?? []).length,
@@ -1147,7 +1169,7 @@ function toQuestionCard(row: any, state: Awaited<ReturnType<typeof viewerQaState
       tagline: row.app.tagline,
       category: row.app.category,
       owner_id: row.app.owner_id,
-      poster_url: publicFileUrl(latest?.poster_path ?? null),
+      poster_url: posters.get(row.app.id) ?? null,
     },
   };
 }
@@ -1214,35 +1236,40 @@ export const getQuestion = cache(async (id: string, viewer: Viewer | null): Prom
   const supabase = await createClient();
   const { data } = await supabase.from("questions").select(questionSelect(true)).eq("id", id).not("app.link_checked_at", "is", null).maybeSingle();
   if (!data) return null;
-  const state = await viewerQaState(viewer, [data]);
-  return toQuestionCard(data, state);
+  const [state, posters] = await Promise.all([viewerQaState(viewer, [data]), latestPosters([(data as any).app.id])]);
+  return toQuestionCard(data, state, posters);
 });
 
 // The Questions tab in Drops: recent questions ranked for this person. Fresh
 // ones and ones still waiting for answers come first, then builders asking
 // about their own app, polls, and the categories they're into.
 export async function getQuestionFeed(viewer: Viewer | null, interests: Interests = {}): Promise<QuestionCard[]> {
-  let cards: QuestionCard[];
-  if (!isSupabaseConfigured) {
-    cards = demoQuestionCards();
-  } else {
-    await checkQaColumns();
-    const supabase = await createClient();
-    const [{ data }, learned] = await Promise.all([
-      supabase
-        .from("questions")
-        .select(questionSelect(true))
-        .not("app.link_checked_at", "is", null)
-        .order("created_at", { ascending: false })
-        .limit(100),
-      viewer ? viewerInterests(viewer.id) : Promise.resolve({}),
-    ]);
-    const rows = (data ?? []) as any[];
-    const state = await viewerQaState(viewer, rows);
-    cards = rows.map((r) => toQuestionCard(r, state));
-    interests = mergeInterests(interests, learned);
-  }
-  return rankQuestions(cards, { interests, viewerId: viewer?.id }).slice(0, 30);
+  if (!isSupabaseConfigured) return rankQuestions(demoQuestionCards(), { interests }).slice(0, 30);
+  await checkQaColumns();
+  const supabase = await createClient();
+  const [{ data }, learned] = await Promise.all([
+    supabase
+      .from("questions")
+      .select(questionSelect(true))
+      .not("app.link_checked_at", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(100)
+      // The card previews one answer, so the top 10 by votes is plenty.
+      .order("vote_count", { referencedTable: "answers", ascending: false })
+      .limit(10, { referencedTable: "answers" }),
+    viewer ? viewerInterests(viewer.id) : Promise.resolve({}),
+  ]);
+  const rows = (data ?? []) as any[];
+  // Rank first (it only needs the rows), then load votes and posters for the
+  // 30 questions that make the page.
+  const byId = new Map(rows.map((r) => [r.id as string, r]));
+  const ranked = rankQuestions(
+    rows.map((r) => toQuestionCard(r, NO_QA_STATE, new Map())),
+    { interests: mergeInterests(interests, learned), viewerId: viewer?.id },
+  ).slice(0, 30);
+  const page = ranked.map((q) => byId.get(q.id));
+  const [state, posters] = await Promise.all([viewerQaState(viewer, page), latestPosters(page.map((r) => r.app.id))]);
+  return page.map((r) => toQuestionCard(r, state, posters));
 }
 
 // ---------------------------------------------------------------------------
