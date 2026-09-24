@@ -49,6 +49,7 @@ export const fonts = {
   bodyBold: "SchibstedGrotesk_700Bold",
   mono: "MartianMono_400Regular",
   monoBold: "MartianMono_600SemiBold",
+  logo: "Silkscreen_700Bold",
 };
 
 // Video and posters stay dark in both themes, like the website's media-dark.

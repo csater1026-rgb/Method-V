@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { BuyPro, PinApp } from "@/components/Earn";
+import { Wordmark } from "@/components/Wordmark";
 import { BOOST, EARN, formatCents } from "@/lib/constants";
 import { getMyApps, getOwnProfile, getViewer, isPro } from "@/lib/data";
 import { demoApps, demoProfiles } from "@/lib/demo";
@@ -32,7 +33,7 @@ export default async function ProPage({ searchParams }: PageProps<"/pro">) {
         {formatCents(EARN.pro.price)} for {EARN.pro.days} days · no subscription
       </p>
       <h1 className="display rise mt-1 text-6xl">
-        Method <span className="inline-block -skew-x-12 bg-accent px-1.5 text-accent-ink">V</span> Pro
+        <Wordmark className="text-[0.55em]" /> <span className="wordmark text-[0.55em]">Pro</span>
       </h1>
 
       {params.paid && (

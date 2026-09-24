@@ -5,6 +5,7 @@ import { MartianMono_600SemiBold } from "@expo-google-fonts/martian-mono/600Semi
 import { SchibstedGrotesk_400Regular } from "@expo-google-fonts/schibsted-grotesk/400Regular";
 import { SchibstedGrotesk_500Medium } from "@expo-google-fonts/schibsted-grotesk/500Medium";
 import { SchibstedGrotesk_700Bold } from "@expo-google-fonts/schibsted-grotesk/700Bold";
+import { Silkscreen_700Bold } from "@expo-google-fonts/silkscreen/700Bold";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -24,6 +25,7 @@ export default function RootLayout() {
     SchibstedGrotesk_700Bold,
     MartianMono_400Regular,
     MartianMono_600SemiBold,
+    Silkscreen_700Bold,
   });
   if (!loaded) return null;
   return (

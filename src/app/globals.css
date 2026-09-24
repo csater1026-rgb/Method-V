@@ -31,6 +31,7 @@
   --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-poster), var(--font-body), sans-serif;
   --font-mono: var(--font-code), ui-monospace, monospace;
+  --font-logo: var(--font-pixel), ui-monospace, monospace;
 
   --animate-rise: rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
   --animate-pop: pop 0.35s cubic-bezier(0.3, 1.6, 0.5, 1);
@@ -151,6 +152,24 @@ body::before {
   text-transform: uppercase;
   letter-spacing: 0.01em;
   line-height: 0.92;
+}
+
+/* The Method V wordmark (Wordmark component): pixel font, mint V with a
+   blue pixel drop shadow so it reads on white and on navy. */
+@utility wordmark {
+  font-family: var(--font-logo);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  /* The pixel font's space is very wide; pull METHOD and V closer. */
+  word-spacing: -0.3em;
+  line-height: 1;
+  white-space: nowrap;
+}
+@utility wordmark-v {
+  color: var(--color-mint);
+  /* One pixel of the font (1/8 em), so the shadow lands on the pixel grid. */
+  text-shadow: 0.125em 0.125em 0 #0379d9;
 }
 
 /* Small mono label, like a price tag or a line of code. */

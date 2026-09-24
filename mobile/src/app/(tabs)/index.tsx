@@ -2,8 +2,8 @@ import { FlatList, RefreshControl, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppCard } from "@/components/AppCard";
-import { Loading, PixelCoder } from "@/components/PixelCoder";
-import { Body, Display, ErrorText, Mono } from "@/components/ui";
+import { Loading } from "@/components/PixelCoder";
+import { Body, Display, ErrorText, Mono, Wordmark } from "@/components/ui";
 import { isLive } from "@/lib/config";
 import { getHome } from "@/lib/data";
 import { useLoad } from "@/lib/useLoad";
@@ -26,13 +26,7 @@ export default function HomeScreen() {
       ListHeaderComponent={
         <View style={{ gap: 14 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 16 }}>
-            <PixelCoder size={40} />
-            <Display size={30}>Method</Display>
-            <View style={{ backgroundColor: t.accent, paddingHorizontal: 6, transform: [{ skewX: "-12deg" }] }}>
-              <Display size={30} style={{ color: t.accentInk }}>
-                V
-              </Display>
-            </View>
+            <Wordmark size={22} />
           </View>
           {!isLive && (
             <Mono style={{ textAlign: "center", textTransform: "uppercase", paddingHorizontal: 16 }}>Demo mode · sample apps</Mono>

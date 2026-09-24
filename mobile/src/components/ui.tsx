@@ -138,3 +138,15 @@ export function ErrorText({ children }: { children: React.ReactNode }) {
   const t = useTheme();
   return children ? <Body style={{ color: t.danger }} size={13}>{children}</Body> : null;
 }
+
+// "METHOD V" in the pixel logo font, with the mint V and its blue pixel
+// shadow (same as the website's Wordmark).
+export function Wordmark({ size = 22 }: { size?: number }) {
+  const t = useTheme();
+  return (
+    <Text accessibilityRole="header" accessibilityLabel="Method V" style={{ fontFamily: fonts.logo, fontSize: size, color: t.ink, textTransform: "uppercase" }}>
+      Method{" "}
+      <Text style={{ color: MINT, textShadowColor: "#0379d9", textShadowOffset: { width: size * 0.125, height: size * 0.125 }, textShadowRadius: 0 }}>V</Text>
+    </Text>
+  );
+}

@@ -257,7 +257,8 @@ await run("build in public", desktop, async (page) => {
 {
   const res = await fetch(BASE + "/badge/noteflow");
   const svg = await res.text();
-  ok(res.headers.get("content-type").startsWith("image/svg+xml") && svg.includes("METHOD V") && svg.includes("412 tries"), "badge is an SVG with the app's tries");
+  ok(res.headers.get("content-type").startsWith("image/svg+xml") && /METHOD <tspan fill="#82ed9d">V<\/tspan>/.test(svg) && svg.includes("412 tries"), "badge is an SVG with the app's tries and the mint V");
+  ok(!svg.includes("skewX"), "badge no longer has the V in a box");
   ok((await fetch(BASE + "/badge/nope")).status === 404, "badge for an unknown app is 404");
   ok((await (await fetch(BASE + "/badge/noteflow?theme=light")).text()).includes("#0b1b2b"), "light badge");
 }
@@ -294,7 +295,7 @@ await run("pixel coder", phone, async (page) => {
   ok(await footer.getByRole("img", { name: "A pixel builder coding at their desk" }).isVisible(), "footer masthead shows the pixel coder");
   const running = await footer.locator(".pc-dust").first().evaluate((el) => getComputedStyle(el).animationName);
   ok(running === "pc-float", "pixels drift away (animation running)");
-  ok((await page.locator("header svg.pc-animated").count()) === 1, "pixel coder next to the logo");
+  ok((await page.locator("header svg.pc-animated").count()) === 0, "no pixel coder next to the logo at the top");
   ok((await page.getByText(/Then try it/i).count()) === 0, "the old tagline is gone");
   ok(await footer.getByText("Real apps. Real builders. Real feedback.").isVisible(), "the new tagline is under the footer logo");
   ok((await page.title()).includes("Real apps. Real builders. Real feedback."), "and in the browser tab title");

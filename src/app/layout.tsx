@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Big_Shoulders, Martian_Mono, Schibsted_Grotesk } from "next/font/google";
+import { Big_Shoulders, Martian_Mono, Schibsted_Grotesk, Silkscreen } from "next/font/google";
 import { cookies } from "next/headers";
 
 import { Footer } from "@/components/Footer";
@@ -16,6 +16,8 @@ import "./globals.css";
 const poster = Big_Shoulders({ variable: "--font-poster", subsets: ["latin"], axes: ["opsz"] });
 const body = Schibsted_Grotesk({ variable: "--font-body", subsets: ["latin"] });
 const code = Martian_Mono({ variable: "--font-code", subsets: ["latin"], axes: ["wdth"] });
+// The Method V logo: a pixel font, to match the pixel builder.
+const pixel = Silkscreen({ variable: "--font-pixel", subsets: ["latin"], weight: "700" });
 
 export const metadata: Metadata = {
   title: {
@@ -47,7 +49,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       data-theme={theme}
-      className={`${poster.variable} ${body.variable} ${code.variable} h-full antialiased`}
+      className={`${poster.variable} ${body.variable} ${code.variable} ${pixel.variable} h-full antialiased`}
     >
       {/* --chrome is the height of everything above the page, so the Drops feed can fill the rest. */}
       <body

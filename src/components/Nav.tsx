@@ -9,7 +9,7 @@ import { CreditsChip } from "./CreditsChip";
 import { InboxIcon } from "./Inbox";
 import { MobileTabs } from "./MobileTabs";
 import { NavLinks } from "./NavLinks";
-import { PixelCoder } from "./PixelCoder";
+import { Wordmark } from "./Wordmark";
 import { ThemeToggle } from "./ThemeToggle";
 
 // Top bar on every screen size; on phones the page links move to the bottom tab bar.
@@ -21,10 +21,8 @@ export async function Nav() {
     <>
       <header className="sticky top-0 z-30 border-b border-line bg-bg/90 pt-[env(safe-area-inset-top)] backdrop-blur">
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-2 px-3 sm:gap-3 sm:px-4">
-          <Link href="/" aria-label="Method V home" className="display flex shrink-0 items-center gap-1 text-[27px]">
-            <PixelCoder size={38} className="mr-0.5 -mb-1" />
-            Method
-            <span className="inline-block -skew-x-12 bg-accent px-1.5 pt-0.5 text-accent-ink">V</span>
+          <Link href="/" aria-label="Method V home" className="flex shrink-0 items-center">
+            <Wordmark className="text-[20px] sm:text-[22px]" />
           </Link>
 
           <NavLinks />

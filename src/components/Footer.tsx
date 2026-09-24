@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { TAGLINE } from "@/lib/constants";
 
 import { PixelCoderDetailed } from "./PixelCoder";
+import { Wordmark } from "./Wordmark";
 
 // The masthead at the bottom of every page (except the full-screen Drops feed).
 export function Footer() {
@@ -15,8 +16,8 @@ export function Footer() {
   return (
     <footer className="mt-16 border-t border-line">
       <div className="mx-auto flex max-w-6xl flex-col items-center gap-3 px-4 pt-10 pb-4 text-center">
-        <p className="display text-4xl">
-          Method <span className="inline-block -skew-x-12 bg-accent px-1.5 text-accent-ink">V</span>
+        <p>
+          <Wordmark className="text-3xl" />
         </p>
         <p className="font-mono text-[11px] tracking-widest text-muted uppercase">{TAGLINE}</p>
         <nav aria-label="Footer" className="mt-2 flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm text-muted">
