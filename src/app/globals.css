@@ -51,11 +51,10 @@
 
 :root {
   color-scheme: dark;
-  /* Pressed-edge shadow under accent buttons, and the glow/dot colors of the
-     background, as r g b triplets. */
+  /* Pressed-edge shadow under accent buttons, and the glow color used by the
+     striped Drop placeholders, as an r g b triplet. */
   --accent-edge: #1aa9b0;
   --glow: 64 244 245;
-  --dot: 255 255 255;
   /* Height of the phone bottom tab bar (MobileTabs); none on larger screens. */
   --tabbar: calc(3.5rem + env(safe-area-inset-bottom));
 }
@@ -81,7 +80,6 @@
     --color-danger: #b2412f;
     --accent-edge: #02589f;
     --glow: 3 121 217;
-    --dot: 11 27 43;
   }
 }
 
@@ -99,7 +97,6 @@
   --color-danger: #b2412f;
   --accent-edge: #02589f;
   --glow: 3 121 217;
-  --dot: 11 27 43;
 }
 
 /* Video, posters and anything drawn on top of them: always the dark palette. */
@@ -126,19 +123,6 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Atmosphere: an editor-style dot grid, a soft cyan-blue glow up top and a little
-   grain. Drawn once on a fixed layer so scrolling stays cheap on phones. */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background:
-    radial-gradient(ellipse 80% 50% at 50% -10%, rgb(var(--glow) / 0.2), transparent 70%),
-    radial-gradient(circle at 1px 1px, rgb(var(--dot) / 0.07) 1px, transparent 0) 0 0 / 22px 22px,
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='.05'/></svg>");
-}
 
 ::selection {
   background: var(--color-accent);

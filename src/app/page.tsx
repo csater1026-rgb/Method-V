@@ -61,11 +61,8 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
 
   return (
     <div className="mx-auto w-full max-w-6xl py-6">
-      <header className="flex items-end justify-between gap-3 px-4">
-        <div>
-          <p className="font-mono text-[11px] tracking-widest text-accent uppercase">What builders shipped</p>
-          <h1 className="display rise mt-1 text-6xl sm:text-7xl">{featured.curated ? "Featured" : "Hot right now"}</h1>
-        </div>
+      <header className="flex items-center justify-between gap-3 px-4">
+        <h1 className="display text-3xl">{featured.curated ? "Featured" : "Hot right now"}</h1>
         <Link href="/browse" className="btn-ghost shrink-0 px-3" aria-label="Search apps">
           <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
             <circle cx="11" cy="11" r="7" />
@@ -76,7 +73,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
       </header>
 
       {featured.apps.length > 0 ? (
-        <section aria-label="Featured apps" className="no-scrollbar mt-5 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-2">
+        <section aria-label="Featured apps" className="no-scrollbar mt-3 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-2">
           {featured.apps.map((app, i) => (
             <FeaturedCard key={app.id} app={app} rank={i} />
           ))}

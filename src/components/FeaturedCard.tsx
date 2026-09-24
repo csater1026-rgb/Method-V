@@ -5,53 +5,58 @@ import type { FeaturedApp } from "@/lib/types";
 
 import { Avatar } from "./Avatar";
 import { DropPlaceholder } from "./DropVideo";
-import { CategoryChip } from "./Tags";
 
 const LABELS: Record<FeaturedApp["reason"], string> = {
-  featured: "★ Featured",
+  featured: "Featured",
   launch: "Launch day",
   boosted: "Boosted",
   hot: "Hot",
 };
 
-// Big card for the Featured row on the home feed.
+// Compact card for the Featured row on Home: a 16:9 thumbnail, then the
+// name, tagline, builder and a Try button. Several fit side by side, and
+// the next one peeks in on phones so it's clear the row swipes.
 export function FeaturedCard({ app, rank }: { app: FeaturedApp; rank: number }) {
   return (
     <article
-      className="rise media-dark relative flex aspect-[4/5] w-[82vw] max-w-[340px] shrink-0 snap-start overflow-hidden rounded-xl border border-line bg-surface sm:aspect-[4/5]"
+      className="rise flex w-[68vw] max-w-[260px] shrink-0 snap-start flex-col overflow-hidden rounded-xl border border-line bg-surface"
       style={{ "--i": rank } as React.CSSProperties}
     >
-      <Link href={`/apps/${app.slug}`} className="absolute inset-0" aria-label={app.name}>
+      <Link href={`/apps/${app.slug}`} className="media-dark relative block aspect-video overflow-hidden" aria-label={app.name}>
         {app.poster_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={app.poster_url} alt="" className="h-full w-full object-cover" />
         ) : (
-          <DropPlaceholder name={app.name} category={app.category} variant="bare" />
+          <>
+            <DropPlaceholder name={app.name} category={app.category} variant="bare" />
+            <span aria-hidden className="display absolute inset-x-3 bottom-2 truncate text-3xl text-ink">
+              {app.name}
+            </span>
+          </>
         )}
+        {/* Under the Featured heading, only say why when it's something else. */}
+        {app.reason !== "featured" && <span className="tag-accent absolute top-2 left-2">{LABELS[app.reason]}</span>}
       </Link>
 
-      <span className="tag-accent absolute top-3 left-3">
-        {LABELS[app.reason]} · {String(rank + 1).padStart(2, "0")}
-      </span>
-
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 via-black/70 to-transparent p-4 pt-24">
-        <Link
-          href={`/u/${app.owner.username}`}
-          className="pointer-events-auto mb-1.5 flex w-fit items-center gap-1.5 text-xs font-semibold"
-        >
-          <Avatar username={app.owner.username} name={app.owner.display_name} size={20} />@{app.owner.username}
-        </Link>
-        <Link href={`/apps/${app.slug}`} className="display pointer-events-auto block text-5xl hover:text-accent">
-          {app.name}
-        </Link>
-        <p className="mt-1 line-clamp-2 text-sm text-ink/85">{app.tagline}</p>
-        <div className="pointer-events-auto mt-3 flex items-center gap-2">
+      <div className="flex flex-1 flex-col gap-2 p-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <Link href={`/apps/${app.slug}`} className="block truncate font-semibold hover:text-accent">
+              {app.name}
+            </Link>
+            <p className="truncate text-sm text-muted">{app.tagline}</p>
+          </div>
           {/* A plain link (not next/link) so prefetching never counts as a try. */}
-          <a href={`/try/${app.slug}?via=card`} target="_blank" rel="noopener" className="btn-accent">
-            Try it →
+          <a href={`/try/${app.slug}?via=card`} target="_blank" rel="noopener" className="btn-accent shrink-0 px-3.5">
+            Try
           </a>
-          <CategoryChip category={app.category} />
-          <span className="font-mono text-[11px] text-muted">{formatCount(app.try_count)} tries</span>
+        </div>
+        <div className="mt-auto flex items-center gap-1.5 text-xs text-muted">
+          <Avatar username={app.owner.username} name={app.owner.display_name} size={18} />
+          <Link href={`/u/${app.owner.username}`} className="truncate hover:text-ink">
+            @{app.owner.username}
+          </Link>
+          <span className="ml-auto shrink-0 font-mono text-[11px]">{formatCount(app.try_count)} tries</span>
         </div>
       </div>
     </article>
