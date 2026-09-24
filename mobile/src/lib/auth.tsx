@@ -5,13 +5,20 @@ import * as Crypto from "expo-crypto";
 import * as WebBrowser from "expo-web-browser";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
-import { DEMO_MESSAGE, MIN_PASSWORD } from "./config";
+import { DEMO_MESSAGE, MIN_PASSWORD, fileUrl } from "./config";
 import { fail, friendly, ok, type Result } from "./result";
 import { supabase } from "./supabase";
 
 WebBrowser.maybeCompleteAuthSession();
 
-export type Viewer = { id: string; username: string; display_name: string; credits: number };
+export type Viewer = {
+  id: string;
+  username: string;
+  display_name: string;
+  credits: number;
+  roles: string[];
+  avatar_url: string | null;
+};
 
 // "cancelled" means the person closed the Google/Apple sheet: not an error to show.
 type SignInResult = Result<"signed-in" | "check-email" | "cancelled">;
@@ -48,10 +55,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!supabase || !s) return setViewer(null);
     const { data } = await supabase
       .from("profiles")
-      .select("id, username, display_name, credits")
+      .select("id, username, display_name, credits, roles, avatar_path")
       .eq("id", s.user.id)
       .maybeSingle();
-    setViewer(data ? { ...data, credits: data.credits ?? 0 } : null);
+    setViewer(
+      data
+        ? {
+            id: data.id,
+            username: data.username,
+            display_name: data.display_name ?? "",
+            credits: data.credits ?? 0,
+            roles: data.roles ?? [],
+            avatar_url: fileUrl(data.avatar_path),
+          }
+        : null,
+    );
   }, []);
 
   useEffect(() => {

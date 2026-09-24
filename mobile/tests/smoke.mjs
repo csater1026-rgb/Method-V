@@ -101,6 +101,12 @@ ok(await page.getByText("Comments").first().isVisible(), "app page has comments"
 
 await visit("/u/ada_builds", "profile");
 ok(await page.getByText("Pro", { exact: true }).isVisible(), "Pro badge on a Pro profile");
+ok((await page.getByText("Open to collab", { exact: true }).count()) === 1, "status shows once, as the badge by the photo");
+ok(await page.getByText("Founder", { exact: true }).isVisible(), "other role tags still show");
+await visit("/u/marco_ships");
+ok(await page.getByText("Looking for work", { exact: true }).first().isVisible(), "Marco's status badge");
+await visit("/drops");
+ok((await page.getByText(/^(Hiring|Looking for work|Open to collab|Freelancer)$/).count()) >= 1, "Drops show the builder's status by their avatar");
 
 await visit("/post", "post");
 ok(await page.getByRole("button", { name: "Record" }).isVisible(), "Post offers Record");

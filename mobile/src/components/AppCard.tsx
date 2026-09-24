@@ -64,7 +64,7 @@ export function AppCard({ app, wide }: { app: Card; wide?: boolean }) {
             {app.tagline}
           </Body>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 2 }}>
-            <Avatar username={app.owner.username} name={app.owner.display_name} size={20} />
+            <Avatar username={app.owner.username} name={app.owner.display_name} src={app.owner.avatar_url} size={20} />
             <Body size={12} muted numberOfLines={1} style={{ flex: 1 }}>
               {app.owner.display_name || `@${app.owner.username}`}
             </Body>

@@ -55,7 +55,7 @@ function SuggestionCard({ person: p }: { person: Suggestion }) {
         onPress={() => router.push(`/u/${p.username}`)}
         style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
       >
-        <Avatar username={p.username} name={p.display_name} size={44} />
+        <Avatar username={p.username} name={p.display_name} src={p.avatar_url} size={44} />
         <View style={{ flex: 1 }}>
           <Body bold numberOfLines={1}>
             {p.display_name || `@${p.username}`}

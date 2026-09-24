@@ -4,8 +4,10 @@
 // In demo mode it returns the website's own sample data.
 
 import { File, UploadType } from "expo-file-system";
+import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
+import { Platform } from "react-native";
 
-import { CATEGORIES, isOneOf } from "@shared/constants";
+import { CATEGORIES, ROLES, isOneOf } from "@shared/constants";
 import {
   demoApps,
   demoBrands,
@@ -26,7 +28,7 @@ import { supabase } from "./supabase";
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- rows come back untyped */
 
-const SUMMARY = "id, username, display_name, roles";
+const SUMMARY = "id, username, display_name, roles, avatar_path";
 const CARD_SELECT = `*, owner:profiles!apps_owner_id_fkey(${SUMMARY}), drops(poster_path, created_at)`;
 const DAY = 24 * 60 * 60 * 1000;
 // How many recent Drops "For you" ranks to pick its page from.
@@ -37,6 +39,7 @@ const toSummary = (row: any): ProfileSummary => ({
   username: row.username,
   display_name: row.display_name ?? "",
   roles: row.roles ?? [],
+  avatar_url: fileUrl(row.avatar_path),
 });
 
 function toApp(row: any): App {
@@ -161,8 +164,15 @@ export async function getHome(
       .limit(6);
     top = (data ?? []).map(toCard);
   }
-  const suggestions = ((suggested.data ?? []) as any[]).map((r) => ({
-    ...toSummary(r),
+  // suggest_builders doesn't return photos: look them up.
+  const suggestedRows = (suggested.data ?? []) as any[];
+  const photos = new Map<string, string | null>();
+  if (suggestedRows.length > 0) {
+    const { data: pics } = await supabase.from("profiles").select("id, avatar_path").in("id", suggestedRows.map((r) => r.id));
+    for (const p of (pics ?? []) as any[]) photos.set(p.id, p.avatar_path);
+  }
+  const suggestions = suggestedRows.map((r) => ({
+    ...toSummary({ ...r, avatar_path: photos.get(r.id) ?? null }),
     shared_categories: r.shared_categories ?? [],
     shared_skills: r.shared_skills ?? [],
   }));
@@ -350,6 +360,67 @@ export async function setFollow(profileId: string, follow: boolean): Promise<Res
     ? await supabase!.from("follows").insert({ follower_id: auth.data.id, following_id: profileId })
     : await supabase!.from("follows").delete().eq("follower_id", auth.data.id).eq("following_id", profileId);
   return error && error.code !== "23505" ? fail("Couldn't update that.") : ok(undefined);
+}
+
+// Your status (and other role tags), shown as a badge by your photo.
+export async function setRoles(roles: string[]): Promise<Result> {
+  const auth = await signedIn();
+  if (!auth.ok) return auth;
+  const clean = roles.filter((r) => isOneOf(ROLES, r));
+  const { error } = await supabase!.from("profiles").update({ roles: clean }).eq("id", auth.data.id);
+  return error ? fail("Couldn't save your status.") : ok(undefined);
+}
+
+// A new profile photo: squared and shrunk on the phone to a small JPEG,
+// uploaded into your own folder, then set on your profile. The old one is
+// deleted. Pass null to go back to the letter avatar.
+export async function setPhoto(imageUri: string | null): Promise<Result<string | null>> {
+  const auth = await signedIn();
+  if (!auth.ok) return auth;
+  const id = auth.data.id;
+  const { data: before } = await supabase!.from("profiles").select("avatar_path").eq("id", id).maybeSingle();
+  let path: string | null = null;
+  if (imageUri) {
+    path = `${id}/avatar-${Date.now()}.jpg`;
+    try {
+      const jpeg = await squarePhoto(imageUri);
+      if (Platform.OS === "web") {
+        const blob = await (await fetch(jpeg)).blob();
+        const { error } = await supabase!.storage.from(DROPS_BUCKET).upload(path, blob, { contentType: "image/jpeg", upsert: false });
+        if (error) return fail("Your photo didn't upload. Try again.");
+      } else {
+        const upload = await new File(jpeg).upload(`${SUPABASE_URL}/storage/v1/object/${DROPS_BUCKET}/${path}`, {
+          httpMethod: "POST",
+          uploadType: UploadType.BINARY_CONTENT,
+          mimeType: "image/jpeg",
+          headers: { Authorization: `Bearer ${auth.data.token}`, apikey: SUPABASE_KEY, "Content-Type": "image/jpeg", "x-upsert": "false" },
+        });
+        if (upload.status >= 300) return fail("Your photo didn't upload. Try again.");
+      }
+    } catch {
+      return fail("Couldn't use that photo. Try another one.");
+    }
+  }
+  const { error } = await supabase!.from("profiles").update({ avatar_path: path }).eq("id", id);
+  if (error) {
+    if (path) await supabase!.storage.from(DROPS_BUCKET).remove([path]);
+    return fail("Couldn't save your photo.");
+  }
+  const old = (before as { avatar_path?: string | null } | null)?.avatar_path;
+  if (old && old !== path) await supabase!.storage.from(DROPS_BUCKET).remove([old]);
+  return ok(fileUrl(path));
+}
+
+// Centered square, 320px, JPEG: small enough to upload quickly anywhere.
+async function squarePhoto(uri: string): Promise<string> {
+  const first = await ImageManipulator.manipulate(uri).renderAsync();
+  const side = Math.min(first.width, first.height);
+  const context = ImageManipulator.manipulate(uri)
+    .crop({ originX: (first.width - side) / 2, originY: (first.height - side) / 2, width: side, height: side })
+    .resize({ width: 320, height: 320 });
+  const image = await context.renderAsync();
+  const saved = await image.saveAsync({ format: SaveFormat.JPEG, compress: 0.86 });
+  return saved.uri;
 }
 
 // "Try it": counts the try (from the app, and for a sponsor card, the

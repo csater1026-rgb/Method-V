@@ -85,6 +85,14 @@ export const ROLES = [
   { slug: "freelancer", label: "Freelancer" },
 ] as const;
 
+// The one status people message about (shown as a badge by someone's avatar),
+// in order of priority when they've picked more than one.
+export const STATUS_ROLES = ["hiring", "looking_for_work", "open_to_collab", "freelancer"] as const;
+
+export function primaryStatus(roles: readonly string[]): (typeof STATUS_ROLES)[number] | null {
+  return STATUS_ROLES.find((r) => roles.includes(r)) ?? null;
+}
+
 export const PRICING = [
   { slug: "free", label: "Free" },
   { slug: "freemium", label: "Freemium" },

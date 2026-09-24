@@ -11,7 +11,7 @@ The native Method V app, built with [Expo](https://expo.dev) (React Native). It 
 - **App pages:** the Drop, Try it, likes, stats, sponsor card, builder and comments.
 - **Profiles:** role tags, Pro badge, follow, and the builder's apps.
 - **Sign in:** email and password (sign in or create an account), Continue with Google, Continue with Apple (iPhone), or an emailed 6-digit code, which is also the "forgot password" path. You can set a new password on the Me tab.
-- **Me:** your account. Stats, Earn, Credits, Inbox and Edit profile open on the website for now.
+- **Me:** your account. Add, change or remove your profile photo (cropped square and shrunk on the phone before it uploads) and pick your status (Hiring, Looking for work, Open to collab, Freelancer…), which shows as a badge by your photo on your profile, your Drops and your app pages, like on the website. Stats, Earn, Credits, Inbox and the rest of Edit profile open on the website for now.
 
 It uses the website's category lists, types and sample data directly (`../src/lib`, imported as `@shared/…`), so they can't drift apart. With no Supabase keys it runs in **demo mode** with that sample data.
 

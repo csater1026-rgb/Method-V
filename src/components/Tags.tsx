@@ -1,4 +1,4 @@
-import { CATEGORIES, PRICING, ROLES, STAGES, labelFor } from "@/lib/constants";
+import { CATEGORIES, PRICING, ROLES, STAGES, labelFor, primaryStatus } from "@/lib/constants";
 
 // "except" leaves out a role already shown elsewhere, like the StatusBadge.
 export function RoleTags({ roles, except, className = "" }: { roles: string[]; except?: string | null; className?: string }) {
@@ -15,13 +15,9 @@ export function RoleTags({ roles, except, className = "" }: { roles: string[]; e
   );
 }
 
-// The one status people message about, shown next to someone's avatar.
-const STATUS_ORDER = ["hiring", "looking_for_work", "open_to_collab", "freelancer"] as const;
+export { primaryStatus };
 
-export function primaryStatus(roles: string[]): string | null {
-  return STATUS_ORDER.find((r) => roles.includes(r)) ?? null;
-}
-
+// The status people message about, shown next to someone's avatar.
 export function StatusBadge({ roles, className = "" }: { roles: string[]; className?: string }) {
   const status = primaryStatus(roles);
   if (!status) return null;

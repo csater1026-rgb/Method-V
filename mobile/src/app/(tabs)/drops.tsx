@@ -11,7 +11,7 @@ import type { FeedItem } from "@shared/types";
 import { DropPlaceholder } from "@/components/AppCard";
 import { Loading } from "@/components/PixelCoder";
 import { Sponsored } from "@/components/Sponsored";
-import { Avatar, Body, Button, Display, ErrorText, Mono, Tag, tap } from "@/components/ui";
+import { Avatar, Body, Button, Display, ErrorText, Mono, StatusBadge, Tag, tap } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import { SITE_URL } from "@/lib/config";
 import { getFeed, setLike } from "@/lib/data";
@@ -184,10 +184,11 @@ function DropPage({
 
       <View style={{ position: "absolute", left: 0, right: 0, bottom: 0, padding: 16, paddingRight: 70, backgroundColor: "rgba(10,14,11,0.72)", gap: 6 }}>
         <Pressable accessibilityRole="link" onPress={() => router.push(`/u/${item.owner.username}`)} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-          <Avatar username={item.owner.username} name={item.owner.display_name} size={26} />
+          <Avatar username={item.owner.username} name={item.owner.display_name} src={item.owner.avatar_url} size={26} />
           <Body bold size={13} style={{ color: media.ink }}>
             @{item.owner.username}
           </Body>
+          <StatusBadge roles={item.owner.roles} />
         </Pressable>
         <Pressable
           accessibilityRole="link"

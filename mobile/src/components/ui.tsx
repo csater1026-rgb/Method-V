@@ -1,7 +1,9 @@
 import * as Haptics from "expo-haptics";
+import { Image } from "expo-image";
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View, type TextProps, type ViewStyle } from "react-native";
 import Svg, { Rect } from "react-native-svg";
 
+import { ROLES, labelFor, primaryStatus } from "@shared/constants";
 import { V_HEIGHT, V_WIDTH, pixelVRects } from "@shared/pixel-v";
 
 import { MINT, MINT_INK, fonts, useTheme } from "@/theme";
@@ -128,8 +130,20 @@ export function Button({
 
 const AVATAR_COLORS = ["#82ed9d", "#9fd8fb", "#d9b38c", "#40f4f5", "#c7b6d6", "#e2a597", "#b8f3c8"];
 
-// Same colors and letters as the website's avatars.
-export function Avatar({ username, name, size = 40 }: { username: string; name?: string; size?: number }) {
+// Same as the website's avatars: the builder's photo, or a colored circle
+// with their first letter.
+export function Avatar({ username, name, src, size = 40 }: { username: string; name?: string; src?: string | null; size?: number }) {
+  if (src) {
+    return (
+      <Image
+        source={{ uri: src }}
+        accessibilityIgnoresInvertColors
+        style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: "#172b3f" }}
+        contentFit="cover"
+        transition={120}
+      />
+    );
+  }
   let hash = 0;
   for (const ch of username) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
   const letter = (name || username).trim().charAt(0).toUpperCase() || "?";
@@ -142,6 +156,13 @@ export function Avatar({ username, name, size = 40 }: { username: string; name?:
       <Text style={{ fontFamily: fonts.display, fontSize: size * 0.56, color: "#0b1b2b", marginTop: size * 0.06 }}>{letter}</Text>
     </View>
   );
+}
+
+// The status people message about (Hiring, Looking for work…), shown next to
+// someone's avatar. Same rule as the website's StatusBadge.
+export function StatusBadge({ roles }: { roles: readonly string[] }) {
+  const status = primaryStatus(roles);
+  return status ? <Tag tone="accent">{labelFor(ROLES, status)}</Tag> : null;
 }
 
 export function Card({ children, style }: { children: React.ReactNode; style?: ViewStyle }) {

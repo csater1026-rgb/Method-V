@@ -2,12 +2,13 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { RefreshControl, ScrollView, View } from "react-native";
 
-import { ROLES, labelFor } from "@shared/constants";
+import { ROLES, labelFor, primaryStatus } from "@shared/constants";
 import { formatCount } from "@shared/format";
 
 import { AppCard } from "@/components/AppCard";
 import { Loading } from "@/components/PixelCoder";
-import { Avatar, Body, Button, Display, ErrorText, Mono, Tag } from "@/components/ui";
+import { Avatar, Body, Button, Display, ErrorText, Mono, StatusBadge, Tag } from "@/components/ui";
+import { fileUrl } from "@/lib/config";
 import { useAuth } from "@/lib/auth";
 import { getProfileBundle, setFollow } from "@/lib/data";
 import { useLoad } from "@/lib/useLoad";
@@ -58,7 +59,13 @@ export default function ProfileScreen() {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={reload} tintColor={t.muted} />}
     >
       <Stack.Screen options={{ title: `@${profile.username}` }} />
-      <Avatar username={profile.username} name={profile.display_name} size={84} />
+      {/* Photo with the status people message about right next to it. */}
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+        <Avatar username={profile.username} name={profile.display_name} src={fileUrl(profile.avatar_path)} size={84} />
+        <View>
+          <StatusBadge roles={profile.roles} />
+        </View>
+      </View>
       <View>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <Display size={46} style={{ flexShrink: 1 }}>
@@ -68,9 +75,9 @@ export default function ProfileScreen() {
         </View>
         <Body muted>@{profile.username}</Body>
       </View>
-      {profile.roles.length > 0 && (
+      {profile.roles.some((r) => r !== primaryStatus(profile.roles)) && (
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-          {profile.roles.map((r) => (
+          {profile.roles.filter((r) => r !== primaryStatus(profile.roles)).map((r) => (
             <Tag key={r} tone={r === "hiring" || r === "looking_for_work" ? "accent" : "plain"}>
               {labelFor(ROLES, r)}
             </Tag>
