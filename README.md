@@ -22,7 +22,7 @@ See [PLAN.md](PLAN.md) for the full product plan and build phases.
 **Phase 3 ("Grow") is built:**
 
 - **Tester Passport:** every app you give feedback on stamps your passport. Ranks (Scout → Tester → Pro Tester → Trusted Tester) come from feedback given and feedback marked helpful, with perks built into the database: Testers earn ⚡3 per paid feedback, Pro Testers can earn from 20 a day, Trusted Testers' feedback shows first to builders. 4 weeks in a row earns a ⚡5 bonus. Profiles show the passport (rank, progress, a stamp per category, streak) and Test & earn shows the month's top testers. Ranks never go down.
-- **Launch days:** schedule one free launch day per app (1 hour to 30 days out). It shows under *Launching soon* on Home with a countdown, then sits in the Featured row for 24 hours.
+- **Launch days:** schedule one free launch day per app (1 hour to 30 days out). It shows under *Launching soon* on Browse with a countdown, then sits in the Featured row for 24 hours.
 - **Boosts:** spend ⚡10 a day (1, 3 or 7 days) to put an app in the Featured row with a *Boosted* label.
 - **Build in public:** a one-box composer ("What did you ship today?") on Home, your profile and your app pages. Home shows updates from you and who you follow.
 - **Share kit:** an embeddable *Try it on Method V* badge (`/badge/<app>`, dark or light) with copy-paste HTML/Markdown, plus one-tap posts to X and LinkedIn.

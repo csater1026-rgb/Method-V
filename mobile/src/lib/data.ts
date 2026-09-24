@@ -16,7 +16,7 @@ import {
   demoProfiles,
   demoSponsors,
 } from "@shared/demo";
-import type { App, AppCard, AppDetail, Comment, Drop, FeedItem, Profile, ProfileSummary, SponsorCard } from "@shared/types";
+import type { App, AppCard, AppDetail, Comment, Drop, FeedItem, Profile, ProfileSummary, SponsorCard, Suggestion } from "@shared/types";
 
 import { DEMO_MESSAGE, DROPS_BUCKET, SITE_URL, SUPABASE_KEY, SUPABASE_URL, fileUrl } from "./config";
 import { fail, friendly, ok, type Result } from "./result";
@@ -117,29 +117,47 @@ async function likedIds(viewerId: string | null, dropIds: string[]): Promise<Set
 // Reads
 // ---------------------------------------------------------------------------
 
-// Featured (picked by the team, launching today, or boosted), then everyone's apps.
-export async function getHome(): Promise<{ featured: AppCard[]; apps: AppCard[] }> {
+// Home: Featured (picked by the team, launching today, or boosted, else
+// what's hot this month) and builders to follow. Everything else is on Browse.
+export async function getHome(viewerId: string | null): Promise<{ featured: AppCard[]; suggestions: Suggestion[] }> {
   if (!supabase) {
     const cards = demoCards();
-    return { featured: demoFeaturedIds.map((id) => cards.find((c) => c.id === id)!).filter(Boolean), apps: cards };
+    return {
+      featured: demoFeaturedIds.map((id) => cards.find((c) => c.id === id)!).filter(Boolean),
+      suggestions: [
+        { ...toSummary(demoProfile("demo-june")), shared_categories: ["design"], shared_skills: ["React"] },
+        { ...toSummary(demoProfile("demo-marco")), shared_categories: ["education", "productivity"], shared_skills: [] },
+      ],
+    };
   }
   const now = new Date().toISOString();
-  const [featured, apps] = await Promise.all([
+  const [featured, suggested] = await Promise.all([
     supabase
       .from("apps")
       .select(CARD_SELECT)
       .not("link_checked_at", "is", null)
       .or(`featured_until.gt.${now},boosted_until.gt.${now}`)
       .limit(10),
-    supabase.from("apps").select(CARD_SELECT).not("link_checked_at", "is", null).order("created_at", { ascending: false }).limit(40),
+    viewerId ? supabase.rpc("suggest_builders", { p_limit: 8 }) : Promise.resolve({ data: [] }),
   ]);
-  const all = (apps.data ?? []).map(toCard);
   let top = (featured.data ?? []).map(toCard);
   if (top.length === 0) {
-    const since = Date.now() - 30 * DAY;
-    top = [...all].filter((a) => Date.parse(a.created_at) > since).sort((a, b) => b.try_count - a.try_count).slice(0, 6);
+    const since = new Date(Date.now() - 30 * DAY).toISOString();
+    const { data } = await supabase
+      .from("apps")
+      .select(CARD_SELECT)
+      .not("link_checked_at", "is", null)
+      .gt("created_at", since)
+      .order("try_count", { ascending: false })
+      .limit(6);
+    top = (data ?? []).map(toCard);
   }
-  return { featured: top, apps: all };
+  const suggestions = ((suggested.data ?? []) as any[]).map((r) => ({
+    ...toSummary(r),
+    shared_categories: r.shared_categories ?? [],
+    shared_skills: r.shared_skills ?? [],
+  }));
+  return { featured: top, suggestions };
 }
 
 export async function getFeed(viewerId: string | null): Promise<FeedItem[]> {

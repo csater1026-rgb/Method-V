@@ -60,8 +60,11 @@ await run("home (phone)", phone, async (page) => {
   const featured = page.getByRole("region", { name: "Featured apps" });
   ok((await featured.locator("article").count()) === 4, "Featured row: 2 picked apps, then launch day and boosted");
   ok((await featured.locator("article").first().getAttribute("class")).includes("snap-start"), "Featured row swipes sideways");
-  ok(await page.getByText("2 apps need testers.").isVisible(), "needs-testers strip links to Test & earn");
-  ok((await page.locator("#projects article").count()) === 4, "All projects lists everyone's apps");
+  ok(await page.getByRole("region", { name: "Builders like you" }).isVisible(), "Home shows builders to follow");
+  for (const gone of ["Upcoming launches", "Build in public", "Get paid"]) {
+    ok((await page.getByRole("region", { name: gone }).count()) === 0, `Home has no ${gone} section`);
+  }
+  ok((await page.locator("#projects").count()) === 0 && !(await page.getByText("apps need testers").count()), "Home has no project list or testers strip");
   await noSideScroll(page, "home");
   await page.screenshot({ path: OUT + "home-phone.png", fullPage: true });
   await page.getByRole("link", { name: "Search apps" }).click();
@@ -69,14 +72,10 @@ await run("home (phone)", phone, async (page) => {
   ok(true, "search button opens Browse");
 });
 
-await run("home sort + category", desktop, async (page) => {
-  await go(page, "/?sort=popular");
-  const names = await page.locator("#projects article a.display").allTextContents();
-  ok(names[0] === "PalettePal", `Popular sorts by tries (${names.join(",")})`);
-  await page.getByRole("navigation", { name: "Categories" }).getByRole("link", { name: "Finance" }).click();
-  await page.waitForURL(/category=finance/);
-  ok((await page.locator("#projects article").count()) === 1, "category filter narrows All projects");
-  ok(page.url().includes("sort=popular"), "category keeps the sort");
+await run("home + browse sort", desktop, async (page) => {
+  await go(page, "/browse?sort=tried");
+  const names = await page.locator("main article a.display").allTextContents();
+  ok(names[0] === "PalettePal", `Browse "Most tried" sorts by tries (${names.join(",")})`);
   await go(page, "/");
   await page.screenshot({ path: OUT + "home-desktop.png", fullPage: true });
 });
@@ -220,11 +219,12 @@ await run("launch days + boosts", desktop, async (page) => {
   const featured = page.getByRole("region", { name: "Featured apps" });
   const labels = await featured.locator("article .tag-accent").allTextContents();
   ok(labels.some((l) => l.startsWith("Launch day")) && labels.some((l) => l.startsWith("Boosted")), `Featured row includes launch-day and boosted apps (${labels.join(" | ")})`);
+  await go(page, "/browse");
   const soon = page.getByRole("region", { name: "Upcoming launches" });
   ok((await soon.locator("li").count()) === 1 && (await soon.textContent()).includes("QuizPop"), "Launching soon lists QuizPop");
   ok(/2d [34]h/.test(await soon.locator("time").textContent()), `countdown shows days and hours (${await soon.locator("time").textContent()})`);
   await page.waitForTimeout(1000);
-  await page.screenshot({ path: OUT + "home-launches.png", fullPage: true });
+  await page.screenshot({ path: OUT + "browse-launches.png", fullPage: true });
 
   await go(page, "/apps/quizpop");
   ok(await page.getByText(/^Launching in/).first().isVisible(), "app page shows the launch countdown");
@@ -243,15 +243,12 @@ await run("launch days + boosts", desktop, async (page) => {
 });
 
 await run("build in public", desktop, async (page) => {
-  await go(page, "/");
-  const home = page.getByRole("region", { name: "Build in public" });
-  ok((await home.locator("li").count()) === 4, "Home shows everyone's latest updates");
-  ok(!(await home.getByLabel("Write an update").count()), "no composer when signed out");
   await go(page, "/apps/noteflow?tab=updates");
   const appUpdates = page.getByRole("region", { name: "Discussion" });
   ok((await appUpdates.locator("li").count()) === 1 && (await appUpdates.textContent()).includes("Google Meet"), "app page Updates tab shows that app's updates");
   await go(page, "/u/ada_builds");
   ok((await page.getByRole("region", { name: "Updates" }).locator("li").count()) === 2, "profile shows the builder's updates");
+  ok(!(await page.getByLabel("Write an update").count()), "no composer on someone else's profile when signed out");
 });
 
 {
@@ -563,9 +560,6 @@ await run("earn + pro (phone)", phone, async (page) => {
 
 await run("challenges (desktop)", desktop, async (page) => {
   await go(page, "/");
-  const strip = page.getByRole("region", { name: "Get paid" });
-  ok(await strip.getByRole("link", { name: /Best app built on Supabase/ }).isVisible(), "Home shows a running challenge");
-  ok(await strip.getByRole("link", { name: /3 open posts/ }).isVisible(), "Home links the jobs board");
   ok(await page.getByRole("navigation").getByRole("link", { name: "Challenges" }).first().isVisible(), "Challenges in the desktop nav");
   await go(page, "/challenges");
   ok((await page.locator("main li a[href^='/challenges/']").count()) === 2, "two demo challenges");

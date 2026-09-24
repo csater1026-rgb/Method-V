@@ -49,9 +49,15 @@ async function visit(path, shot) {
 await visit("/", "home");
 ok(await page.getByText("Featured", { exact: true }).isVisible(), "Home shows Featured");
 ok((await page.getByText("NoteFlow").count()) > 0, "Home lists the sample apps");
+ok(await page.getByText("Builders like you").isVisible(), "Home suggests builders to follow");
+ok(await page.getByText("In common: Design · React").isVisible(), "suggestions say what you have in common");
+ok((await page.getByText("All projects").count()) === 0, "Home leaves the full list to Browse");
 ok(await page.getByText(/Demo mode/).isVisible(), "demo mode is labeled");
 for (const tab of ["Home", "Drops", "Browse", "Me"]) ok((await page.getByRole("tab", { name: tab }).count()) > 0, `tab bar has ${tab}`);
 ok((await page.getByRole("tab", { name: "Post a Drop" }).count()) > 0, "tab bar has the + button");
+await page.getByRole("button", { name: "Follow @june_designs" }).click();
+await page.waitForURL(/sign-in/);
+ok(true, "Follow while signed out goes to sign-in");
 
 await visit("/drops", "drops");
 ok((await page.getByText("Try it →").count()) > 0, "Drops feed shows Try it");

@@ -8,7 +8,7 @@ export const PAGE_LINKS: { href: string; label: string; wide?: boolean }[] = [
   { href: "/drops", label: "Drops" },
   { href: "/browse", label: "Browse" },
   { href: "/test", label: "Test & earn" },
-  // Only on wide screens; on narrower ones they're in the footer and on Home.
+  // Only on wide screens; on narrower ones they're in the footer.
   { href: "/jobs", label: "Jobs", wide: true },
   { href: "/challenges", label: "Challenges", wide: true },
 ];

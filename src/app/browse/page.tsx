@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { AppCard } from "@/components/AppCard";
+import { UpcomingLaunches } from "@/components/UpcomingLaunches";
 import { CATEGORIES, PRICING, STAGES } from "@/lib/constants";
-import { getApps, type BrowseFilters } from "@/lib/data";
+import { getApps, getUpcomingLaunches, type BrowseFilters } from "@/lib/data";
 
 export const metadata: Metadata = { title: "Browse apps" };
 
@@ -23,8 +24,8 @@ export default async function BrowsePage({ searchParams }: PageProps<"/browse">)
     stage: one(params.stage),
     sort: one(params.sort),
   };
-  const apps = await getApps(filters);
   const hasFilters = Object.entries(filters).some(([k, v]) => v && k !== "sort");
+  const [apps, upcoming] = await Promise.all([getApps(filters), hasFilters ? Promise.resolve([]) : getUpcomingLaunches()]);
 
   const categoryHref = (slug?: string) => {
     const next = new URLSearchParams();
@@ -90,6 +91,8 @@ export default async function BrowsePage({ searchParams }: PageProps<"/browse">)
         </select>
         <button className="btn-accent">Apply</button>
       </form>
+
+      <UpcomingLaunches apps={upcoming} />
 
       {hasFilters && (
         <p className="mt-3 text-sm text-muted">
