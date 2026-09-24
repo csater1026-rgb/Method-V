@@ -79,16 +79,20 @@ function DropSlide({ item, first, signedIn, muted, onToggleSound }: SlideProps) 
     let watchTimer = 0;
     const observer = new IntersectionObserver(
       ([entry]) => {
-        setActive(entry.isIntersecting);
-        if (entry.isIntersecting) {
+        // The callback also fires while a slide is only partly on screen
+        // (leaving or arriving), so "on screen" means at least 60% visible.
+        const visible = entry.isIntersecting && entry.intersectionRatio >= 0.6;
+        setActive(visible);
+        if (visible && !shownAt) {
           shownAt = Date.now();
+          window.clearTimeout(watchTimer);
           watchTimer = window.setTimeout(() => {
             if (!learned) learn(category, SIGNALS.watched);
             learned = true;
           }, WATCHED_MS);
-        } else {
+        } else if (!visible && shownAt) {
           window.clearTimeout(watchTimer);
-          if (shownAt && !learned && Date.now() - shownAt < SKIPPED_MS) {
+          if (!learned && Date.now() - shownAt < SKIPPED_MS) {
             learn(category, SIGNALS.skipped);
             learned = true;
           }
@@ -96,7 +100,7 @@ function DropSlide({ item, first, signedIn, muted, onToggleSound }: SlideProps) 
         }
         const video = videoRef.current;
         if (!video) return;
-        if (entry.isIntersecting) video.play().catch(() => {});
+        if (visible) video.play().catch(() => {});
         else video.pause();
       },
       { threshold: 0.6 },

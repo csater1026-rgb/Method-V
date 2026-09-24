@@ -21,7 +21,12 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { viewer } = useAuth();
   const { data, error, refreshing, reload } = useLoad(
-    () => getProfileBundle(String(username).toLowerCase(), viewer?.id ?? null),
+    async () => {
+      const found = await getProfileBundle(String(username).toLowerCase(), viewer?.id ?? null);
+      // Throwing (not returning null) shows "not found" instead of a spinner.
+      if (!found) throw new Error("There's no builder with that username.");
+      return found;
+    },
     [username, viewer?.id],
   );
   const [following, setFollowing] = useState<boolean | null>(null);

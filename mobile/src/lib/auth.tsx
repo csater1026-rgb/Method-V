@@ -53,11 +53,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loadViewer = useCallback(async (s: Session | null) => {
     if (!supabase || !s) return setViewer(null);
-    const { data } = await supabase
+    let { data, error } = await supabase
       .from("profiles")
       .select("id, username, display_name, credits, roles, avatar_path")
       .eq("id", s.user.id)
       .maybeSingle();
+    // A database without profile photos yet (migration 20261001000000):
+    // stay signed in, with letter avatars.
+    if (error) {
+      ({ data, error } = await supabase.from("profiles").select("id, username, display_name, credits, roles").eq("id", s.user.id).maybeSingle());
+    }
     setViewer(
       data
         ? {

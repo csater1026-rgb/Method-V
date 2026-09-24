@@ -181,6 +181,31 @@ await run("feed tabs + For you", desktop, async (page) => {
   ok((await firstFor("finance:20")) === "Splitsy Drop", "into finance: Splitsy first");
   ok((await firstFor("finance:20,education:40")) === "QuizPop Drop", "the stronger interest wins");
 
+  // Watching for 3 seconds and moving on isn't a skip (it used to count as one).
+  await page.context().addCookies([{ name: "mv-interests", value: "productivity:5", url: BASE }]);
+  await go(page, "/drops");
+  ok((await page.locator("article").first().getAttribute("aria-label")) === "NoteFlow Drop", "into productivity: NoteFlow first");
+  await page.waitForTimeout(3000);
+  // Scroll like a finger does (smoothly), so the slide passes through partly visible.
+  await page.getByTestId("drop-feed").evaluate(async (el) => {
+    for (let i = 1; i <= 20; i++) {
+      el.scrollTop = (el.clientHeight * i) / 20;
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    }
+  });
+  await page.waitForTimeout(800);
+  const afterWatch = decodeURIComponent((await page.context().cookies()).find((c) => c.name === "mv-interests")?.value ?? "");
+  ok(afterWatch === "productivity:5", `a 3-second watch doesn't count as a skip (${afterWatch})`);
+  // A quick swipe past does count a little against the category.
+  await page.context().addCookies([{ name: "mv-interests", value: "productivity:5,education:5", url: BASE }]);
+  await go(page, "/drops");
+  const firstTwo = await page.locator("article").evaluateAll((els) => els.slice(0, 2).map((e) => e.getAttribute("aria-label")));
+  await page.waitForTimeout(400);
+  await page.getByTestId("drop-feed").evaluate((el) => el.scrollBy(0, el.clientHeight));
+  await page.waitForTimeout(800);
+  const afterSkip = decodeURIComponent((await page.context().cookies()).find((c) => c.name === "mv-interests")?.value ?? "");
+  ok(/:4\.5/.test(afterSkip), `swiping past ${firstTwo[0]} right away counts a little against it (${afterSkip})`);
+
   // And it learns: watching a Drop for a few seconds counts toward its category.
   await page.context().clearCookies();
   await go(page, "/drops");

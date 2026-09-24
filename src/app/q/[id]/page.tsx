@@ -8,7 +8,7 @@ import { getQuestion, getViewer } from "@/lib/data";
 
 export async function generateMetadata({ params }: PageProps<"/q/[id]">): Promise<Metadata> {
   const { id } = await params;
-  const question = await getQuestion(id, null);
+  const question = await getQuestion(id, await getViewer());
   return question ? { title: question.body.slice(0, 70), description: `A question about ${question.app.name} on Method V` } : { title: "Question not found" };
 }
 

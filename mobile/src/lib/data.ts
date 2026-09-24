@@ -560,7 +560,7 @@ export async function getMyApps(viewerId: string | null): Promise<{ id: string; 
 
 export async function getQuestion(id: string, viewerId: string | null): Promise<QuestionCard | null> {
   if (!supabase) return demoQuestionCards().find((q) => q.id === id) ?? null;
-  const { data } = await supabase.from("questions").select(QUESTION_SELECT).eq("id", id).maybeSingle();
+  const { data } = await supabase.from("questions").select(QUESTION_SELECT).eq("id", id).not("app.link_checked_at", "is", null).maybeSingle();
   if (!data) return null;
   return toQuestionCard(data, await viewerQaState(viewerId, [data], true));
 }

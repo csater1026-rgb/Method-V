@@ -806,17 +806,33 @@ ok(!!(await fails("anon", null, "insert into public.sponsorships (sponsor_brand,
   ok(!!(await fails("authenticated", A, "select public.mark_best_answer($1, $2)", [poll.id, r1.id])), "best answer is an answer, not a reply");
   await as("authenticated", A, "select public.mark_best_answer($1, $2)", [poll.id, top]);
   ok((await db.query("select best_answer_id from public.questions where id = $1", [poll.id])).rows[0].best_answer_id === top, "the asker picks a best answer");
-  ok((await db.query("select count(*)::int n from public.notifications where user_id = $1 and kind = 'answer' and actor_id = $2", [B, C])).rows[0].n >= 1, "replying notifies the answer's author");
+  const notes = async (uid, kind, actor) =>
+    (await db.query("select count(*)::int n from public.notifications where user_id = $1 and kind = $2 and actor_id = $3", [uid, kind, actor])).rows[0].n;
+  ok((await notes(B, "reply", C)) === 1, "replying notifies the answer's author as a reply");
+  ok((await notes(C, "reply", D)) === 1 && (await notes(B, "reply", D)) === 0, "a reply to a reply notifies the person replied to, not the top answer's author");
+  ok(!!(await fails("authenticated", A, ask, [appId, A, "Null choice?", ["ok", null]])), "poll choices can't be null");
+  ok(!!(await fails("authenticated", A, "insert into public.questions (app_id, user_id, body, poll_options) values ($1, $2, 'Nested poll?', '{{a,b},{c,d}}')", [appId, A])), "poll choices can't be nested");
+
+  // Deleting an answer keeps other people's replies (and their reputation).
+  const own = (await as("authenticated", B, reply, [poll.id, B, "Second thought: CSS vars.", null])).rows[0].id;
+  const kept = (await as("authenticated", C, reply, [poll.id, C, "Good call.", own])).rows[0].id;
+  await as("authenticated", D, "insert into public.answer_votes (user_id, answer_id) values ($1, $2)", [D, kept]);
+  const repBefore = (await db.query("select reputation from public.profiles where id = $1", [C])).rows[0].reputation;
+  await as("authenticated", B, "delete from public.answers where id = $1", [own]);
+  const after = (await db.query("select parent_id from public.answers where id = $1", [kept])).rows[0];
+  ok(after && after.parent_id === null, "deleting an answer keeps the replies under it (they become answers)");
+  ok((await db.query("select reputation from public.profiles where id = $1", [C])).rows[0].reputation === repBefore, "…and their authors keep their reputation");
 }
 
 // --- Top builders of the month ---
 {
   const before = (await as("anon", null, "select * from public.top_builders(10)")).rows.find((r) => r.user_id === A);
   await as("authenticated", A, "insert into public.try_clicks (app_id, user_id) values ($1, $2) on conflict do nothing", [appId, A]);
+  for (let i = 0; i < 5; i++) await as("anon", null, "insert into public.try_clicks (app_id) values ($1)", [appId]);
   const rows = (await as("anon", null, "select * from public.top_builders(10)")).rows;
   const a = rows.find((r) => r.user_id === A);
   ok(Boolean(a) && Number(a.tries) >= 2 && Number(a.likes) >= 1, `builders rank by other people's tries and likes this month (${a?.tries} tries, ${a?.likes} likes)`);
-  ok(Number(a.tries) === Number(before.tries), "your own tries don't count");
+  ok(Number(a.tries) === Number(before.tries), "your own tries and signed-out tries don't count (no padding the board)");
   ok(rows.every((r, i) => i === 0 || Number(rows[i - 1].tries) + 2 * Number(rows[i - 1].likes) >= Number(r.tries) + 2 * Number(r.likes)), "sorted by tries + 2 × likes");
 }
 
@@ -832,7 +848,7 @@ ok(!!(await fails("anon", null, "insert into public.sponsorships (sponsor_brand,
       console.log(`  ${f}: ${e.message}`);
     }
   }
-  ok(clean && again.length === 3, `the newest migrations are safe to run twice (${again.join(", ")})`);
+  ok(clean && again.length === 4, `the newest migrations are safe to run twice (${again.join(", ")})`);
 }
 
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");

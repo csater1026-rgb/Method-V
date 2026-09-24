@@ -62,12 +62,43 @@ export const SOCIALS: {
   },
 ];
 
-// "@june", "june" or a pasted profile link -> "june". Empty stays empty.
-export function cleanHandle(input: string): string {
-  let h = input.trim();
-  const fromUrl = h.match(/^https?:\/\/[^/]+\/(?:@)?([^/?#]+)/i);
-  if (fromUrl) h = fromUrl[1];
-  return h.replace(/^@/, "");
+// Where each network's profile links live, and path words that aren't handles
+// (posts, settings pages…). TikTok, YouTube and Threads profiles are /@handle.
+const LINKS: Record<SocialKey, { hosts: string[]; at?: boolean; notHandles?: string[] }> = {
+  x: { hosts: ["x.com", "twitter.com"], notHandles: ["i", "intent", "home", "search", "hashtag", "share", "explore", "settings"] },
+  github: { hosts: ["github.com"], notHandles: ["orgs", "sponsors", "topics", "settings", "features", "marketplace", "explore"] },
+  instagram: { hosts: ["instagram.com"], notHandles: ["p", "reel", "reels", "stories", "explore", "tv", "accounts", "direct"] },
+  tiktok: { hosts: ["tiktok.com"], at: true },
+  youtube: { hosts: ["youtube.com"], at: true },
+  threads: { hosts: ["threads.net", "threads.com"], at: true },
+};
+
+// "@june", "june" or a pasted profile link from that network -> "june".
+// Anything else (another site's link, a post or channel link) comes back as
+// typed, so it fails the handle check and the person sees why.
+export function cleanHandle(input: string, key: SocialKey): string {
+  const raw = input.trim();
+  if (!raw) return "";
+  const looksLikeLink = /^https?:\/\//i.test(raw) || /^(www\.)?[a-z0-9-]+\.[a-z]{2,}\//i.test(raw);
+  if (!looksLikeLink) return raw.replace(/^@/, "");
+  let url: URL;
+  try {
+    url = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`);
+  } catch {
+    return raw;
+  }
+  const host = url.hostname.toLowerCase().replace(/^(www|m|mobile)\./, "");
+  const rule = LINKS[key];
+  if (!rule.hosts.includes(host)) return raw;
+  let first: string;
+  try {
+    first = decodeURIComponent(url.pathname.split("/").filter(Boolean)[0] ?? "");
+  } catch {
+    return raw;
+  }
+  if (rule.at) return first.startsWith("@") ? first.slice(1) : raw;
+  if (!first || first.startsWith("@") || rule.notHandles?.includes(first.toLowerCase())) return raw;
+  return first;
 }
 
 type WithSocials = {

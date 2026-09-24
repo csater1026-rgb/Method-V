@@ -1205,8 +1205,9 @@ export async function getQuestions(appId: string, viewer: Viewer | null): Promis
   return rows.map((r) => toQuestion(r, state));
 }
 
-// One question with its app and whole thread, for /q/[id].
-export async function getQuestion(id: string, viewer: Viewer | null): Promise<QuestionCard | null> {
+// One question with its app and whole thread, for /q/[id]. Cached per
+// request, so the page and its title share one load.
+export const getQuestion = cache(async (id: string, viewer: Viewer | null): Promise<QuestionCard | null> => {
   if (!isSupabaseConfigured) return demoQuestionCards().find((q) => q.id === id) ?? null;
   if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
   await checkQaColumns();
@@ -1215,7 +1216,7 @@ export async function getQuestion(id: string, viewer: Viewer | null): Promise<Qu
   if (!data) return null;
   const state = await viewerQaState(viewer, [data]);
   return toQuestionCard(data, state);
-}
+});
 
 // The Questions tab in Drops: recent questions ranked for this person. Fresh
 // ones and ones still waiting for answers come first, then builders asking

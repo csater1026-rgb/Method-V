@@ -27,7 +27,7 @@ export async function GET() {
     checks.database = reach
       ? { ok: false, note: /relation|does not exist|schema cache/i.test(reach.message) ? "Tables are missing: run supabase/setup.sql in the Supabase SQL Editor." : "Can't reach the database: check the Supabase URL and key." }
       : latest
-        ? { ok: false, note: "The database is behind: in Supabase → SQL Editor, run the newest files in supabase/migrations/ you haven't run yet (20261003000000_questions_feed.sql adds polls and replies; 20261002000000_socials.sql adds Instagram, TikTok, YouTube and Threads; 20261001000000_avatars.sql adds profile photos). They're all safe to run twice." }
+        ? { ok: false, note: "The database is behind: in Supabase → SQL Editor, run the newest files in supabase/migrations/ you haven't run yet (20261004000000_qa_fixes.sql fixes replies, polls and the builders board; 20261003000000_questions_feed.sql adds polls and replies; 20261002000000_socials.sql adds Instagram, TikTok, YouTube and Threads; 20261001000000_avatars.sql adds profile photos). They're all safe to run twice." }
         : { ok: true, note: "Connected, and the tables are up to date." };
 
     const admin = createAdminClient();

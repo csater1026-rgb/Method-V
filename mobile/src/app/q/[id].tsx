@@ -21,7 +21,12 @@ export default function QuestionScreen() {
   const t = useTheme();
   const router = useRouter();
   const { viewer } = useAuth();
-  const { data: q, error, refreshing, reload } = useLoad(() => getQuestion(String(id), viewer?.id ?? null), [id, viewer?.id]);
+  const { data: q, error, refreshing, reload } = useLoad(async () => {
+    const found = await getQuestion(String(id), viewer?.id ?? null);
+    // Throwing (not returning null) shows "not found" instead of a spinner.
+    if (!found) throw new Error("It may have been deleted.");
+    return found;
+  }, [id, viewer?.id]);
   const [body, setBody] = useState("");
   const [replyTo, setReplyTo] = useState<Answer | null>(null);
   const [busy, setBusy] = useState(false);

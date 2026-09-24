@@ -244,7 +244,7 @@ export async function updateProfile(_prev: ProfileState, formData: FormData): Pr
   const handles: Record<string, string | null> = {};
   const newer: Record<string, string | null> = {};
   for (const s of SOCIALS) {
-    const handle = cleanHandle(text(formData, s.column));
+    const handle = cleanHandle(text(formData, s.column), s.key);
     if (handle && !s.pattern.test(handle)) return { status: "error", error: `That ${s.label} handle doesn't look right.` };
     (s.newer ? newer : handles)[s.column] = handle || null;
   }

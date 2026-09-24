@@ -22,7 +22,12 @@ export default function AppScreen() {
   const t = useTheme();
   const router = useRouter();
   const { viewer } = useAuth();
-  const { data, error, refreshing, reload, setData } = useLoad(() => getAppDetail(slug, viewer?.id ?? null), [slug, viewer?.id]);
+  const { data, error, refreshing, reload, setData } = useLoad(async () => {
+    const found = await getAppDetail(slug, viewer?.id ?? null);
+    // Throwing (not returning null) shows "not found" instead of a spinner.
+    if (!found) throw new Error("It may have been taken down.");
+    return found;
+  }, [slug, viewer?.id]);
   const questions = useLoad(
     async () => (data?.app ? getAppQuestions(data.app.id, viewer?.id ?? null) : null),
     [data?.app?.id, viewer?.id],

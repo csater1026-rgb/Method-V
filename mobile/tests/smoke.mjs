@@ -143,6 +143,12 @@ ok(await page.getByRole("button", { name: "Ask a question" }).isVisible(), "app 
 await visit("/post");
 ok(await page.getByText("Or ask a question about your app →").isVisible(), "the Post tab links to Ask");
 
+// Links to things that are gone say so instead of spinning forever.
+for (const [path, title] of [["/q/nope", "Question not found"], ["/apps/nope", "App not found"], ["/u/nobody_here", "Builder not found"]]) {
+  await visit(path);
+  ok(await page.getByText(title).isVisible(), `${path} shows "${title}"`);
+}
+
 await visit("/browse", "browse");
 await page.getByRole("button", { name: "Education" }).click();
 await page.waitForTimeout(400);

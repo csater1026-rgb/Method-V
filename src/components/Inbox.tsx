@@ -55,6 +55,8 @@ function describe(n: Notification): { text: string; href: string } {
       return { text: `asked a question about ${app}`, href: `${appHref}?tab=qa#qa` };
     case "answer":
       return { text: `answered your question about ${app}`, href: `${appHref}?tab=qa#qa` };
+    case "reply":
+      return { text: `replied to your answer about ${app}`, href: n.ref_id ? `/q/${n.ref_id}` : `${appHref}?tab=qa#qa` };
     case "best_answer":
       return { text: `picked your answer as the best on ${app}`, href: `${appHref}?tab=qa#qa` };
     case "swap_request":

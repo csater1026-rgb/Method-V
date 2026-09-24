@@ -130,11 +130,24 @@ ok(formatCents(500) === "$5" && formatCents(1425) === "$14.25" && formatCents(10
 }
 
 // --- Social handles ---
-ok(cleanHandle("@june") === "june" && cleanHandle(" june ") === "june", "handles drop the @ and spaces");
-ok(cleanHandle("https://www.instagram.com/june.designs/") === "june.designs", "a pasted Instagram link becomes the handle");
-ok(cleanHandle("https://www.tiktok.com/@junedesigns?lang=en") === "junedesigns", "a pasted TikTok link becomes the handle");
-ok(cleanHandle("https://youtube.com/@june-d") === "june-d", "a pasted YouTube link becomes the handle");
-ok(cleanHandle("") === "", "empty stays empty");
+ok(cleanHandle("@june", "x") === "june" && cleanHandle(" june ", "instagram") === "june", "handles drop the @ and spaces");
+ok(cleanHandle("https://www.instagram.com/june.designs/", "instagram") === "june.designs", "a pasted Instagram link becomes the handle");
+ok(cleanHandle("instagram.com/june.designs", "instagram") === "june.designs", "…even without https://");
+ok(cleanHandle("https://www.tiktok.com/@junedesigns?lang=en", "tiktok") === "junedesigns", "a pasted TikTok link becomes the handle");
+ok(cleanHandle("https://m.youtube.com/@june-d", "youtube") === "june-d", "a pasted YouTube link becomes the handle");
+ok(cleanHandle("https://twitter.com/june", "x") === "june" && cleanHandle("https://x.com/june", "x") === "june", "X takes x.com and twitter.com links");
+for (const [input, key, why] of [
+  ["https://www.youtube.com/channel/UCabc123", "youtube", "a YouTube channel link"],
+  ["https://youtube.com/user/june", "youtube", "a YouTube /user link"],
+  ["https://instagram.com/p/Cx1abc/", "instagram", "an Instagram post"],
+  ["https://github.com/june", "x", "a GitHub link in the X field"],
+  ["https://x.com/i/status/123", "x", "a post on X"],
+  ["https://evil.example/june", "instagram", "another site"],
+] as const) {
+  const out = cleanHandle(input, key);
+  ok(!SOCIALS.find((so) => so.key === key)!.pattern.test(out), `${why} isn't taken as a handle (${out})`);
+}
+ok(cleanHandle("", "x") === "", "empty stays empty");
 {
   const links = socialLinks({ website_url: "https://www.example.com/me", x_handle: "june", instagram_handle: "june.d", linkedin_url: "https://linkedin.com/in/june" });
   ok(links.map((l) => l.key).join(",") === "website,x,instagram,linkedin", `links in a steady order (${links.map((l) => l.key).join(",")})`);
