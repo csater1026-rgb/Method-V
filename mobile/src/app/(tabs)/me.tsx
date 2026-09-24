@@ -2,7 +2,7 @@ import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useState } from "react";
-import { Pressable, ScrollView, TextInput, View } from "react-native";
+import { Pressable, ScrollView, Switch, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ROLES } from "@shared/constants";
@@ -12,6 +12,8 @@ import { Avatar, Body, Button, Card, Display, ErrorText, Mono, StatusBadge, tap 
 import { useAuth } from "@/lib/auth";
 import { DEMO_MESSAGE, MIN_PASSWORD, SITE_URL, isLive } from "@/lib/config";
 import { setPhoto, setRoles } from "@/lib/data";
+import { getPushKinds, pushIsOn, pushSupported, savePushKinds, turnOffPush, turnOnPush, type PushKinds } from "@/lib/push";
+import { useLoad } from "@/lib/useLoad";
 import { fonts, useTheme } from "@/theme";
 
 // Your account. Deeper tools (credits, Earn, Pro, stats) open on the website
@@ -64,6 +66,7 @@ export default function MeScreen() {
       </View>
       <PhotoCard />
       <StatusCard />
+      <NotificationsCard />
       <Mono muted={false}>⚡{viewer.credits} credits</Mono>
       <Button label="View your profile" onPress={() => router.push(`/u/${viewer.username}`)} />
       {SITE_URL ? (
@@ -186,6 +189,91 @@ function StatusCard() {
         }}
       />
       {message && (message.ok ? <Body size={13} style={{ color: t.accent }}>{message.text}</Body> : <ErrorText>{message.text}</ErrorText>)}
+    </Card>
+  );
+}
+
+// Push notifications on this phone, and which kinds. Off until turned on
+// here; the kinds apply to every device (the website has the same switches).
+const KINDS: { key: keyof PushKinds; label: string; hint: string }[] = [
+  { key: "follows", label: "New followers", hint: "When someone follows you." },
+  { key: "feedback", label: "Feedback on your apps", hint: "Tester feedback, comments and questions." },
+  { key: "messages", label: "Messages", hint: "Direct messages and connection requests." },
+];
+
+function NotificationsCard() {
+  const t = useTheme();
+  const { viewer } = useAuth();
+  const state = useLoad(
+    async () => (viewer ? { on: await pushIsOn(), kinds: await getPushKinds(viewer.id) } : null),
+    [viewer?.id],
+  );
+  const [on, setOn] = useState<boolean | null>(null);
+  const [kinds, setKinds] = useState<PushKinds | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  if (!viewer) return null;
+  const isOn = on ?? state.data?.on ?? false;
+  const current = kinds ?? state.data?.kinds ?? { follows: true, feedback: true, messages: true };
+
+  async function toggleDevice() {
+    setBusy(true);
+    setError(null);
+    const r = isOn ? await turnOffPush() : await turnOnPush();
+    setBusy(false);
+    if (r.ok) setOn(!isOn);
+    else setError(r.error);
+  }
+
+  async function flip(key: keyof PushKinds) {
+    const next = { ...current, [key]: !current[key] };
+    setKinds(next);
+    setError(null);
+    const r = await savePushKinds(viewer!.id, next);
+    if (!r.ok) {
+      setKinds(current);
+      setError(r.error);
+    }
+  }
+
+  return (
+    <Card style={{ gap: 10 }}>
+      <Body bold>Notifications</Body>
+      <Body muted size={13}>
+        Optional. Get a notification when something happens, and pick which kinds.
+      </Body>
+      {pushSupported ? (
+        <Button
+          label={isOn ? "Turn off on this phone" : "Turn on notifications"}
+          kind={isOn ? "ghost" : "accent"}
+          busy={busy}
+          onPress={() => void toggleDevice()}
+        />
+      ) : (
+        <Body muted size={13}>
+          Notifications work in the iPhone and Android app.
+        </Body>
+      )}
+      {KINDS.map((k) => (
+        <View key={k.key} style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 4 }}>
+          <View style={{ flex: 1 }}>
+            <Body bold size={14}>
+              {k.label}
+            </Body>
+            <Body muted size={12}>
+              {k.hint}
+            </Body>
+          </View>
+          <Switch
+            value={current[k.key]}
+            onValueChange={() => void flip(k.key)}
+            accessibilityLabel={k.label}
+            trackColor={{ true: t.accent, false: t.line }}
+            thumbColor="#ffffff"
+          />
+        </View>
+      ))}
+      <ErrorText>{error}</ErrorText>
     </Card>
   );
 }

@@ -11,7 +11,7 @@ The native Method V app, built with [Expo](https://expo.dev) (React Native). It 
 - **App pages:** the Drop, Try it, likes, stats, sponsor card, builder and comments.
 - **Profiles:** role tags, Pro badge, follow, and the builder's apps.
 - **Sign in:** email and password (sign in or create an account), Continue with Google, Continue with Apple (iPhone), or an emailed 6-digit code, which is also the "forgot password" path. You can set a new password on the Me tab.
-- **Me:** your account. Add, change or remove your profile photo (cropped square and shrunk on the phone before it uploads) and pick your status (Hiring, Looking for work, Open to collab, Freelancer…), which shows as a badge by your photo on your profile, your Drops and your app pages, like on the website. Stats, Earn, Credits, Inbox and the rest of Edit profile open on the website for now.
+- **Me:** your account. Add, change or remove your profile photo (cropped square and shrunk on the phone before it uploads) and pick your status (Hiring, Looking for work, Open to collab, Freelancer…), which shows as a badge by your photo on your profile, your Drops and your app pages, like on the website. Stats, Earn, Credits, Inbox and the rest of Edit profile open on the website for now. **Notifications**: turn them on for this phone (asks permission, then registers the phone's Expo push token to your account; signing out removes it) and pick followers, feedback and messages. Tapping one opens the profile, app or question in the app, or the inbox on the website.
 
 It uses the website's category lists, types and sample data directly (`../src/lib`, imported as `@shared/…`), so they can't drift apart. With no Supabase keys it runs in **demo mode** with that sample data.
 
@@ -43,7 +43,8 @@ Builds run in the cloud on [EAS](https://expo.dev/eas), so you don't need a Mac.
 2. Change `ios.bundleIdentifier` and `android.package` in `app.json` from `com.methodv.app` to an ID you own (e.g. your domain backwards).
 3. Add the same `EXPO_PUBLIC_…` values to EAS: `npx eas-cli@latest env:create` for the `preview` and `production` environments (or on expo.dev → your project → Environment variables).
 4. Try it on real phones: `npx eas-cli@latest build --profile preview`. On Android you get an APK to install. iPhones need to be registered for internal builds, or use TestFlight.
-5. Store builds: `npx eas-cli@latest build --profile production --platform all`, then `npx eas-cli@latest submit --platform ios` and `--platform android`. You need an Apple Developer account ($99/year) and a Google Play Console account ($25 once). Store listings need screenshots, a privacy policy URL and a support URL.
+5. Push notifications (optional; the website side is in the main README, step 7): step 1's `init` adds the project ID the app needs to get a push token. iPhone: when `eas build` asks, let it create an Apple Push Notifications key. Android: add an FCM V1 key with `npx eas-cli@latest credentials` (see Expo's "push notifications setup" guide). Then Me → Notifications → Turn on notifications on a real phone.
+6. Store builds: `npx eas-cli@latest build --profile production --platform all`, then `npx eas-cli@latest submit --platform ios` and `--platform android`. You need an Apple Developer account ($99/year) and a Google Play Console account ($25 once). Store listings need screenshots, a privacy policy URL and a support URL.
 
 ## Checks
 

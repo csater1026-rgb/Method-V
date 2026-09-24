@@ -6,6 +6,7 @@ import * as WebBrowser from "expo-web-browser";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 import { DEMO_MESSAGE, MIN_PASSWORD, fileUrl } from "./config";
+import { turnOffPush } from "./push";
 import { fail, friendly, ok, type Result } from "./result";
 import { supabase } from "./supabase";
 
@@ -180,6 +181,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
 
       async signOut() {
+        // Forget this phone first, so the next person on it doesn't get your notifications.
+        await turnOffPush().catch(() => {});
         await supabase?.auth.signOut();
       },
 

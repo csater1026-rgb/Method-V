@@ -14,6 +14,7 @@ import { bundle } from "../scripts/bundle-migrations.mjs";
 import { SOCIALS, cleanHandle, socialLinks } from "../src/lib/socials.ts";
 import { deadExpoTokens, isExpoToken, secretMatches, toMessage } from "../src/lib/push-core.ts";
 import webpush from "web-push";
+import { pushTarget } from "../mobile/src/lib/pushRoute.ts";
 import { bumpInterest, mergeInterests, parseInterests, rankFeed, serializeInterests } from "../src/lib/interests.ts";
 
 let failures = 0;
@@ -187,6 +188,13 @@ ok(
   }
   ok(works && publicKey.length === 87 && privateKey.length === 43, "keys from /setup/push-keys sign and encrypt a browser push");
 }
+
+// Tapping a push in the app.
+ok(JSON.stringify(pushTarget("/u/june_designs")) === '{"screen":"/u/june_designs"}', "a follower push opens their profile");
+ok(JSON.stringify(pushTarget("/apps/palettepal#feedback")) === '{"screen":"/apps/palettepal"}', "a feedback push opens the app");
+ok(JSON.stringify(pushTarget("/q/2b1f6c0e-1111-2222-3333-444455556666")) === '{"screen":"/q/2b1f6c0e-1111-2222-3333-444455556666"}', "a question push opens the thread");
+ok(JSON.stringify(pushTarget("/inbox/june_designs")) === '{"web":"/inbox/june_designs"}', "a message opens the inbox on the website");
+ok(JSON.stringify(pushTarget("https://evil.example")) === '{"screen":"/"}' && JSON.stringify(pushTarget("//evil.example")) === '{"screen":"/"}', "never another site");
 
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");
 process.exit(failures ? 1 : 0);

@@ -58,7 +58,13 @@
           "photosPermission": "Method V opens your videos so you can post a Drop you've already recorded."
         }
       ],
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      [
+        "expo-notifications",
+        {
+          "color": "#40f4f5"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

@@ -8,12 +8,17 @@ import { SchibstedGrotesk_700Bold } from "@expo-google-fonts/schibsted-grotesk/7
 import { Sora_700Bold } from "@expo-google-fonts/sora/700Bold";
 import { Sora_800ExtraBold } from "@expo-google-fonts/sora/800ExtraBold";
 import { useFonts } from "expo-font";
-import { Stack } from "expo-router";
+import * as Notifications from "expo-notifications";
+import { Stack, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
+import * as WebBrowser from "expo-web-browser";
 import { useEffect } from "react";
 
 import { AuthProvider, useAuth } from "@/lib/auth";
+import { SITE_URL } from "@/lib/config";
+import { pushSupported } from "@/lib/push";
+import { pushTarget } from "@/lib/pushRoute";
 import { fonts, useTheme } from "@/theme";
 
 void SplashScreen.preventAutoHideAsync();
@@ -39,10 +44,25 @@ export default function RootLayout() {
 
 function Screens() {
   const t = useTheme();
+  const router = useRouter();
   const { ready } = useAuth();
   useEffect(() => {
     if (ready) void SplashScreen.hideAsync();
   }, [ready]);
+
+  // Tapping a notification opens what it's about (also when it launched the app).
+  useEffect(() => {
+    if (!ready || !pushSupported) return;
+    const open = (response: Notifications.NotificationResponse | null) => {
+      if (!response) return;
+      const target = pushTarget(response.notification.request.content.data?.url);
+      if ("screen" in target) router.push(target.screen as never);
+      else if (SITE_URL) void WebBrowser.openBrowserAsync(`${SITE_URL}${target.web}`);
+    };
+    void Notifications.getLastNotificationResponseAsync().then(open);
+    const sub = Notifications.addNotificationResponseReceivedListener(open);
+    return () => sub.remove();
+  }, [ready, router]);
   if (!ready) return null;
 
   return (
