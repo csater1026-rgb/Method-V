@@ -301,8 +301,8 @@ await run("pixel coder", phone, async (page) => {
   ok((await page.title()).includes("Real apps. Real builders. Real feedback."), "and in the browser tab title");
   const coder = await footer.getByRole("img", { name: "A pixel builder coding at their desk" }).boundingBox();
   const pageHeight = await page.evaluate(() => document.documentElement.scrollHeight - parseFloat(getComputedStyle(document.body).paddingBottom));
-  ok(coder.x < 16 && Math.abs(coder.y + coder.height - pageHeight) < 2, `big pixel coder sits in the bottom-left corner (x ${Math.round(coder.x)})`);
-  ok(coder.width >= 200, `and it's big (${Math.round(coder.width)}px wide)`);
+  ok(coder.x < 16 && Math.abs(coder.y + coder.height - pageHeight) < 2, `pixel coder sits in the bottom-left corner (x ${Math.round(coder.x)})`);
+  ok(coder.width >= 150 && coder.width <= 170, `and it's small on phones (${Math.round(coder.width)}px wide)`);
   await footer.scrollIntoViewIfNeeded();
   await page.waitForTimeout(2600);
   await footer.screenshot({ path: OUT + "footer-coder.png" });
