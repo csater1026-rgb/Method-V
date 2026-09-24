@@ -37,7 +37,7 @@ export function Footer() {
       </div>
       {/* The pixel builder, in the very bottom-left corner of the site. */}
       <div className="flex justify-start pl-2">
-        <PixelCoderDetailed size={300} title="A pixel builder coding at their desk" className="block h-auto w-[220px] sm:w-[300px]" />
+        <PixelCoderDetailed size={340} title="A pixel builder coding at their desk" className="block h-auto w-[240px] sm:w-[340px]" />
       </div>
     </footer>
   );
