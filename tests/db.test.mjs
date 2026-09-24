@@ -836,6 +836,70 @@ ok(!!(await fails("anon", null, "insert into public.sponsorships (sponsor_brand,
   ok(rows.every((r, i) => i === 0 || Number(rows[i - 1].tries) + 2 * Number(rows[i - 1].likes) >= Number(r.tries) + 2 * Number(r.likes)), "sorted by tries + 2 × likes");
 }
 
+// --- Push notifications ---
+{
+  const queue = async (uid) => (await db.query("select kind, title, body, url, actor_id from public.push_queue where user_id = $1 order by id", [uid])).rows;
+  const readAll = () => db.query("update public.notifications set read_at = now() where read_at is null");
+  const refollow = async (who) => {
+    await as("authenticated", who, "delete from public.follows where follower_id = $1 and following_id = $2", [who, A]);
+    await readAll();
+    await as("authenticated", who, "insert into public.follows (follower_id, following_id) values ($1, $2)", [who, A]);
+  };
+  const dName = (await db.query("select username from public.profiles where id = $1", [D])).rows[0].username;
+
+  await refollow(D);
+  ok((await queue(A)).length === 0, "no device turned on: nothing is queued");
+
+  await as("authenticated", A, "select public.register_push_token($1, 'ios')", ["ExponentPushToken[aaaaaaaaaaaaaaaa]"]);
+  ok((await as("authenticated", A, "select * from public.push_tokens")).rows.length === 1, "turning notifications on registers the phone");
+  ok((await as("authenticated", B, "select * from public.push_tokens where user_id = $1", [A])).rows.length === 0, "nobody else sees your devices");
+  ok(!!(await fails("authenticated", A, "insert into public.push_tokens (token, user_id, platform) values ('ExponentPushToken[bbbbbbbbbbbb]', $1, 'ios')", [B])), "devices only register through the function");
+
+  await refollow(D);
+  let q = await queue(A);
+  ok(q.length === 1 && q[0].kind === "follows" && q[0].title === "New follower" && q[0].body === `@${dName} followed you` && q[0].url === `/u/${dName}`, `a new follower is queued (${JSON.stringify(q[0])})`);
+
+  const ask = (await as("authenticated", C, "insert into public.questions (app_id, user_id, body) values ($1, $2, 'Is there an offline mode?') returning id", [appId, C])).rows[0].id;
+  q = await queue(A);
+  ok(q.at(-1).kind === "feedback" && q.at(-1).url === `/q/${ask}` && q.at(-1).title.startsWith("New question about"), "a question about your app counts as feedback");
+
+  await readAll();
+  await as("authenticated", B, "select public.request_connection($1, 'collaborate')", [A]);
+  q = await queue(A);
+  ok(q.at(-1).kind === "messages" && q.at(-1).title === "New connection request" && q.at(-1).url === "/inbox", "a connection request is queued as a message");
+  const reconnect = (await db.query("select id from public.connections where requester_id = $1 and addressee_id = $2 and status = 'pending'", [B, A])).rows[0].id;
+  await as("authenticated", A, "select public.respond_connection($1, true)", [reconnect]);
+
+  const before = (await queue(A)).length;
+  await as("authenticated", B, "insert into public.messages (sender_id, recipient_id, body) values ($1, $2, 'Are you free to chat tomorrow?')", [B, A]);
+  await as("authenticated", B, "insert into public.messages (sender_id, recipient_id, body) values ($1, $2, 'Also: loved the demo.')", [B, A]);
+  q = await queue(A);
+  ok(q.length === before + 1 && q.at(-1).kind === "messages" && q.at(-1).body === "Are you free to chat tomorrow?", "a message is queued with a preview, once per burst");
+
+  await as("authenticated", A, "insert into public.notification_settings (user_id, follows) values ($1, false)", [A]);
+  const n = (await queue(A)).length;
+  await refollow(D);
+  ok((await queue(A)).length === n, "turning off followers stops those");
+  ok(!!(await fails("authenticated", B, "update public.notification_settings set follows = true where user_id = $1 returning user_id", [A])) || (await db.query("select follows from public.notification_settings where user_id = $1", [A])).rows[0].follows === false, "nobody else can change your settings");
+  ok((await as("authenticated", B, "select * from public.notification_settings where user_id = $1", [A])).rows.length === 0, "nobody else sees your settings");
+
+  await readAll();
+  await as("authenticated", C, "insert into public.comments (drop_id, user_id, body) values ($1, $2, 'The export is so fast')", [dropId, C]);
+  q = await queue(A);
+  ok(q.at(-1).kind === "feedback" && q.at(-1).title.startsWith("New comment on") && q.at(-1).url.endsWith("#comments"), "a comment on your Drop counts as feedback");
+  ok(!!(await fails("authenticated", A, "select * from public.push_queue")), "the queue is off-limits to the app");
+  ok(!!(await fails("authenticated", A, "select public.queue_push($1, 'follows', 'x', 'y', '/', $2)", [A, B])), "nobody can queue pushes directly");
+
+  // A phone that changes hands moves to whoever signs in on it.
+  await as("authenticated", B, "select public.register_push_token($1, 'ios')", ["ExponentPushToken[aaaaaaaaaaaaaaaa]"]);
+  await as("authenticated", A, "select public.unregister_push_token($1)", ["ExponentPushToken[aaaaaaaaaaaaaaaa]"]);
+  ok((await db.query("select user_id from public.push_tokens where token = 'ExponentPushToken[aaaaaaaaaaaaaaaa]'")).rows[0]?.user_id === B, "a device moves to the new account, and the old one can't remove it");
+
+  await as("authenticated", C, "select public.register_web_push($1, $2, $3)", ["https://fcm.googleapis.com/fcm/send/abc123", "B".repeat(87), "a".repeat(22)]);
+  ok((await as("authenticated", C, "select * from public.web_push_subscriptions")).rows.length === 1, "browsers register too");
+  ok(!!(await fails("authenticated", C, "select public.register_web_push('http://evil.example/x', $1, $2)", ["B".repeat(87), "a".repeat(22)])), "browser endpoints must be https");
+}
+
 // The newest migrations can be run again without errors (people paste them twice).
 {
   const again = readdirSync(migrationsDir).filter((f) => f >= "20261001000000").sort();
@@ -848,7 +912,7 @@ ok(!!(await fails("anon", null, "insert into public.sponsorships (sponsor_brand,
       console.log(`  ${f}: ${e.message}`);
     }
   }
-  ok(clean && again.length === 4, `the newest migrations are safe to run twice (${again.join(", ")})`);
+  ok(clean && again.length === 5, `the newest migrations are safe to run twice (${again.join(", ")})`);
 }
 
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");

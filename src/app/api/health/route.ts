@@ -52,6 +52,16 @@ export async function GET() {
     ok: true,
     note: authProviders.length ? `On: ${authProviders.join(", ")}.` : "Off (optional). Email + password and emailed links work without it.",
   };
+  const pushSecret = Boolean(process.env.PUSH_WEBHOOK_SECRET);
+  const browserKeys = Boolean(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY);
+  checks.push_notifications = {
+    ok: true,
+    note: !pushSecret
+      ? "Off (optional). To send notifications, make keys at /setup/push-keys, add PUSH_WEBHOOK_SECRET (and the VAPID keys for browsers) in Vercel, and add the Supabase webhook (README)."
+      : browserKeys
+        ? "On for the phone app and browsers (make sure the Supabase webhook on push_queue is added)."
+        : "On for the phone app. Add NEXT_PUBLIC_VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY (from /setup/push-keys) for browsers.",
+  };
   checks.payments = {
     ok: true,
     note: isStripeConfigured ? "Stripe is on." : "Off (optional). Add STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET to turn on tips, sponsorships and Pro.",

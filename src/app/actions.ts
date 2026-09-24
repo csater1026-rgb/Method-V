@@ -303,6 +303,44 @@ export async function setAvatar(path: string | null): Promise<ActionResult> {
 }
 
 // ---------------------------------------------------------------------------
+// Push notifications: which kinds, and this browser on or off
+// ---------------------------------------------------------------------------
+
+export async function saveNotificationSettings(settings: { follows: boolean; feedback: boolean; messages: boolean }): Promise<ActionResult> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  const row = {
+    user_id: auth.viewer.id,
+    follows: settings.follows === true,
+    feedback: settings.feedback === true,
+    messages: settings.messages === true,
+  };
+  const supabase = await createClient();
+  const { error } = await supabase.from("notification_settings").upsert(row, { onConflict: "user_id" });
+  if (error) return { ok: false, error: "Couldn't save your notification settings." };
+  return { ok: true };
+}
+
+export async function registerWebPush(sub: { endpoint: string; keys: { p256dh: string; auth: string } }): Promise<ActionResult> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  if (typeof sub?.endpoint !== "string" || !sub.endpoint.startsWith("https://") || typeof sub.keys?.p256dh !== "string" || typeof sub.keys?.auth !== "string") {
+    return { ok: false, error: "This browser didn't give a usable subscription." };
+  }
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("register_web_push", { p_endpoint: sub.endpoint, p_p256dh: sub.keys.p256dh, p_auth: sub.keys.auth });
+  return error ? { ok: false, error: "Couldn't turn on notifications for this browser." } : { ok: true };
+}
+
+export async function unregisterWebPush(endpoint: string): Promise<ActionResult> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("unregister_web_push", { p_endpoint: String(endpoint) });
+  return error ? { ok: false, error: "Couldn't turn off notifications for this browser." } : { ok: true };
+}
+
+// ---------------------------------------------------------------------------
 // Posting an app with its Drop
 // ---------------------------------------------------------------------------
 

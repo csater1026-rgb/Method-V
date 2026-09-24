@@ -466,6 +466,23 @@ export async function getProfile(
   return { profile: profile as Profile, apps, isFollowing: following };
 }
 
+export type NotificationSettings = { follows: boolean; feedback: boolean; messages: boolean; ready: boolean };
+
+// Which pushes someone wants (all on until they turn one off). "ready" is
+// false until migration 20261005000000_push is run.
+export async function getNotificationSettings(viewer: Viewer | null): Promise<NotificationSettings> {
+  const all = { follows: true, feedback: true, messages: true };
+  if (!viewer) return { ...all, ready: false };
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("notification_settings")
+    .select("follows, feedback, messages")
+    .eq("user_id", viewer.id)
+    .maybeSingle();
+  if (error) return { ...all, ready: false };
+  return { ...all, ...(data ?? {}), ready: true };
+}
+
 export async function getOwnProfile(): Promise<Profile | null> {
   const viewer = await getViewer();
   if (!viewer) return null;

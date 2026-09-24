@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-import { getOwnProfile } from "@/lib/data";
+import { getNotificationSettings, getOwnProfile, getViewer } from "@/lib/data";
 import { isSupabaseConfigured, publicFileUrl } from "@/lib/supabase/env";
 
 import { AvatarForm } from "./AvatarForm";
+import { NotificationsForm } from "./NotificationsForm";
 import { PasswordForm } from "./PasswordForm";
 import { ProfileForm } from "./ProfileForm";
 
@@ -14,6 +15,7 @@ export default async function SettingsPage() {
   if (!isSupabaseConfigured) redirect("/login");
   const profile = await getOwnProfile();
   if (!profile) redirect("/login?next=/settings");
+  const notifications = await getNotificationSettings(await getViewer());
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-8">
@@ -26,6 +28,11 @@ export default async function SettingsPage() {
         current={publicFileUrl(profile.avatar_path ?? null)}
       />
       <ProfileForm profile={profile} />
+      <NotificationsForm
+        initial={{ follows: notifications.follows, feedback: notifications.feedback, messages: notifications.messages }}
+        ready={notifications.ready}
+        vapidKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ""}
+      />
       <PasswordForm />
     </div>
   );

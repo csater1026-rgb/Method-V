@@ -272,6 +272,25 @@ await run("ask + Q&A on app pages", desktop, async (page) => {
   ok((await fetch(BASE + "/q/nope")).status === 404, "unknown question is 404");
 });
 
+await run("push notification setup", desktop, async (page) => {
+  await go(page, "/setup/push-keys");
+  await page.getByLabel("NEXT_PUBLIC_VAPID_PUBLIC_KEY").waitFor();
+  const pub = await page.getByLabel("NEXT_PUBLIC_VAPID_PUBLIC_KEY").inputValue();
+  const priv = await page.getByLabel("VAPID_PRIVATE_KEY").inputValue();
+  const secret = await page.getByLabel("PUSH_WEBHOOK_SECRET").inputValue();
+  ok(/^[A-Za-z0-9_-]{87}$/.test(pub) && /^[A-Za-z0-9_-]{43}$/.test(priv) && /^[0-9a-f]{64}$/.test(secret), "the setup page makes browser push keys and a webhook secret in the browser");
+  await page.reload();
+  await page.getByLabel("NEXT_PUBLIC_VAPID_PUBLIC_KEY").waitFor();
+  ok((await page.getByLabel("PUSH_WEBHOOK_SECRET").inputValue()) !== secret, "…a new set every visit");
+  ok((await page.locator('meta[name="robots"]').getAttribute("content"))?.includes("noindex"), "…and it's kept out of search engines");
+  const sw = await (await fetch(BASE + "/sw.js")).text();
+  ok(sw.includes('addEventListener("push"') && sw.includes('addEventListener("notificationclick"'), "the service worker shows pushes and opens their page");
+  const send = await fetch(BASE + "/api/push/send", { method: "POST", body: "{}" });
+  ok(send.status === 404, `sending is off until the webhook secret is set (${send.status})`);
+  const health = await (await fetch(BASE + "/api/health")).json();
+  ok(health.checks.push_notifications.note.startsWith("Off (optional)"), "the setup check says how to turn notifications on");
+});
+
 await run("browse", desktop, async (page) => {
   await go(page, "/browse");
   ok((await page.locator("main article").count()) === 4, "browse shows 4 apps");

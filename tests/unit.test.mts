@@ -12,6 +12,8 @@ import { readFileSync } from "node:fs";
 import { PIXEL_ICON_SVG } from "../src/lib/pixel-icon.ts";
 import { bundle } from "../scripts/bundle-migrations.mjs";
 import { SOCIALS, cleanHandle, socialLinks } from "../src/lib/socials.ts";
+import { deadExpoTokens, isExpoToken, secretMatches, toMessage } from "../src/lib/push-core.ts";
+import webpush from "web-push";
 import { bumpInterest, mergeInterests, parseInterests, rankFeed, serializeInterests } from "../src/lib/interests.ts";
 
 let failures = 0;
@@ -153,6 +155,37 @@ ok(cleanHandle("", "x") === "", "empty stays empty");
   ok(links.map((l) => l.key).join(",") === "website,x,instagram,linkedin", `links in a steady order (${links.map((l) => l.key).join(",")})`);
   ok(links[0].text === "example.com" && links[2].href === "https://instagram.com/june.d", "website shows its domain; Instagram links to the profile");
   ok(SOCIALS.every((so) => so.pattern.test("june")), "every network accepts a plain handle");
+}
+
+// --- Push notifications ---
+ok(secretMatches("s3cret-value", "s3cret-value") && !secretMatches("s3cret-valuX", "s3cret-value"), "webhook secret must match exactly");
+ok(!secretMatches("", "") && !secretMatches("anything", "") && !secretMatches(null, "x"), "no secret set: nothing gets in");
+ok(toMessage({ id: 1, user_id: "u", kind: "follows", title: "New follower", body: "@june followed you", url: "/u/june" }).url === "/u/june", "a push opens its page");
+ok(toMessage({ id: 1, user_id: "u", kind: "follows", title: "t", body: "b", url: "//evil.example" }).url === "/", "…and never another site");
+ok(isExpoToken("ExponentPushToken[abc123]") && isExpoToken("ExpoPushToken[abc]") && !isExpoToken("abc"), "only Expo push tokens go to Expo");
+ok(
+  JSON.stringify(deadExpoTokens(["a", "b", "c"], { data: [{ status: "ok" }, { status: "error", details: { error: "DeviceNotRegistered" } }, { status: "error", details: { error: "MessageRateExceeded" } }] })) === '["b"]',
+  "uninstalled apps are cleaned up; other errors aren't",
+);
+{
+  // Keys made the way /setup/push-keys makes them work with web-push.
+  const b64url = (bytes: Uint8Array) => Buffer.from(bytes).toString("base64url");
+  const pair = await crypto.subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, true, ["sign", "verify"]);
+  const publicKey = b64url(new Uint8Array(await crypto.subtle.exportKey("raw", pair.publicKey)));
+  const privateKey = (await crypto.subtle.exportKey("jwk", pair.privateKey)).d!;
+  let works = true;
+  try {
+    webpush.setVapidDetails("mailto:push@methodv.app", publicKey, privateKey);
+    const client = await crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, ["deriveBits"]);
+    const p256dh = b64url(new Uint8Array(await crypto.subtle.exportKey("raw", client.publicKey)));
+    const auth = b64url(crypto.getRandomValues(new Uint8Array(16)));
+    const req = webpush.generateRequestDetails({ endpoint: "https://fcm.googleapis.com/fcm/send/x", keys: { p256dh, auth } }, JSON.stringify({ title: "t" }));
+    works = Boolean(req.headers.Authorization) && req.body instanceof Buffer;
+  } catch (e) {
+    works = false;
+    console.log(e);
+  }
+  ok(works && publicKey.length === 87 && privateKey.length === 43, "keys from /setup/push-keys sign and encrypt a browser push");
 }
 
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");
