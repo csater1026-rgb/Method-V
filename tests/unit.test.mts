@@ -14,7 +14,7 @@ import { bundle } from "../scripts/bundle-migrations.mjs";
 import { SOCIALS, cleanHandle, socialLinks } from "../src/lib/socials.ts";
 import { deadExpoTokens, isExpoToken, secretMatches, toMessage } from "../src/lib/push-core.ts";
 import webpush from "web-push";
-import { pushTarget } from "../mobile/src/lib/pushRoute.ts";
+import { pushTarget } from "../src/lib/push-route.ts";
 import { bumpInterest, mergeInterests, parseInterests, rankFeed, serializeInterests } from "../src/lib/interests.ts";
 
 let failures = 0;

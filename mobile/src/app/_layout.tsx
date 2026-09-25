@@ -18,7 +18,7 @@ import { useEffect } from "react";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { SITE_URL } from "@/lib/config";
 import { pushSupported } from "@/lib/push";
-import { pushTarget } from "@/lib/pushRoute";
+import { pushTarget } from "@shared/push-route";
 import { fonts, useTheme } from "@/theme";
 
 void SplashScreen.preventAutoHideAsync();
