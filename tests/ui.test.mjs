@@ -719,6 +719,13 @@ await run("earn + pro (phone)", phone, async (page) => {
   ok((await page.getByTitle("Method V Pro").count()) === 0, "no badge without Pro");
 });
 
+await run("email templates page", desktop, async (page) => {
+  await go(page, "/setup/emails");
+  ok((await page.locator("main ol > li").count()) === 6, "six emails to paste into Supabase");
+  ok((await page.locator('iframe[title="Magic link preview"]').count()) === 1, "each one has a preview");
+  ok((await page.locator('meta[name="robots"]').getAttribute("content"))?.includes("noindex"), "setup page isn't indexed");
+});
+
 await run("challenges (desktop)", desktop, async (page) => {
   await go(page, "/");
   ok((await page.getByRole("navigation").getByRole("link", { name: "Challenges" }).count()) === 0, "no Challenges tab in the menu");

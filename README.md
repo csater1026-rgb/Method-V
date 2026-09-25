@@ -100,7 +100,7 @@ To deploy, import the repo into [Vercel](https://vercel.com) and add the same en
 
 **Video size on Supabase's free plan:** uploads are capped at 50 MB per file (Storage → Settings), while Method V allows Drops up to 100 MB. On the free plan, bigger videos fail to upload. Either keep Drops under 50 MB, or move to Supabase Pro and raise the limit to 100 MB.
 
-**Sign-in emails:** Supabase's built-in email is only for testing (a few emails an hour). Before real people sign up, add your own email sender under Authentication → Emails → SMTP Settings (e.g. Resend, Postmark or SendGrid).
+**Sign-in emails:** Supabase's built-in email is only for testing (a few emails an hour). Before real people sign up, add your own email sender under Authentication → Emails → SMTP Settings (e.g. Resend, Postmark or SendGrid). To make the emails look like Method V, open `https://<your site>/setup/emails` and copy each subject and message into **Authentication → Emails → Templates** (they keep the 6-digit code the phone app asks for).
 
 ## How it works
 

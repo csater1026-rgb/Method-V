@@ -17,6 +17,7 @@ import webpush from "web-push";
 import { pushTarget } from "../src/lib/push-route.ts";
 import { bumpInterest, mergeInterests, parseInterests, rankFeed, serializeInterests } from "../src/lib/interests.ts";
 import { topUpSuggestions } from "../src/lib/suggest.ts";
+import { EMAIL_TEMPLATES } from "../src/lib/email-templates.ts";
 
 let failures = 0;
 const ok = (cond: boolean, msg: string) => {
@@ -204,6 +205,16 @@ ok(JSON.stringify(pushTarget("https://evil.example")) === '{"screen":"/"}' && JS
   ok(ids(topUpSuggestions([], [p("me"), p("b"), p("c")], ["me"])) === "b,c", "no one in common yet → newest builders, never yourself");
   ok(ids(topUpSuggestions([p("a")], [p("a"), p("b"), p("c")], ["me", "c"])) === "a,b", "matches first, no repeats, skips people you follow");
   ok(topUpSuggestions([], Array.from({ length: 20 }, (_, i) => p(`n${i}`)), []).length === 8, "at most 8 suggestions");
+}
+
+// Method V's sign-in emails (pasted into Supabase from /setup/emails).
+{
+  const by = (name: string) => EMAIL_TEMPLATES.find((t) => t.supabaseName === name)!;
+  ok(EMAIL_TEMPLATES.length === 6, "all six Supabase email templates");
+  ok(["Confirm sign up", "Magic link", "Reauthentication"].every((n) => by(n).html.includes("{{ .Token }}")), "the emails the app needs carry the 6-digit code");
+  ok(["Confirm sign up", "Magic link", "Reset password", "Change email address", "Invite user"].every((n) => by(n).html.includes('href="{{ .ConfirmationURL }}"')), "and the others the link");
+  ok(EMAIL_TEMPLATES.every((t) => (t.html.match(/\{\{[^}]*\}\}/g) ?? []).every((p) => /^\{\{ \.(Token|ConfirmationURL|Email|NewEmail) \}\}$/.test(p))), "only Supabase's own placeholders");
+  ok(EMAIL_TEMPLATES.every((t) => t.subject.includes("Method V") && t.html.includes("METHOD")), "every email says it's from Method V");
 }
 
 // Vercel never uploads mobile/ (.vercelignore), so nothing the website builds
