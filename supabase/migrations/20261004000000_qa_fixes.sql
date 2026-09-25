@@ -23,7 +23,10 @@ alter table public.notifications add constraint notifications_kind_check
     'question', 'answer', 'best_answer', 'reply',
     'swap_request', 'swap_accepted',
     'backed', 'sponsor_offer', 'sponsor_accepted', 'sponsor_started', 'sponsor_ended',
-    'job_application', 'application_shortlisted'
+    'job_application', 'application_shortlisted',
+    -- Added by 20261008000000_sponsor_packages.sql, listed here so running this file again is safe.
+    'package_request', 'package_accepted', 'package_declined', 'package_delivered', 'package_completed',
+    'package_refunded', 'package_problem'
   ));
 
 -- Notify the person being replied to, before the reply is moved under the

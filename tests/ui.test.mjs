@@ -694,14 +694,19 @@ await run("back an app + sponsor (desktop)", desktop, async (page) => {
   await dialog.getByText(/demo mode/i).waitFor();
   ok(true, "backing explains demo mode");
 
-  const offer = page.getByRole("region", { name: "Sponsor" });
-  await offer.getByRole("button", { name: "Make an offer" }).click();
-  await offer.getByLabel("Price per try in dollars").fill("0.25");
-  await offer.getByLabel("Budget in dollars").fill("20");
-  ok(await offer.getByText("Up to 80 tries.").isVisible(), "offer shows how many tries the budget buys");
-  await offer.getByRole("button", { name: "Send offer" }).click();
-  await offer.getByText(/demo mode/i).waitFor();
-  ok(true, "sponsor offers explain demo mode");
+  const sponsor = page.getByRole("region", { name: "Sponsor", exact: true });
+  const packs = (await sponsor.locator("li button").allTextContents()).join(" | ");
+  ok((await sponsor.locator("li button").count()) === 2 && packs.includes("$25") && packs.includes("$80"), `the builder's packages show with their prices (${packs})`);
+  await sponsor.getByRole("button", { name: /Video promo/ }).click();
+  await sponsor.getByLabel("Brief for the builder").fill("Mention the free trial");
+  await sponsor.getByRole("button", { name: "Pay $80" }).click();
+  await sponsor.getByText(/demo mode/i).waitFor();
+  ok(true, "sponsoring a package explains demo mode");
+  const editor = page.getByRole("region", { name: "Sponsorship packages" });
+  ok((await editor.locator("ul > li").count()) === 5, "builders get all five packages to price and switch on");
+  await editor.getByRole("button", { name: "Turn on" }).first().click();
+  await editor.getByText(/demo mode/i).first().waitFor();
+  ok(true, "saving a package explains demo mode");
   await page.screenshot({ path: `${OUT}app-earn-desktop.png`, fullPage: true });
 
   await go(page, "/apps/noteflow");

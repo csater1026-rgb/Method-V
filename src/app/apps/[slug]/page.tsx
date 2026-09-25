@@ -4,7 +4,8 @@ import { notFound } from "next/navigation";
 
 import { Avatar } from "@/components/Avatar";
 import { Backers } from "@/components/Backers";
-import { BackButton, SponsorOffer } from "@/components/Earn";
+import { BackButton } from "@/components/Earn";
+import { PackageEditor, SponsorPackages } from "@/components/Packages";
 import { SponsoredBy } from "@/components/Sponsored";
 import { Comments } from "@/components/Comments";
 import { Countdown } from "@/components/Countdown";
@@ -29,6 +30,7 @@ import {
   getMyApps,
   getOwnProfile,
   getQuestions,
+  getSponsorPackages,
   getSpotlightNextStart,
   getSwapPartners,
   getUpdates,
@@ -78,6 +80,8 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
     isOwner || !isSupabaseConfigured
       ? await Promise.all([getSpotlightNextStart(), isOwner ? getOwnProfile() : Promise.resolve(null)])
       : [null, null];
+  // The builder sees every package to edit; visitors see the ones switched on.
+  const packages = await getSponsorPackages(app.id, isOwner);
   const nextSpotlight = nextSpotlightAt
     ? { at: nextSpotlightAt, waits: new Date(nextSpotlightAt).getTime() - nowMs() > 60_000 }
     : null;
@@ -221,6 +225,9 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
             </p>
           </GrowPanel>
         )}
+        {((isOwner && viewer) || !isSupabaseConfigured) && (
+          <PackageEditor app={{ id: app.id, slug: app.slug, name: app.name }} packages={packages} />
+        )}
 
         {(partners.friends.length > 0 || partners.colaunch.length > 0) && (
           <section aria-label="Friends of this app">
@@ -252,11 +259,12 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
 
         {myApps.length > 0 && <TeamUp target={{ id: app.id, name: app.name }} myApps={myApps} />}
 
-        {/* Boost Exchange, paid. In demo mode everyone sees it so it can be tried. */}
-        {!isOwner && (sponsors.length > 0 || !isSupabaseConfigured) && (
-          <SponsorOffer
-            target={{ id: app.id, name: app.name }}
-            myApps={sponsors.length > 0 ? sponsors : [{ id: "demo", name: "your app" }]}
+        {/* Sponsorship packages the builder offers. In demo mode everyone sees them so it can be tried. */}
+        {!isOwner && (
+          <SponsorPackages
+            app={{ id: app.id, name: app.name }}
+            packages={packages.filter((p) => p.active)}
+            sponsors={!isSupabaseConfigured ? [{ id: "00000000-0000-4000-8000-000000000000", name: "your app" }] : sponsors}
           />
         )}
 

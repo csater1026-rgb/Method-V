@@ -36,6 +36,8 @@ import type {
   Earnings,
   SponsorCard,
   Sponsorship,
+  PackageDeal,
+  SponsorPackage,
   AppDetail,
   Comment,
   Conversation,
@@ -1476,6 +1478,66 @@ export async function getMySponsorships(viewer: Viewer): Promise<Sponsorship[]> 
     host: r.host ?? null,
     mine: r.sponsor_user === viewer.id ? "sponsor" : "host",
   }));
+}
+
+// The sponsorship packages an app offers (all of them for its builder, to edit).
+export async function getSponsorPackages(appId: string, includeOff = false): Promise<SponsorPackage[]> {
+  if (!isSupabaseConfigured) {
+    // Demo: every app offers a card and a video so the flow can be tried.
+    return [
+      { kind: "card", price_cents: 2500, note: "", active: true },
+      { kind: "video", price_cents: 8000, note: "TikTok · 8k followers", active: true },
+    ];
+  }
+  const supabase = await createClient();
+  let query = supabase.from("sponsor_packages").select("kind, price_cents, note, active").eq("app_id", appId);
+  if (!includeOff) query = query.eq("active", true);
+  const { data, error } = await query;
+  // Null-safe until migration 20261008000000_sponsor_packages.sql is run.
+  if (error) return [];
+  const order = ["card", "drop", "site", "video", "newsletter"];
+  return ((data ?? []) as SponsorPackage[]).sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind));
+}
+
+// Runs the time-based steps (expired requests refunded, unapproved deliveries
+// approved, finished Sponsored cards paid), then lists your package deals.
+export async function getMyPackageDeals(viewer: Viewer): Promise<PackageDeal[]> {
+  const supabase = await createClient();
+  await supabase.rpc("settle_package_deals");
+  const { data, error } = await supabase
+    .from("package_deals")
+    .select(
+      `id, kind, status, price_cents, fee_cents, brief, proof_url, problem, card_until, created_at, paid_at, delivered_at, sponsor_user,
+       host:apps!package_deals_host_app_fkey(slug, name),
+       sp_app:apps!package_deals_sponsor_app_fkey(slug, name),
+       sp_brand:brands!package_deals_sponsor_brand_fkey(slug, name),
+       host_profile:profiles!package_deals_host_user_fkey(username),
+       sponsor_profile:profiles!package_deals_sponsor_user_fkey(username)`,
+    )
+    .order("created_at", { ascending: false })
+    .limit(50);
+  if (error) return [];
+  return (data ?? []).map((r: any) => {
+    const mine = r.sponsor_user === viewer.id ? "sponsor" : "host";
+    return {
+      id: r.id,
+      kind: r.kind,
+      status: r.status,
+      price_cents: r.price_cents,
+      fee_cents: r.fee_cents,
+      brief: r.brief ?? "",
+      proof_url: r.proof_url,
+      problem: r.problem ?? "",
+      card_until: r.card_until,
+      created_at: r.created_at,
+      paid_at: r.paid_at,
+      delivered_at: r.delivered_at,
+      host: r.host ?? null,
+      sponsor: r.sp_app ? { ...r.sp_app, kind: "app" } : r.sp_brand ? { ...r.sp_brand, kind: "brand" } : null,
+      other: (mine === "sponsor" ? r.host_profile?.username : r.sponsor_profile?.username) ?? null,
+      mine,
+    };
+  });
 }
 
 export async function getEarnings(viewer: Viewer): Promise<Earnings> {

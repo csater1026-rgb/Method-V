@@ -179,3 +179,39 @@ export const TAGLINE = "Real apps. Real builders. Real feedback.";
 // place of the last letter (see Handle on the website and in the app). The
 // name is reserved in the database so nobody else can take it.
 export const OFFICIAL_HANDLE = "methodv";
+
+// Sponsorship packages: what a builder can be paid to do, each at a price
+// they set. Must match public.sponsor_packages / package_deals in
+// supabase/migrations/20261008000000_sponsor_packages.sql.
+export const SPONSOR_PACKAGES = [
+  {
+    kind: "card",
+    label: "Sponsored card",
+    does: "A Sponsored card for their app on your app page and your Drops, for 7 days. It goes up by itself.",
+    proof: null,
+    suggested: 2500,
+  },
+  { kind: "drop", label: "Shout-out in a Drop", does: "You mention their app in your next Drop.", proof: "Link to the Drop", suggested: 4000 },
+  { kind: "site", label: "Ad on your website", does: "An ad or link for their app on your website for 30 days.", proof: "Link to the page with the ad", suggested: 5000 },
+  { kind: "video", label: "Video promo", does: "A video about their app on your TikTok, Instagram, YouTube or X.", proof: "Link to the post", suggested: 10000 },
+  { kind: "newsletter", label: "Newsletter mention", does: "Their app featured in your newsletter.", proof: "Link to the issue", suggested: 5000 },
+] as const;
+
+export type PackageKind = (typeof SPONSOR_PACKAGES)[number]["kind"];
+
+export const PACKAGE_RULES = {
+  minCents: 1000,
+  maxCents: 100000,
+  feePercent: 12,
+  proFeePercent: 7,
+  answerDays: 3,
+  approveDays: 3,
+  deliverDays: 14,
+  cardDays: 7,
+  open: 3,
+  proOpen: 10,
+} as const;
+
+export function packageFor(kind: string) {
+  return SPONSOR_PACKAGES.find((p) => p.kind === kind);
+}

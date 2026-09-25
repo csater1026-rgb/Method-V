@@ -285,6 +285,41 @@ export type Sponsorship = {
   mine: "sponsor" | "host";
 };
 
+export type SponsorPackage = { kind: string; price_cents: number; note: string; active: boolean };
+
+export type PackageDealStatus =
+  | "unpaid"
+  | "requested"
+  | "accepted"
+  | "delivered"
+  | "completed"
+  | "declined"
+  | "expired"
+  | "cancelled"
+  | "disputed"
+  | "refunded";
+
+export type PackageDeal = {
+  id: string;
+  kind: string;
+  status: PackageDealStatus;
+  price_cents: number;
+  fee_cents: number;
+  brief: string;
+  proof_url: string | null;
+  problem: string;
+  card_until: string | null;
+  created_at: string;
+  paid_at: string | null;
+  delivered_at: string | null;
+  host: { slug: string; name: string } | null;
+  // What's being promoted: the sponsor's app or brand.
+  sponsor: { slug: string; name: string; kind: "app" | "brand" } | null;
+  // The other side's username.
+  other: string | null;
+  mine: "sponsor" | "host";
+};
+
 export type Backer = { id: string; note: string; created_at: string; user: ProfileSummary };
 
 export type EarningEvent = { id: number; delta_cents: number; kind: string; created_at: string; app: { slug: string; name: string } | null };

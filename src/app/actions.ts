@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import {
   CONNECT_REASONS,
   CREDIT_PACKS,
+  PACKAGE_RULES,
   EARN,
   MIN_PASSWORD,
   OFFICIAL_HANDLE,
@@ -14,6 +15,7 @@ import {
   TESTER_PACKS,
   WOULD_USE,
   isOneOf,
+  packageFor,
 } from "@/lib/constants";
 import { getViewer } from "@/lib/data";
 import { parseList, slugify } from "@/lib/format";
@@ -779,7 +781,7 @@ type CheckoutResult = { ok: true; url: string } | { ok: false; error: string };
 // Prepares the payment in the database as the payer (so every rule applies),
 // then hands them to Stripe Checkout. The webhook completes it.
 async function startCheckout(
-  args: { kind: "tip" | "pro" | "sponsorship" | "credits"; ref: string | null; amount: number | null; note?: string; isPublic?: boolean },
+  args: { kind: "tip" | "pro" | "sponsorship" | "credits" | "package"; ref: string | null; amount: number | null; note?: string; isPublic?: boolean },
   label: string,
   returnPath: string,
 ): Promise<CheckoutResult> {
@@ -830,6 +832,107 @@ export async function backApp(appId: string, appSlug: string, amountCents: numbe
 
 export async function buyPro(): Promise<CheckoutResult> {
   return startCheckout({ kind: "pro", ref: null, amount: null }, `Method V Pro (${EARN.pro.days} days)`, "/pro");
+}
+
+// ---------------------------------------------------------------------------
+// Sponsorship packages
+// ---------------------------------------------------------------------------
+
+export async function setSponsorPackage(
+  appId: string,
+  appSlug: string,
+  kind: string,
+  priceCents: number,
+  note: string,
+  active: boolean,
+): Promise<ActionResult> {
+  const price = Math.round(Number(priceCents));
+  const invalid =
+    unknownApp(appId) ??
+    (packageFor(kind) ? null : "Unknown package.") ??
+    (Number.isFinite(price) && price >= PACKAGE_RULES.minCents && price <= PACKAGE_RULES.maxCents
+      ? null
+      : "Set a price between $10 and $1,000.") ??
+    (note.trim().length > 140 ? "Keep the note under 140 characters." : null);
+  return callRpc(
+    "set_sponsor_package",
+    { p_app: appId, p_kind: kind, p_price: price, p_note: note.trim(), p_active: active },
+    "Couldn't save that package.",
+    [`/apps/${appSlug}`],
+    invalid,
+  );
+}
+
+// A sponsor picks a package: the deal is made, then they pay at Stripe. The
+// builder is asked once the payment lands.
+export async function sponsorPackage(
+  hostAppId: string,
+  hostName: string,
+  kind: string,
+  sponsorId: string,
+  sponsorKind: "app" | "brand",
+  brief: string,
+): Promise<CheckoutResult> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  const pkg = packageFor(kind);
+  if (!UUID.test(hostAppId) || !UUID.test(sponsorId) || !pkg) return { ok: false, error: "Pick a package." };
+  if (brief.trim().length > 500) return { ok: false, error: "Keep the brief under 500 characters." };
+  if (!isStripeConfigured || !createAdminClient()) return { ok: false, error: PAYMENTS_OFF_MESSAGE };
+  const supabase = await createClient();
+  const { data: dealId, error } = await supabase.rpc("request_package", {
+    p_host_app: hostAppId,
+    p_kind: kind,
+    p_sponsor_app: sponsorKind === "app" ? sponsorId : null,
+    p_sponsor_brand: sponsorKind === "brand" ? sponsorId : null,
+    p_brief: brief.trim(),
+  });
+  if (error || !dealId) return { ok: false, error: rpcError(error?.message, "Couldn't start the sponsorship.") };
+  return startCheckout({ kind: "package", ref: dealId as string, amount: null }, `${pkg.label} on ${hostName.slice(0, 60)}`, "/earn");
+}
+
+// Finish paying for a package you picked but didn't pay for.
+export async function payPackage(dealId: string): Promise<CheckoutResult> {
+  if (!UUID.test(dealId)) return { ok: false, error: "Unknown sponsorship." };
+  return startCheckout({ kind: "package", ref: dealId, amount: null }, "Method V sponsorship", "/earn");
+}
+
+// Runs a package step; any payment it marks for refund is refunded straight away.
+async function packageStep(fn: string, args: Record<string, unknown>, fallback: string): Promise<ActionResult> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  if (typeof args.p_id !== "string" || !UUID.test(args.p_id)) return { ok: false, error: "Unknown sponsorship." };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc(fn, args);
+  if (error) return { ok: false, error: rpcError(error.message, fallback) };
+  const admin = createAdminClient();
+  if (typeof data === "string" && admin) await settleRefunds(admin, { paymentId: data });
+  revalidatePath("/earn");
+  return { ok: true };
+}
+
+export async function respondPackage(dealId: string, accept: boolean): Promise<ActionResult> {
+  return packageStep("respond_package", { p_id: dealId, p_accept: accept }, "Couldn't answer that request.");
+}
+
+export async function deliverPackage(dealId: string, proofUrl: string): Promise<ActionResult> {
+  const url = proofUrl.trim();
+  if (!/^https:\/\/\S+$/.test(url) || url.length > 500) return { ok: false, error: "Add the https:// link to where it's live." };
+  return packageStep("deliver_package", { p_id: dealId, p_proof: url }, "Couldn't mark it delivered.");
+}
+
+export async function approvePackage(dealId: string): Promise<ActionResult> {
+  return packageStep("approve_package", { p_id: dealId }, "Couldn't approve it.");
+}
+
+export async function cancelPackage(dealId: string): Promise<ActionResult> {
+  return packageStep("cancel_package", { p_id: dealId }, "Couldn't cancel it.");
+}
+
+export async function reportPackage(dealId: string, problem: string): Promise<ActionResult> {
+  const text = problem.trim();
+  if (text.length < 5 || text.length > 500) return { ok: false, error: "Say what went wrong (up to 500 characters)." };
+  return packageStep("report_package", { p_id: dealId, p_problem: text }, "Couldn't send the report.");
 }
 
 // Credits are sold on the website only (the phone app shows the balance).
@@ -904,30 +1007,6 @@ export async function cashOut(): Promise<ActionResult & { amount?: number }> {
 // ---------------------------------------------------------------------------
 // Phase 4: Boost Exchange, paid
 // ---------------------------------------------------------------------------
-
-export async function offerSponsorship(
-  sponsorAppId: string,
-  hostAppId: string,
-  priceCents: number,
-  budgetCents: number,
-  message: string,
-): Promise<ActionResult> {
-  const price = Math.round(Number(priceCents));
-  const budget = Math.round(Number(budgetCents));
-  const invalid =
-    (UUID.test(sponsorAppId) && UUID.test(hostAppId) ? null : "Pick the app you're sponsoring with.") ??
-    (price >= EARN.sponsor.minPrice && price <= EARN.sponsor.maxPrice ? null : "Pay between $0.10 and $5 per try.") ??
-    (budget >= EARN.sponsor.minBudget && budget <= EARN.sponsor.maxBudget ? null : "Set a budget between $10 and $1,000.") ??
-    (budget >= price * EARN.sponsor.minTries ? null : "The budget should cover at least 10 tries.") ??
-    (message.trim().length <= 280 ? null : "Keep the message under 280 characters.");
-  return callRpc(
-    "offer_sponsorship",
-    { p_sponsor_app: sponsorAppId, p_host_app: hostAppId, p_price: price, p_budget: budget, p_message: message.trim() },
-    "Couldn't send the offer.",
-    ["/earn"],
-    invalid,
-  );
-}
 
 export async function respondSponsorship(id: string, accept: boolean): Promise<ActionResult> {
   return callRpc("respond_sponsorship", { p_id: id, p_accept: accept }, "Couldn't answer the offer.", ["/earn"], UUID.test(id) ? null : "Unknown deal.");
@@ -1065,28 +1144,4 @@ export async function deleteBrand(brandId: string): Promise<ActionResult> {
   if (error) return { ok: false, error: rpcError(error.message, "Couldn't delete the brand.") };
   revalidatePath("/brands");
   return { ok: true };
-}
-
-export async function offerBrandSponsorship(
-  brandId: string,
-  hostAppId: string,
-  priceCents: number,
-  budgetCents: number,
-  message: string,
-): Promise<ActionResult> {
-  const price = Math.round(Number(priceCents));
-  const budget = Math.round(Number(budgetCents));
-  const invalid =
-    (UUID.test(brandId) && UUID.test(hostAppId) ? null : "Pick the brand you're sponsoring with.") ??
-    (price >= EARN.sponsor.minPrice && price <= EARN.sponsor.maxPrice ? null : "Pay between $0.10 and $5 per try.") ??
-    (budget >= EARN.sponsor.minBudget && budget <= EARN.sponsor.maxBudget ? null : "Set a budget between $10 and $1,000.") ??
-    (budget >= price * EARN.sponsor.minTries ? null : "The budget should cover at least 10 tries.") ??
-    (message.trim().length <= 280 ? null : "Keep the message under 280 characters.");
-  return callRpc(
-    "offer_brand_sponsorship",
-    { p_brand: brandId, p_host_app: hostAppId, p_price: price, p_budget: budget, p_message: message.trim() },
-    "Couldn't send the offer.",
-    ["/earn"],
-    invalid,
-  );
 }

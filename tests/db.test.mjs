@@ -8,8 +8,11 @@ import { PGlite } from "@electric-sql/pglite";
 import { readdirSync, readFileSync } from "node:fs";
 
 const migrationsDir = new URL("../supabase/migrations/", import.meta.url);
+// Sponsorship packages replace pay-per-try offers, so they're applied after
+// the per-try tests (which still check deals already running).
+const LATE = ["20261008000000_sponsor_packages.sql"];
 const migrations = readdirSync(migrationsDir)
-  .filter((f) => f.endsWith(".sql"))
+  .filter((f) => f.endsWith(".sql") && !LATE.includes(f))
   .sort()
   .map((f) => readFileSync(new URL(f, migrationsDir), "utf8"));
 
@@ -946,6 +949,110 @@ ok(!!(await fails("anon", null, "insert into public.sponsorships (sponsor_brand,
   ok(reserved(await fails("authenticated", B, "update public.profiles set username = 'methodv' where id = $1", [B])), "still reserved once it's free");
 }
 
+// Sponsorship packages: builders set their own prices; money is held until
+// the work is done.
+{
+  for (const f of LATE) await db.exec(readFileSync(new URL(f, migrationsDir), "utf8"));
+  ok(String(await fails("authenticated", J, "select public.offer_sponsorship($1, $2, 50, 2000)", [sponsorApp, hostApp])).includes("packages"), "pay-per-try offers point to packages now");
+  const pkgApp = await makeApp(H, "pkg-host");
+  const setPkg = (uid, kind, price, active = true) =>
+    as("authenticated", uid, "select public.set_sponsor_package($1, $2, $3, 'TikTok 12k followers', $4)", [pkgApp, kind, price, active]);
+  await setPkg(H, "video", 10000);
+  await setPkg(H, "card", 2500);
+  await setPkg(H, "site", 4000, false);
+  ok(!!(await fails("authenticated", J, "select public.set_sponsor_package($1, 'card', 2500, '', true)", [pkgApp])), "only the builder sets their packages");
+  ok(!!(await fails("authenticated", H, "select public.set_sponsor_package($1, 'card', 500, '', true)", [pkgApp])), "packages start at $10");
+  ok((await as("anon", null, "select kind from public.sponsor_packages where app_id = $1 and active order by kind", [pkgApp])).rows.map((r) => r.kind).join() === "card,video", "anyone sees the packages on offer");
+
+  const request = (uid, kind, from = sponsorApp) =>
+    as("authenticated", uid, "select public.request_package($1, $2, $3, null, 'Mention the free trial') as id", [pkgApp, kind, from]);
+  ok(!!(await fails("authenticated", F, "select public.request_package($1, 'video', null, null, '')", [pkgApp])), "sponsors promote one of their own apps or brands");
+  ok(!!(await fails("authenticated", H, "select public.request_package($1, 'video', $1, null, '')", [pkgApp])), "can't sponsor your own app");
+  ok(!!(await fails("authenticated", J, "select public.request_package($1, 'site', $2, null, '')", [pkgApp, sponsorApp])), "only packages that are switched on");
+  const payFor = async (dealId, uid = J) => {
+    const pay = (await prep(uid, "package", dealId, null)).rows[0].id;
+    const amount = (await db.query("select amount_cents from public.payments where id = $1", [pay])).rows[0].amount_cents;
+    await as("service_role", null, "select public.complete_payment($1, $2, $3, $4)", [pay, "cs_" + dealId.slice(0, 8), amount, "pi_" + dealId.slice(0, 8)]);
+    return { pay, amount };
+  };
+  const status = async (id) => (await db.query("select status from public.package_deals where id = $1", [id])).rows[0].status;
+
+  // Video: accept, deliver, approve -> the builder is paid 88%.
+  const video = (await request(J, "video")).rows[0].id;
+  const { amount } = await payFor(video);
+  ok(amount === 10000 && (await status(video)) === "requested", "the sponsor pays the builder's price up front");
+  ok((await db.query("select count(*)::int n from public.notifications where user_id = $1 and kind = 'package_request'", [H])).rows[0].n === 1, "the builder hears about it");
+  await as("authenticated", H, "select public.respond_package($1, true)", [video]);
+  ok(!!(await fails("authenticated", H, "select public.deliver_package($1, 'not a link')", [video])), "delivering needs a link");
+  await as("authenticated", H, "select public.deliver_package($1, 'https://tiktok.com/@h/video/1')", [video]);
+  const before = await bal(H);
+  ok(!!(await fails("authenticated", H, "select public.approve_package($1)", [video])), "only the sponsor approves");
+  await as("authenticated", J, "select public.approve_package($1)", [video]);
+  ok((await status(video)) === "completed" && (await bal(H)) - before === 8800, "approved: the builder gets $100 minus 12%");
+
+  // Declined: a full refund.
+  const card = (await request(J, "card")).rows[0].id;
+  const cardPay = await payFor(card);
+  await as("authenticated", H, "select public.respond_package($1, false)", [card]);
+  ok((await status(card)) === "declined" && (await db.query("select refund_cents from public.payments where id = $1", [cardPay.pay])).rows[0].refund_cents === 2500, "declined: the sponsor gets it all back");
+
+  // Card: goes up on accept, shows as a Sponsored card, paid when its 7 days end.
+  const card2 = (await request(J, "card")).rows[0].id;
+  await payFor(card2);
+  await as("authenticated", H, "select public.respond_package($1, true)", [card2]);
+  ok((await status(card2)) === "delivered", "a Sponsored card is delivered the moment it's accepted");
+  ok((await as("anon", null, "select sponsor_id from public.active_sponsors($1)", [[pkgApp]])).rows.some((r) => r.sponsor_id === sponsorApp), "and shows on the builder's app");
+  await db.query("update public.package_deals set card_until = now() - interval '1 minute' where id = $1", [card2]);
+  const beforeCard = await bal(H);
+  await as("authenticated", J, "select public.settle_package_deals()");
+  ok((await status(card2)) === "completed" && (await bal(H)) - beforeCard === 2200, "when the card's week is up, the builder is paid");
+
+  // No answer in 3 days: refunded.
+  const late = (await request(J, "video")).rows[0].id;
+  await payFor(late);
+  await db.query("update public.package_deals set paid_at = now() - interval '4 days' where id = $1", [late]);
+  ok(!!(await fails("authenticated", H, "select public.respond_package($1, true)", [late])), "too late to accept after 3 days");
+  await as("authenticated", H, "select public.settle_package_deals()");
+  ok((await status(late)) === "expired", "unanswered for 3 days: refunded");
+
+  // Delivered but the sponsor never approves: paid after 3 days.
+  const quiet = (await request(J, "video")).rows[0].id;
+  await payFor(quiet);
+  await as("authenticated", H, "select public.respond_package($1, true)", [quiet]);
+  await as("authenticated", H, "select public.deliver_package($1, 'https://youtube.com/watch?v=1')", [quiet]);
+  await db.query("update public.package_deals set delivered_at = now() - interval '4 days' where id = $1", [quiet]);
+  await as("authenticated", J, "select public.settle_package_deals()");
+  ok((await status(quiet)) === "completed", "no answer from the sponsor for 3 days: approved by itself");
+
+  // A problem: nobody is paid until Method V decides.
+  const bad = (await request(J, "video")).rows[0].id;
+  await payFor(bad);
+  await as("authenticated", H, "select public.respond_package($1, true)", [bad]);
+  ok(!!(await fails("authenticated", J, "select public.cancel_package($1)", [bad])), "after accepting, it can't just be cancelled");
+  await as("authenticated", J, "select public.report_package($1, 'The video never went up')", [bad]);
+  ok((await status(bad)) === "disputed", "the sponsor can report a problem");
+  ok(!!(await fails("authenticated", J, "select public.resolve_package_dispute($1, true)", [bad])), "only Method V settles disputes");
+  await as("service_role", null, "select public.resolve_package_dispute($1, true)", [bad]);
+  ok((await status(bad)) === "refunded", "Method V can refund it");
+
+  // Cancel before paying, or before the builder answers (refunded).
+  const unpaid = (await request(J, "card")).rows[0].id;
+  await as("authenticated", J, "select public.cancel_package($1)", [unpaid]);
+  ok((await status(unpaid)) === "cancelled", "cancel before paying");
+
+  // Pro builders keep 93%.
+  await db.query("update public.profiles set pro_until = now() + interval '30 days' where id = $1", [H]);
+  const pro = (await request(J, "video")).rows[0].id;
+  await payFor(pro);
+  await as("authenticated", H, "select public.respond_package($1, true)", [pro]);
+  await as("authenticated", H, "select public.deliver_package($1, 'https://x.com/h/status/1')", [pro]);
+  const beforePro = await bal(H);
+  await as("authenticated", J, "select public.approve_package($1)", [pro]);
+  ok((await bal(H)) - beforePro === 9300, "Pro builders keep 93%");
+  ok(!!(await fails("authenticated", J, "update public.package_deals set status = 'completed' where id = $1", [pro])), "nobody changes deals directly");
+  ok((await as("authenticated", F, "select count(*)::int n from public.package_deals")).rows[0].n === 0, "deals are private to the two sides");
+}
+
 // The newest migrations can be run again without errors (people paste them twice).
 {
   const again = readdirSync(migrationsDir).filter((f) => f >= "20261001000000").sort();
@@ -958,7 +1065,7 @@ ok(!!(await fails("anon", null, "insert into public.sponsorships (sponsor_brand,
       console.log(`  ${f}: ${e.message}`);
     }
   }
-  ok(clean && again.length === 7, `the newest migrations are safe to run twice (${again.join(", ")})`);
+  ok(clean && again.length === 8, `the newest migrations are safe to run twice (${again.join(", ")})`);
 }
 
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");

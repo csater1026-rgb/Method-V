@@ -11,8 +11,6 @@ import {
   cashOut,
   endSponsorship,
   fundSponsorship,
-  offerBrandSponsorship,
-  offerSponsorship,
   pinApp,
   respondSponsorship,
   setUpPayouts,
@@ -147,124 +145,6 @@ export function BackButton({
         </div>
       )}
     </span>
-  );
-}
-
-// Offer to pay another app per real try it sends you.
-export function SponsorOffer({ target, myApps }: { target: { id: string; name: string }; myApps: Sponsor[] }) {
-  const [open, setOpen] = useState(false);
-  const [fromId, setFromId] = useState(myApps[0]?.id ?? "");
-  const [price, setPrice] = useState("0.50");
-  const [budget, setBudget] = useState("50");
-  const [note, setNote] = useState("");
-  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
-  const [pending, startTransition] = useTransition();
-  const priceCents = toCents(price);
-  const budgetCents = toCents(budget);
-  const tries = priceCents > 0 ? Math.floor(budgetCents / priceCents) : 0;
-
-  return (
-    <section aria-label="Sponsor" className="rounded-xl border border-line bg-surface p-4 sm:p-5">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <h2 className="display text-3xl">Sponsor {target.name}</h2>
-          <p className="mt-1 text-sm text-muted">
-            Pay per real try: your app shows as <span className="tag">Sponsored</span> on {target.name}, and you only pay
-            when someone taps through to you.
-          </p>
-        </div>
-        {!open && (
-          <button type="button" className="btn-ghost" onClick={() => setOpen(true)}>
-            Make an offer
-          </button>
-        )}
-      </div>
-      {open && (
-        <form
-          className="mt-4 flex flex-col gap-3"
-          onSubmit={(e) => {
-            e.preventDefault();
-            setMessage(null);
-            startTransition(async () => {
-              const from = myApps.find((a) => a.id === fromId);
-              const r =
-                from?.kind === "brand"
-                  ? await offerBrandSponsorship(fromId, target.id, priceCents, budgetCents, note)
-                  : await offerSponsorship(fromId, target.id, priceCents, budgetCents, note);
-              setMessage(
-                r.ok
-                  ? { ok: true, text: `Offer sent. You'll pay once ${target.name}'s builder accepts.` }
-                  : { ok: false, text: r.error },
-              );
-              if (r.ok) setOpen(false);
-            });
-          }}
-        >
-          {myApps.length > 1 && (
-            <label className="flex items-center gap-2 text-sm">
-              <span className="text-muted">Sponsor with</span>
-              <select value={fromId} onChange={(e) => setFromId(e.target.value)} className="field w-auto py-1.5">
-                {myApps.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.kind === "brand" ? `${a.name} (brand)` : a.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-          <div className="grid grid-cols-2 gap-3">
-            <label className="flex flex-col gap-1 text-sm font-semibold">
-              Per try
-              <span className="flex items-center gap-1 rounded-lg border border-line px-2 font-mono font-normal">
-                $
-                <input
-                  inputMode="decimal"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  aria-label="Price per try in dollars"
-                  className="w-full bg-transparent py-2 outline-none"
-                />
-              </span>
-            </label>
-            <label className="flex flex-col gap-1 text-sm font-semibold">
-              Budget
-              <span className="flex items-center gap-1 rounded-lg border border-line px-2 font-mono font-normal">
-                $
-                <input
-                  inputMode="decimal"
-                  value={budget}
-                  onChange={(e) => setBudget(e.target.value)}
-                  aria-label="Budget in dollars"
-                  className="w-full bg-transparent py-2 outline-none"
-                />
-              </span>
-            </label>
-          </div>
-          <p className="font-mono text-xs text-muted">
-            {tries > 0 ? `Up to ${tries} tries. ` : ""}
-            $0.10–$5 a try, $10–$1,000 budget. Unspent budget comes back to you.
-          </p>
-          <textarea
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            maxLength={280}
-            rows={2}
-            placeholder={`Why ${target.name}'s users would like your app (optional)`}
-            aria-label="Message"
-            className="field resize-none"
-          />
-          <div className="flex gap-2">
-            <button className="btn-accent" disabled={pending}>
-              {pending ? "Sending…" : "Send offer"}
-            </button>
-            <button type="button" className="text-sm text-muted hover:text-ink" onClick={() => setOpen(false)}>
-              Cancel
-            </button>
-          </div>
-        </form>
-      )}
-      {message && <p className={`mt-2 text-sm ${message.ok ? "text-accent" : "text-danger"}`}>{message.text}</p>}
-    </section>
   );
 }
 

@@ -3,20 +3,22 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { PayoutPanel, SponsorshipRow } from "@/components/Earn";
-import { EARN, formatCents } from "@/lib/constants";
-import { getEarnings, getMySponsorships, getViewer, isPro } from "@/lib/data";
+import { PackageDealCard } from "@/components/Packages";
+import { EARN, PACKAGE_RULES, formatCents } from "@/lib/constants";
+import { getEarnings, getMyPackageDeals, getMySponsorships, getViewer, isPro } from "@/lib/data";
 import { timeAgo } from "@/lib/format";
 import { settleRefunds, syncPayoutAccount } from "@/lib/payments";
 import { isStripeConfigured } from "@/lib/stripe";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createAdminClient } from "@/lib/supabase/server";
-import type { Earnings, Sponsorship } from "@/lib/types";
+import type { Earnings, PackageDeal, Sponsorship } from "@/lib/types";
 
 export const metadata: Metadata = { title: "Earn" };
 
 const KIND_LABEL: Record<string, string> = {
   tip: "Backer tip",
   sponsored_try: "Sponsored try",
+  sponsor_package: "Sponsorship package",
   payout: "Cashed out",
   payout_failed: "Payout returned",
 };
@@ -30,16 +32,27 @@ export default async function EarnPage({ searchParams }: PageProps<"/earn">) {
 
   let earnings: Earnings = { balance: 0, events: [], payouts: [], account: "none", pro_until: null };
   let deals: Sponsorship[] = [];
+  let packageDeals: PackageDeal[] = [];
   if (viewer) {
+    // Also runs the time-based package steps (expiry refunds, auto-approvals).
+    packageDeals = await getMyPackageDeals(viewer);
     const admin = createAdminClient();
     if (admin) {
       // Back from Stripe onboarding: read the account now instead of waiting for the webhook.
       if (params.setup === "done") await syncPayoutAccount(admin, viewer.id);
-      // Any refund that didn't go through last time gets another go.
-      await settleRefunds(admin, { userId: viewer.id });
+      // Refunds those steps (or an earlier failed try) marked get sent.
+      await settleRefunds(admin, {});
     }
     [earnings, deals] = await Promise.all([getEarnings(viewer), getMySponsorships(viewer)]);
   }
+  const OPEN = ["unpaid", "requested", "accepted", "delivered", "disputed"];
+  const packageNeedsYou = packageDeals.filter(
+    (d) =>
+      (d.mine === "host" && (d.status === "requested" || d.status === "accepted")) ||
+      (d.mine === "sponsor" && (d.status === "delivered" || d.status === "unpaid")),
+  );
+  const packageOpen = packageDeals.filter((d) => OPEN.includes(d.status) && !packageNeedsYou.includes(d));
+  const packageDone = packageDeals.filter((d) => !OPEN.includes(d.status));
 
   const needsYou = deals.filter((d) => (d.status === "offered" && d.mine === "host") || (d.status === "accepted" && d.mine === "sponsor"));
   const running = deals.filter((d) => d.status === "active" || (d.status === "accepted" && d.mine === "host") || (d.status === "offered" && d.mine === "sponsor"));
@@ -50,13 +63,13 @@ export default async function EarnPage({ searchParams }: PageProps<"/earn">) {
       <p className="eyebrow">Backers · sponsors · payouts</p>
       <h1 className="display rise mt-1 text-6xl">Earn</h1>
       <p className="mt-1 text-muted">
-        Fans can back your apps, and other apps can sponsor them and pay per real try. It all lands here.
+        Fans can back your apps, and sponsors can pay you for the packages you offer. It all lands here.
       </p>
 
       {!isSupabaseConfigured && (
         <p className="mt-6 rounded-xl border border-line bg-surface p-4 text-sm text-muted">
-          This is demo mode, so there&apos;s no money here. Open an app and tap <strong className="text-ink">Back it</strong> or{" "}
-          <strong className="text-ink">Make an offer</strong> to see how it works.
+          This is demo mode, so there&apos;s no money here. Open an app and tap <strong className="text-ink">Back it</strong> or pick
+          a <strong className="text-ink">sponsorship package</strong> to see how it works.
         </p>
       )}
       {isSupabaseConfigured && !isStripeConfigured && (
@@ -98,12 +111,25 @@ export default async function EarnPage({ searchParams }: PageProps<"/earn">) {
         <Link href="/brands/new" className="text-accent hover:underline">
           List your brand
         </Link>{" "}
-        and it can make offers too.
+        and it can sponsor apps too.
       </p>
 
-      <DealSection title="Needs you" empty="Nothing waiting on you." deals={needsYou} />
-      <DealSection title="Running" empty="No deals running. Open an app you like and tap Make an offer." deals={running} />
-      {past.length > 0 && <DealSection title="Past deals" empty="" deals={past} />}
+      <section aria-label="Sponsorship packages" className="mt-10">
+        <h2 className="display text-3xl">Sponsorship packages</h2>
+        <p className="mt-1 text-sm text-muted">
+          Set the packages you offer and their prices on your app&apos;s page. To sponsor someone, open their app and pick one.
+        </p>
+        <PackageList title="Needs you" deals={packageNeedsYou} empty="Nothing waiting on you." />
+        <PackageList title="In progress" deals={packageOpen} empty="Nothing in progress." />
+        {packageDone.length > 0 && <PackageList title="Done" deals={packageDone} empty="" />}
+      </section>
+
+      {deals.length > 0 && (
+        <>
+          <DealSection title="Pay-per-try deals" empty="" deals={[...needsYou, ...running]} />
+          {past.length > 0 && <DealSection title="Past pay-per-try deals" empty="" deals={past} />}
+        </>
+      )}
 
       <section aria-label="History" className="mt-10">
         <h2 className="display text-3xl">History</h2>
@@ -138,9 +164,28 @@ export default async function EarnPage({ searchParams }: PageProps<"/earn">) {
       </section>
 
       <p className="mt-8 text-xs text-muted">
-        Method V keeps {EARN.tip.feePercent}% of tips and {EARN.sponsor.feePercent}% of sponsored tries. Sponsored placements are always labeled, and only tries from
-        real accounts count.
+        Method V keeps {EARN.tip.feePercent}% of tips and {PACKAGE_RULES.feePercent}% of sponsorship packages ({PACKAGE_RULES.proFeePercent}% with
+        Pro). Sponsored placements are always labeled.
       </p>
+    </div>
+  );
+}
+
+function PackageList({ title, deals, empty }: { title: string; deals: PackageDeal[]; empty: string }) {
+  return (
+    <div className="mt-4">
+      <h3 className="font-semibold">
+        {title} {deals.length > 0 && <span className="font-mono text-sm text-muted">{deals.length}</span>}
+      </h3>
+      {deals.length === 0 ? (
+        <p className="mt-1 text-sm text-muted">{empty}</p>
+      ) : (
+        <ul className="mt-2 flex flex-col gap-2">
+          {deals.map((d) => (
+            <PackageDealCard key={d.id} deal={d} />
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
