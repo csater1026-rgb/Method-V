@@ -364,6 +364,8 @@ await run("profile", desktop, async (page) => {
   const page = await ctx.newPage();
   const res = await go(page, "/u/nobody_here");
   ok(res.status() === 404, "unknown profile is 404");
+  ok(await page.getByRole("heading", { name: "Nothing here" }).isVisible(), "404s show Method V's own not-found page");
+  ok(await page.locator("header").getByRole("link", { name: "Method V home" }).isVisible(), "with the menu, so people can find their way back");
   await ctx.close();
 }
 
