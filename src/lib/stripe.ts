@@ -7,8 +7,10 @@ import { formEncode, type StripeParams } from "./stripe-core";
 // actually credits a payment), so a half-configured site fails closed.
 
 const secretKey = process.env.STRIPE_SECRET_KEY ?? "";
-export const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET ?? "";
-export const isStripeConfigured = Boolean(secretKey && webhookSecret);
+// Stripe sends your own payments and your builders' payout accounts to two
+// separate webhook destinations, each with its own signing secret.
+export const webhookSecrets = [process.env.STRIPE_WEBHOOK_SECRET ?? "", process.env.STRIPE_CONNECT_WEBHOOK_SECRET ?? ""].filter(Boolean);
+export const isStripeConfigured = Boolean(secretKey && process.env.STRIPE_WEBHOOK_SECRET);
 
 export const PAYMENTS_OFF_MESSAGE = "Payments aren't switched on for this site yet.";
 

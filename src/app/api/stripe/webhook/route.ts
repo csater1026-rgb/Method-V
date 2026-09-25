@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { settleRefunds } from "@/lib/payments";
-import { isStripeConfigured, webhookSecret } from "@/lib/stripe";
+import { isStripeConfigured, webhookSecrets } from "@/lib/stripe";
 import { verifyStripeSignature } from "@/lib/stripe-core";
 import { createAdminClient } from "@/lib/supabase/server";
 
@@ -19,7 +19,8 @@ export async function POST(request: Request) {
   if (!admin) return new NextResponse("Server not configured", { status: 503 });
 
   const payload = await request.text();
-  if (!verifyStripeSignature(payload, request.headers.get("stripe-signature"), webhookSecret)) {
+  const signature = request.headers.get("stripe-signature");
+  if (!webhookSecrets.some((secret) => verifyStripeSignature(payload, signature, secret))) {
     return new NextResponse("Bad signature", { status: 400 });
   }
 
