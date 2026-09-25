@@ -153,6 +153,7 @@ function toApp(row: any): App {
     rating_sum: row.rating_sum ?? 0,
     launch_at: row.launch_at ?? null,
     boosted_until: row.boosted_until ?? null,
+    boosted_from: row.boosted_from ?? null,
     backer_count: row.backer_count ?? 0,
     created_at: row.created_at,
   };
@@ -637,22 +638,44 @@ export function isLaunchLive(app: Pick<App, "launch_at">, now = Date.now()): boo
 export type AppStatus = {
   launch: "none" | "upcoming" | "live" | "done";
   launchEnds: string | null;
+  // In the Spotlight until then (null when not)...
   boostedUntil: string | null;
+  // ...or booked and waiting in line until then.
+  spotlightStarts: string | null;
 };
 
-export function appStatus(app: Pick<App, "launch_at" | "boosted_until">, now = Date.now()): AppStatus {
+// Is the app in the Spotlight right now? (Booked ones can be waiting in line.)
+export function inSpotlight(app: Pick<App, "boosted_until" | "boosted_from">, now = Date.now()): boolean {
+  return Boolean(
+    app.boosted_until &&
+      new Date(app.boosted_until).getTime() > now &&
+      (!app.boosted_from || new Date(app.boosted_from).getTime() <= now),
+  );
+}
+
+export function appStatus(app: Pick<App, "launch_at" | "boosted_until" | "boosted_from">, now = Date.now()): AppStatus {
   const start = app.launch_at ? new Date(app.launch_at).getTime() : null;
   const launch =
     start === null ? "none" : now < start ? "upcoming" : now < start + DAY_MS ? "live" : "done";
   return {
     launch,
     launchEnds: start === null ? null : new Date(start + DAY_MS).toISOString(),
-    boostedUntil: app.boosted_until && new Date(app.boosted_until).getTime() > now ? app.boosted_until : null,
+    boostedUntil: inSpotlight(app, now) ? app.boosted_until : null,
+    spotlightStarts: app.boosted_from && new Date(app.boosted_from).getTime() > now ? app.boosted_from : null,
   };
 }
 
+// When a Spotlight booked now would start: now, or when a spot frees up.
+// Null until migration 20261007000000_spotlight.sql is run.
+export async function getSpotlightNextStart(): Promise<string | null> {
+  if (!isSupabaseConfigured) return new Date().toISOString();
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("spotlight_next_start");
+  return error || !data ? null : (data as string);
+}
+
 // The Featured row, in this order: hand-picked apps, apps on their launch
-// day, then boosted apps. With none of those, the hottest recent apps.
+// day, then apps in the Spotlight. With none of those, the hottest recent apps.
 export async function getFeatured(): Promise<{ apps: FeaturedApp[]; curated: boolean }> {
   const now = Date.now();
   let picked: AppCard[];
@@ -663,7 +686,7 @@ export async function getFeatured(): Promise<{ apps: FeaturedApp[]; curated: boo
     const cards = demoCards();
     picked = demoFeaturedIds.map((id) => cards.find((a) => a.id === id)!);
     launching = cards.filter((a) => isLaunchLive(a, now));
-    boosted = cards.filter((a) => a.boosted_until && new Date(a.boosted_until).getTime() > now);
+    boosted = cards.filter((a) => inSpotlight(a, now));
   } else {
     const supabase = await createClient();
     const nowIso = new Date(now).toISOString();
@@ -671,11 +694,12 @@ export async function getFeatured(): Promise<{ apps: FeaturedApp[]; curated: boo
     const [p, l, b] = await Promise.all([
       base().gt("featured_until", nowIso).order("featured_until", { ascending: false }).limit(8),
       base().lte("launch_at", nowIso).gt("launch_at", new Date(now - DAY_MS).toISOString()).order("launch_at").limit(8),
-      base().gt("boosted_until", nowIso).order("boosted_until", { ascending: false }).limit(8),
+      base().gt("boosted_until", nowIso).order("boosted_until", { ascending: true }).limit(8),
     ]);
     picked = (p.data ?? []).map(toCard);
     launching = (l.data ?? []).map(toCard);
-    boosted = (b.data ?? []).map(toCard);
+    // Booked Spotlights that are still waiting in line aren't on yet.
+    boosted = (b.data ?? []).map(toCard).filter((a) => inSpotlight(a, now));
   }
 
   const seen = new Set<string>();

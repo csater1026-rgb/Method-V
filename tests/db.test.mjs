@@ -307,18 +307,34 @@ ok((await db.query("select launch_at from public.apps where id = $1", [appId])).
 await db.query("update public.apps set launch_at = now() - interval '2 hours' where id = $1", [appId]);
 ok(!!(await fails("authenticated", A, "select public.schedule_launch($1, now() + interval '2 days')", [appId])), "one launch day per app");
 
-// Boosts
+// The Spotlight (it replaced Boost): 4 spots in Featured, 3 days, 25 credits,
+// and a line when all 4 are taken.
 await db.query("insert into public.credit_events (user_id, delta, reason) values ($1, 30, 'welcome')", [A]);
 const cA = await credits(A);
-await as("authenticated", A, "select public.boost_app($1, 2)", [appId]);
-ok((await credits(A)) === cA - 20, "boosting 2 days costs 20 credits");
-const b1 = (await db.query("select boosted_until from public.apps where id = $1", [appId])).rows[0].boosted_until;
-await as("authenticated", A, "select public.boost_app($1, 1)", [appId]);
-const b2 = (await db.query("select boosted_until from public.apps where id = $1", [appId])).rows[0].boosted_until;
-ok(Math.round((b2 - b1) / 3600000) === 24, "boosting again extends by a day");
-ok(!!(await fails("authenticated", A, "select public.boost_app($1, 7)", [appId])), "can't boost without enough credits");
-ok(!!(await fails("authenticated", B, "select public.boost_app($1, 1)", [appId])), "can't boost someone else's app");
+ok(String(await fails("authenticated", A, "select public.boost_app($1, 2)", [appId])).includes("Spotlight"), "Boost is gone: it points to the Spotlight");
+const firstStart = (await as("authenticated", A, "select public.book_spotlight($1) as s", [appId])).rows[0].s;
+ok((await credits(A)) === cA - 25, "the Spotlight costs 25 credits");
+const spot = (await db.query("select boosted_from <= now() as live, extract(epoch from boosted_until - boosted_from) / 86400 as days from public.apps where id = $1", [appId])).rows[0];
+ok(spot.live && Number(spot.days) === 3 && firstStart <= new Date(), "with a spot free it starts now and lasts 3 days");
+ok(String(await fails("authenticated", A, "select public.book_spotlight($1)", [appId])).includes("already have a Spotlight"), "one Spotlight per builder at a time");
+ok(!!(await fails("authenticated", B, "select public.book_spotlight($1)", [appId])), "can't book someone else's app");
 ok(!!(await fails("authenticated", A, "update public.apps set boosted_until = now() + interval '1 year' where id = $1", [appId])), "can't set boosted_until directly");
+ok(!!(await fails("authenticated", A, "update public.apps set boosted_from = now() where id = $1", [appId])), "can't set boosted_from directly");
+ok(!!(await fails("authenticated", A, "insert into public.spotlights (app_id, user_id, cost, starts_at, ends_at) values ($1, $2, 0, now(), now() + interval '9 days')", [appId, A])), "no free Spotlights: only through booking");
+const bSpot = await makeApp(B, "b-spotlight");
+ok(String(await fails("authenticated", B, "select public.book_spotlight($1)", [bSpot])).includes("Drop"), "an app needs a Drop to go in the Spotlight");
+await db.query(dropSql, [bSpot, B, `${B}/spot.mp4`, 20]);
+ok(String(await fails("authenticated", B, "select public.book_spotlight($1)", [bSpot])).includes("costs 25 credits"), "you need the credits");
+// Fill the other 3 spots (ending in 1, 2 and 2.5 days): the next booking waits for the first to end.
+for (const hours of [24, 48, 60]) {
+  await db.query("insert into public.spotlights (app_id, user_id, cost, starts_at, ends_at) values ($1, $2, 0, now() - interval '1 hour', now() + make_interval(hours => $3))", [appId, A, hours]);
+}
+await db.query("insert into public.credit_events (user_id, delta, reason) values ($1, 30, 'welcome')", [B]);
+const queued = (await as("authenticated", B, "select extract(epoch from public.book_spotlight($1) - now()) / 3600 as h", [bSpot])).rows[0].h;
+ok(Math.round(Number(queued)) === 24, `with all 4 spots taken, it waits in line for the first to free up (${Math.round(Number(queued))}h)`);
+ok((await db.query("select boosted_from > now() as later from public.apps where id = $1", [bSpot])).rows[0].later, "a queued app isn't in the Spotlight yet");
+ok((await as("anon", null, "select public.spotlight_next_start() > now() + interval '40 hours' as later")).rows[0].later, "anyone can see when the next spot opens");
+await db.query("delete from public.spotlights where cost = 0");
 
 // Updates
 await as("authenticated", A, "insert into public.updates (user_id, app_id, body) values ($1, $2, 'Shipped dark mode today')", [A, appId]);
@@ -577,14 +593,26 @@ ok((await db.query("select amount_cents from public.payments where id = $1", [pr
 await as("service_role", null, "select public.complete_payment($1, 'cs_3', 600, 'pi_3')", [proPay]);
 ok((await as("anon", null, "select public.is_pro($1) as p", [J])).rows[0].p, "paying makes you Pro for 30 days");
 await db.query("update public.profiles set credits = 20 where id = $1", [J]);
-await as("authenticated", J, "select public.boost_app($1, 2)", [sponsorApp]);
-ok((await db.query("select credits from public.profiles where id = $1", [J])).rows[0].credits === 10, "Pro boosts cost 5 credits a day");
+await db.query(dropSql, [sponsorApp, J, `${J}/pro.mp4`, 20]);
+await as("authenticated", J, "select public.book_spotlight($1)", [sponsorApp]);
+ok((await db.query("select credits from public.profiles where id = $1", [J])).rows[0].credits === 5, "Pro books the Spotlight for 15 credits");
 ok((await as("authenticated", J, "select count(*)::int as n from public.app_stats($1)", [sponsorApp])).rows[0].n === 30, "Pro sees 30 days of stats");
 ok(!!(await fails("authenticated", H, "select * from public.app_stats($1)", [hostApp])), "stats are part of Pro");
 ok(!!(await fails("authenticated", J, "select * from public.app_stats($1)", [hostApp])), "stats are only for your own apps");
 await as("authenticated", J, "update public.profiles set pinned_app_id = $1 where id = $2", [sponsorApp, J]);
 ok(!!(await fails("authenticated", J, "update public.profiles set pinned_app_id = $1 where id = $2", [hostApp, J])), "you can only pin your own app");
 ok(!!(await fails("authenticated", J, "update public.profiles set pro_until = now() + interval '1 year' where id = $1", [J])), "can't give yourself Pro");
+
+// Credit packs
+ok(!!(await fails("authenticated", J, "select public.prepare_payment('credits', null, 1000)")), "only the listed credit packs");
+const pack = (await prep(J, "credits", null, 60)).rows[0].id;
+ok((await db.query("select amount_cents from public.payments where id = $1", [pack])).rows[0].amount_cents === 1000, "60 credits cost $10");
+const beforePack = await credits(J);
+ok(!!(await fails("authenticated", J, "select public.complete_payment($1, 'cs_c1', 1000, 'pi_c1')", [pack])), "buyers can't complete their own pack");
+await as("service_role", null, "select public.complete_payment($1, 'cs_c1', 1000, 'pi_c1')", [pack]);
+await as("service_role", null, "select public.complete_payment($1, 'cs_c1', 1000, 'pi_c1')", [pack]);
+ok((await credits(J)) === beforePack + 60, "paying adds the credits, once");
+ok((await db.query("select count(*)::int n from public.credit_events where user_id = $1 and reason = 'credit_pack'", [J])).rows[0].n === 1, "and it shows in credit history");
 
 // Sponsorships (Boost Exchange, paid)
 const offer = (price, budget, from = sponsorApp, to = hostApp, uid = J) =>
@@ -930,7 +958,7 @@ ok(!!(await fails("anon", null, "insert into public.sponsorships (sponsor_brand,
       console.log(`  ${f}: ${e.message}`);
     }
   }
-  ok(clean && again.length === 6, `the newest migrations are safe to run twice (${again.join(", ")})`);
+  ok(clean && again.length === 7, `the newest migrations are safe to run twice (${again.join(", ")})`);
 }
 
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");

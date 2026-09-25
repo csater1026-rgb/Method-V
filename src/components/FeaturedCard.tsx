@@ -10,7 +10,7 @@ import { Handle } from "./Handle";
 const LABELS: Record<FeaturedApp["reason"], string> = {
   featured: "Featured",
   launch: "Launch day",
-  boosted: "Boosted",
+  boosted: "Spotlight",
   hot: "Hot",
 };
 

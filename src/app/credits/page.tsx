@@ -2,14 +2,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { BOOST, CREDITS, CREDIT_REASONS, STREAK_BONUS } from "@/lib/constants";
+import { BuyCredits } from "@/components/Earn";
+import { CREDITS, CREDIT_REASONS, SPOTLIGHT, STREAK_BONUS } from "@/lib/constants";
 import { getCreditHistory, getViewer } from "@/lib/data";
 import { timeAgo } from "@/lib/format";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
 export const metadata: Metadata = { title: "Credits" };
 
-export default async function CreditsPage() {
+export default async function CreditsPage({ searchParams }: PageProps<"/credits">) {
+  const params = await searchParams;
   const viewer = await getViewer();
   if (isSupabaseConfigured && !viewer) redirect("/login?next=/credits");
   const history = viewer ? await getCreditHistory(viewer) : [];
@@ -28,6 +30,21 @@ export default async function CreditsPage() {
         </Link>
       </div>
 
+      {params.paid && (
+        <p className="mt-4 rounded-xl border border-accent/40 bg-accent/10 px-4 py-3 text-sm">
+          Thanks! Your credits are on their way; they show up here in a few seconds.
+        </p>
+      )}
+
+      <section id="buy" aria-label="Buy credits" className="mt-10 scroll-mt-24">
+        <h2 className="display text-4xl">Buy credits</h2>
+        <p className="mt-1 mb-4 text-sm text-muted">
+          For the Spotlight (⚡{SPOTLIGHT.cost}) or testers for your app. Or earn them free by testing apps. Credits can&apos;t be
+          turned back into money.
+        </p>
+        <BuyCredits />
+      </section>
+
       <h2 className="display mt-10 text-4xl">How credits work</h2>
       <ul className="mt-2 flex flex-col gap-1.5 text-sm text-ink/90">
         <li>• Everyone starts with ⚡{CREDITS.welcome}.</li>
@@ -42,7 +59,10 @@ export default async function CreditsPage() {
           • Tester Passport perks: Testers earn ⚡3 per paid feedback, Pro Testers can earn from 20 a day, and{" "}
           {STREAK_BONUS.weeks} weeks in a row earns a ⚡{STREAK_BONUS.credits} bonus.
         </li>
-        <li>• Boost one of your apps into the Featured row for ⚡{BOOST.perDay} a day.</li>
+        <li>
+          • Book the Spotlight: one of {SPOTLIGHT.slots} spots in the Featured row for {SPOTLIGHT.days} days, ⚡{SPOTLIGHT.cost}{" "}
+          (⚡{SPOTLIGHT.proCost} with Pro). First come, first served.
+        </li>
       </ul>
 
       {!isSupabaseConfigured && <p className="mt-6 text-sm text-muted">Credits are off in demo mode.</p>}

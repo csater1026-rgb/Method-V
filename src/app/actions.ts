@@ -5,8 +5,8 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import {
-  BOOST,
   CONNECT_REASONS,
+  CREDIT_PACKS,
   EARN,
   MIN_PASSWORD,
   OFFICIAL_HANDLE,
@@ -510,10 +510,10 @@ export async function cancelLaunch(appId: string, appSlug: string): Promise<Acti
   return callRpc("cancel_launch", { p_app_id: appId }, "Couldn't cancel the launch.", [`/apps/${appSlug}`], unknownApp(appId));
 }
 
-export async function boostApp(appId: string, appSlug: string, days: number): Promise<ActionResult> {
-  const invalid =
-    unknownApp(appId) ?? ((BOOST.options as readonly number[]).includes(days) ? null : "Pick how many days to boost.");
-  return callRpc("boost_app", { p_app_id: appId, p_days: days }, "Couldn't boost the app.", [`/apps/${appSlug}`], invalid);
+// Books one of the 4 Spotlight spots for 3 days: now, or in line for the next
+// free one.
+export async function bookSpotlight(appId: string, appSlug: string): Promise<ActionResult> {
+  return callRpc("book_spotlight", { p_app_id: appId }, "Couldn't book the Spotlight.", [`/apps/${appSlug}`], unknownApp(appId));
 }
 
 // ---------------------------------------------------------------------------
@@ -763,7 +763,7 @@ type CheckoutResult = { ok: true; url: string } | { ok: false; error: string };
 // Prepares the payment in the database as the payer (so every rule applies),
 // then hands them to Stripe Checkout. The webhook completes it.
 async function startCheckout(
-  args: { kind: "tip" | "pro" | "sponsorship"; ref: string | null; amount: number | null; note?: string; isPublic?: boolean },
+  args: { kind: "tip" | "pro" | "sponsorship" | "credits"; ref: string | null; amount: number | null; note?: string; isPublic?: boolean },
   label: string,
   returnPath: string,
 ): Promise<CheckoutResult> {
@@ -814,6 +814,13 @@ export async function backApp(appId: string, appSlug: string, amountCents: numbe
 
 export async function buyPro(): Promise<CheckoutResult> {
   return startCheckout({ kind: "pro", ref: null, amount: null }, `Method V Pro (${EARN.pro.days} days)`, "/pro");
+}
+
+// Credits are sold on the website only (the phone app shows the balance).
+export async function buyCredits(credits: number): Promise<CheckoutResult> {
+  const pack = CREDIT_PACKS.find((p) => p.credits === credits);
+  if (!pack) return { ok: false, error: "Pick a credit pack." };
+  return startCheckout({ kind: "credits", ref: null, amount: pack.credits }, `${pack.credits} Method V credits`, "/credits");
 }
 
 export async function fundSponsorship(id: string): Promise<CheckoutResult> {

@@ -88,7 +88,7 @@ export default async function EarnPage({ searchParams }: PageProps<"/earn">) {
           </>
         ) : (
           <Link href="/pro" className="text-accent hover:underline">
-            Get Pro: stats for your apps, a pinned app and half-price boosts →
+            Get Pro: stats for your apps, a pinned app and a cheaper Spotlight →
           </Link>
         )}
       </p>

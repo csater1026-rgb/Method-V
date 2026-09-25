@@ -2,8 +2,10 @@
 
 import { useState, useTransition } from "react";
 
-import { boostApp, cancelLaunch, scheduleLaunch } from "@/app/actions";
-import { BOOST } from "@/lib/constants";
+import Link from "next/link";
+
+import { bookSpotlight, cancelLaunch, scheduleLaunch } from "@/app/actions";
+import { SPOTLIGHT } from "@/lib/constants";
 import type { AppStatus } from "@/lib/data";
 import type { ActionResult } from "@/lib/types";
 
@@ -13,14 +15,19 @@ type Props = {
   app: { id: string; slug: string; name: string; launch_at: string | null };
   status: AppStatus;
   credits: number;
+  // What a Spotlight costs this builder (less with Pro), and when one booked
+  // now would start and whether that means waiting in line (null if the
+  // database isn't updated yet).
+  spotlightCost: number;
+  nextSpotlight: { at: string; waits: boolean } | null;
   // Demo mode: shown to everyone as a preview; the buttons explain demo mode.
   preview?: boolean;
   children?: React.ReactNode;
 };
 
-// Builder-only tools on their own app page: launch day and boosts. The share
-// kit and swaps slot in as children.
-export function GrowPanel({ app, status, credits, preview = false, children }: Props) {
+// Builder-only tools on their own app page: launch day and the Spotlight. The
+// share kit and swaps slot in as children.
+export function GrowPanel({ app, status, credits, spotlightCost, nextSpotlight, preview = false, children }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [when, setWhen] = useState("");
@@ -34,7 +41,8 @@ export function GrowPanel({ app, status, credits, preview = false, children }: P
   }
 
   const launchState = status.launch;
-  const boostedUntil = status.boostedUntil;
+  const spotlightUntil = status.boostedUntil;
+  const spotlightStarts = status.spotlightStarts;
 
   return (
     <section aria-label="Grow" className="rounded-xl border border-line bg-surface p-4 sm:p-5">
@@ -99,34 +107,52 @@ export function GrowPanel({ app, status, credits, preview = false, children }: P
         </div>
 
         <div className="rounded-lg border border-line bg-bg/50 p-4">
-          <h3 className="display text-2xl">Boost</h3>
-          <p className="mt-1 text-sm text-muted">
-            {boostedUntil ? (
-              <>
-                Boosted for another <Countdown to={boostedUntil} className="font-mono font-bold text-accent" />. Boosting
-                again adds more days.
-              </>
-            ) : (
-              <>Put {app.name} in the Featured row with a Boosted label. ⚡{BOOST.perDay} a day.</>
+          <h3 className="display text-2xl">Spotlight</h3>
+          {spotlightUntil ? (
+            <p className="mt-1 text-sm">
+              {app.name} is in the Spotlight for another{" "}
+              <Countdown to={spotlightUntil} className="font-mono font-bold text-accent" />.
+            </p>
+          ) : spotlightStarts ? (
+            <p className="mt-1 text-sm">
+              Booked! {app.name} goes into the Spotlight in{" "}
+              <Countdown to={spotlightStarts} className="font-mono font-bold text-accent" /> for {SPOTLIGHT.days} days.
+            </p>
+          ) : (
+            <>
+              <p className="mt-1 text-sm text-muted">
+                One of {SPOTLIGHT.slots} spots in the Featured row for {SPOTLIGHT.days} days. First come, first served.
+              </p>
+              <p className="mt-1 text-sm">
+                {nextSpotlight === null ? (
+                  "The Spotlight needs the latest database update."
+                ) : nextSpotlight.waits ? (
+                  <>
+                    All {SPOTLIGHT.slots} spots are taken. Book now and you&apos;re next in line: starts in{" "}
+                    <Countdown to={nextSpotlight.at} className="font-mono font-bold text-accent" />.
+                  </>
+                ) : (
+                  "A spot is free: it starts right away."
+                )}
+              </p>
+              <button
+                type="button"
+                className="btn-accent mt-3"
+                disabled={pending || credits < spotlightCost || nextSpotlight === null}
+                onClick={() => run(() => bookSpotlight(app.id, app.slug))}
+              >
+                Book the Spotlight · ⚡{spotlightCost}
+              </button>
+            </>
+          )}
+          <p className="mt-2 text-xs text-muted">
+            You have ⚡{credits}.{" "}
+            {!spotlightUntil && !spotlightStarts && credits < spotlightCost && (
+              <Link href="/credits#buy" className="text-accent hover:underline">
+                Get credits →
+              </Link>
             )}
           </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {BOOST.options.map((days) => {
-              const cost = days * BOOST.perDay;
-              return (
-                <button
-                  key={days}
-                  type="button"
-                  className="btn-ghost"
-                  disabled={pending || credits < cost}
-                  onClick={() => run(() => boostApp(app.id, app.slug, days))}
-                >
-                  {days} {days === 1 ? "day" : "days"} · ⚡{cost}
-                </button>
-              );
-            })}
-          </div>
-          <p className="mt-2 text-xs text-muted">You have ⚡{credits}.</p>
         </div>
       </div>
 

@@ -27,13 +27,18 @@ import {
   getComments,
   getFeedbackPanel,
   getMyApps,
+  getOwnProfile,
   getQuestions,
+  getSpotlightNextStart,
   getSwapPartners,
   getUpdates,
   getViewer,
   isFollowing,
+  isPro,
+  nowMs,
 } from "@/lib/data";
 import { formatCount, formatDuration, timeAgo } from "@/lib/format";
+import { SPOTLIGHT } from "@/lib/constants";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { Handle } from "@/components/Handle";
 
@@ -69,6 +74,13 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
   const rating = app.feedback_count ? (app.rating_sum / app.feedback_count).toFixed(1) : null;
   const isOwner = viewer?.id === app.owner_id;
   const status = appStatus(app);
+  const [nextSpotlightAt, ownProfile] =
+    isOwner || !isSupabaseConfigured
+      ? await Promise.all([getSpotlightNextStart(), isOwner ? getOwnProfile() : Promise.resolve(null)])
+      : [null, null];
+  const nextSpotlight = nextSpotlightAt
+    ? { at: nextSpotlightAt, waits: new Date(nextSpotlightAt).getTime() - nowMs() > 60_000 }
+    : null;
 
   return (
     <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-8 lg:grid-cols-[minmax(0,360px)_1fr]">
@@ -112,7 +124,7 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
                 Launching in <Countdown to={app.launch_at!} />
               </span>
             )}
-            {status.boostedUntil && <span className="tag-accent">Boosted</span>}
+            {status.boostedUntil && <span className="tag-accent">Spotlight</span>}
           </div>
           <h1 className="display mt-3 text-7xl break-words sm:text-8xl">{app.name}</h1>
           <p className="mt-1 text-lg text-muted">{app.tagline}</p>
@@ -190,6 +202,8 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
             app={{ id: app.id, slug: app.slug, name: app.name, launch_at: app.launch_at }}
             status={status}
             credits={viewer?.credits ?? 30}
+            spotlightCost={isPro(ownProfile) ? SPOTLIGHT.proCost : SPOTLIGHT.cost}
+            nextSpotlight={nextSpotlight}
             preview={!isSupabaseConfigured}
           >
             <ShareKit slug={app.slug} name={app.name} tagline={app.tagline} />

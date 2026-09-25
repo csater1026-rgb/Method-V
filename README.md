@@ -28,7 +28,7 @@ See [PLAN.md](PLAN.md) for the full product plan and build phases.
 - **Share kit:** an embeddable *Try it on Method V* badge (`/badge/<app>`, dark or light) with copy-paste HTML/Markdown, plus one-tap posts to X and LinkedIn.
 - **Swaps and co-launches:** from another builder's app page, tap *Team up* to swap shoutouts (each app shows the other under *Friends of*, up to 3) or launch on the same day. Requests are answered on `/swaps`.
 
-Builder tools (launch day, boosts, share kit) live in the *Grow* panel on your own app pages; in demo mode everyone sees a preview.
+Builder tools (launch day, the Spotlight, share kit) live in the *Grow* panel on your own app pages; in demo mode everyone sees a preview.
 
 **Phase 2 ("Connect") is built:**
 
@@ -56,7 +56,7 @@ Builder tools (launch day, boosts, share kit) live in the *Grow* panel on your o
 - **Boost Exchange, paid:** on another builder's app, *Make an offer* to sponsor it with one of your apps: a price per try ($0.10–$5) and a budget ($10–$1,000). When they accept, you pay the budget and a labeled **Sponsored** card for your app appears on their app page and their Drops. You're charged only for real tries: one per person, from accounts at least a day old, never either builder. The host earns 88% of each try. The deal ends when the budget runs out, or either side can end it and the unspent budget is refunded. Each app shows one sponsor at a time. Deals live on `/earn`.
 - **Challenges (`/challenges`):** sponsored prizes like "Best app built on Supabase". Builders enter their own apps (up to 3; the app must use the required stack or category). Everyone gets one vote per challenge, and new accounts can vote after their first day. The Method V team creates challenges and picks winners (see below).
 - **Earn (`/earn`):** your balance from tips and sponsored tries, *Set up payouts* (Stripe Connect Express) and *Cash out* from $5, your sponsorship deals, and history.
-- **Pro (`/pro`):** $6 for 30 days, not a subscription. You get tries per day for the last 30 days (including how many came from sponsor cards), a pinned app on your profile, boosts at ⚡5 a day instead of ⚡10, and a Pro badge.
+- **Pro (`/pro`):** $6 for 30 days, not a subscription. You get tries per day for the last 30 days (including how many came from sponsor cards), a pinned app on your profile, the Spotlight for ⚡15 instead of ⚡25, and a Pro badge.
 
 **Phase 5 ("Scale") is built:**
 
@@ -93,6 +93,7 @@ Open http://localhost:3000. With no Supabase keys the site runs in **demo mode**
 6. Optional, for tips, sponsorships, Pro and payouts: in [Stripe](https://dashboard.stripe.com), turn on **Connect** (Express accounts). Add a webhook endpoint at `https://<your site>/api/stripe/webhook` that listens to `checkout.session.completed` and `checkout.session.async_payment_succeeded`, and also to `account.updated` from **connected accounts**. Set `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` (the endpoint's signing secret). `SUPABASE_SECRET_KEY` must be set too. Payments stay off unless all three are set. To test locally, use Stripe's test keys and `stripe listen --forward-to localhost:3000/api/stripe/webhook`.
 7. Optional, push notifications (people turn them on themselves, and pick followers, feedback and messages): run `supabase/migrations/20261005000000_push.sql`. Open `https://<your site>/setup/push-keys`; it makes three values in your browser. In Vercel add `NEXT_PUBLIC_VAPID_PUBLIC_KEY` (Config), `VAPID_PRIVATE_KEY` (Secret) and `PUSH_WEBHOOK_SECRET` (Secret), then redeploy. In Supabase, **Database → Webhooks → Create a new hook**: table `push_queue`, event **Insert**, type **HTTP Request**, method **POST**, URL `https://<your site>/api/push/send`, and an HTTP header `x-push-secret` set to the same `PUSH_WEBHOOK_SECRET`. For the phone app, the EAS build needs push credentials: iOS is set up by `eas build` (let it create a push key), Android needs an FCM key (`eas credentials`, see Expo's push notification setup). If you turn on Expo's enhanced push security, also set `EXPO_ACCESS_TOKEN`. `/api/health` shows what's on.
 8. Run `supabase/migrations/20261006000000_reserved_handle.sql` once the Method V account is `@methodv`. It reserves that handle (drawn with the logo's pixel V) so nobody else can take it.
+9. Run `supabase/migrations/20261007000000_spotlight.sql`: the **Spotlight** replaces Boost (4 spots in the Featured row, 3 days each, ⚡25 or ⚡15 with Pro, first come first served with a line when they're all taken), and people can **buy credits** on `/credits` (25 for $5, 60 for $10, 150 for $20; needs the Stripe keys from the Earn setup). Credits can't be turned back into money, and they're sold on the website only.
 
 To run a challenge, add a row to the `challenges` table in the Supabase table editor: `slug`, `title`, `sponsor_name`, `prize`, `ends_at`, and optionally `body`, `sponsor_url`, `stack`, `category`, `starts_at`. To pick a winner, set `winner_entry_id` to the winning row in `challenge_entries`. Prizes are paid by the sponsor, outside Method V.
 
@@ -111,7 +112,7 @@ To deploy, import the repo into [Vercel](https://vercel.com) and add the same en
 | "Try it" button: records the try, then sends people to the app | `src/app/try/[slug]/route.ts` |
 | Test & earn queue `/test`, credits `/credits`, feedback on app pages | `src/app/test/`, `src/app/credits/`, `src/components/FeedbackPanel.tsx` |
 | Tester Passport and top testers | `src/components/Passport.tsx` |
-| Grow panel (launch day, boosts), share kit, badge | `src/components/GrowPanel.tsx`, `src/components/ShareKit.tsx`, `src/app/badge/[slug]/route.ts` |
+| Grow panel (launch day, the Spotlight), share kit, badge | `src/components/GrowPanel.tsx`, `src/components/ShareKit.tsx`, `src/app/badge/[slug]/route.ts` |
 | Build-in-public updates | `src/components/Updates.tsx` |
 | Swaps and co-launches | `src/components/Swaps.tsx`, `src/app/swaps/` |
 | Inbox, notifications, messages, connect | `src/app/inbox/`, `src/components/Inbox.tsx`, `src/components/ConnectButton.tsx` |

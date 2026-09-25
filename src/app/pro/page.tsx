@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { BuyPro, PinApp } from "@/components/Earn";
 import { Wordmark } from "@/components/Wordmark";
-import { BOOST, EARN, formatCents } from "@/lib/constants";
+import { EARN, SPOTLIGHT, formatCents } from "@/lib/constants";
 import { getMyApps, getOwnProfile, getViewer, isPro } from "@/lib/data";
 import { demoApps, demoProfiles } from "@/lib/demo";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
@@ -13,7 +13,7 @@ export const metadata: Metadata = { title: "Pro" };
 const PERKS = [
   { title: "Stats for 30 and 90 days", body: "Tries, likes and feedback per day, where tries come from, and CSV export." },
   { title: "A pinned app", body: "Put your best app first on your profile, with a Pinned label." },
-  { title: "Half-price boosts", body: `Boosts cost ⚡${EARN.pro.boostPerDay} a day instead of ⚡${BOOST.perDay}.` },
+  { title: "A cheaper Spotlight", body: `Book the Spotlight for ⚡${SPOTLIGHT.proCost} instead of ⚡${SPOTLIGHT.cost}.` },
   { title: "A Pro badge", body: "Next to your name on your profile." },
 ];
 

@@ -6,6 +6,7 @@ import { useState, useTransition } from "react";
 
 import {
   backApp,
+  buyCredits,
   buyPro,
   cashOut,
   endSponsorship,
@@ -16,7 +17,7 @@ import {
   respondSponsorship,
   setUpPayouts,
 } from "@/app/actions";
-import { EARN, formatCents } from "@/lib/constants";
+import { CREDIT_PACKS, EARN, formatCents } from "@/lib/constants";
 import type { ActionResult, Sponsorship } from "@/lib/types";
 
 import { useSignIn } from "./SignIn";
@@ -420,6 +421,36 @@ export function BuyPro({ label }: { label: string }) {
         {checkout.pending ? "Opening checkout…" : label}
       </button>
       {checkout.error && <p className="text-sm text-danger">{checkout.error}</p>}
+    </div>
+  );
+}
+
+// Credit packs on /credits, paid with Stripe.
+export function BuyCredits() {
+  const checkout = useCheckout();
+  return (
+    <div>
+      <ul className="grid gap-3 sm:grid-cols-3">
+        {CREDIT_PACKS.map((p) => (
+          <li key={p.credits}>
+            <button
+              type="button"
+              className="flex w-full flex-col items-start gap-1 rounded-xl border border-line bg-surface p-4 text-left transition hover:border-accent disabled:opacity-60"
+              disabled={checkout.pending}
+              onClick={() => checkout.go(() => buyCredits(p.credits))}
+            >
+              <span className="font-mono text-3xl font-bold">
+                <span className="text-accent">⚡</span>
+                {p.credits}
+              </span>
+              <span className="font-semibold">{formatCents(p.cents)}</span>
+              {"note" in p && <span className="tag-accent">{p.note}</span>}
+            </button>
+          </li>
+        ))}
+      </ul>
+      {checkout.pending && <p className="mt-2 text-sm text-muted">Opening checkout…</p>}
+      {checkout.error && <p className="mt-2 text-sm text-danger">{checkout.error}</p>}
     </div>
   );
 }

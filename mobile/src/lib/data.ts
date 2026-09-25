@@ -141,7 +141,7 @@ async function likedIds(viewerId: string | null, dropIds: string[]): Promise<Set
 // Reads
 // ---------------------------------------------------------------------------
 
-// Home: Featured (picked by the team, launching today, or boosted, else
+// Home: Featured (picked by the team, launching today, or in the Spotlight, else
 // what's hot this month), builders to follow, then the newest projects.
 // Everything else is on Browse.
 export async function getHome(
@@ -170,7 +170,10 @@ export async function getHome(
     viewerId ? supabase.rpc("suggest_builders", { p_limit: SUGGESTION_LIMIT }) : Promise.resolve({ data: [] }),
     supabase.from("apps").select(CARD_SELECT).not("link_checked_at", "is", null).order("created_at", { ascending: false }).limit(10),
   ]);
-  let top = (featured.data ?? []).map(toCard);
+  // A Spotlight booked for later (waiting in line) isn't on yet.
+  const at = (t: string | null) => (t ? new Date(t).getTime() : 0);
+  const onNow = (r: any) => at(r.featured_until) > Date.now() || !r.boosted_from || at(r.boosted_from) <= Date.now();
+  let top = (featured.data ?? []).filter(onNow).map(toCard);
   if (top.length === 0) {
     const since = new Date(Date.now() - 30 * DAY).toISOString();
     const { data } = await supabase

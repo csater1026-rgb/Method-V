@@ -30,6 +30,8 @@ export const CREDIT_REASONS: Record<string, string> = {
   testers_refunded: "Unused tester spots refunded",
   streak_bonus: "4-week testing streak",
   boost: "Boosted an app",
+  spotlight: "Booked the Spotlight",
+  credit_pack: "Bought credits",
 };
 
 // Tester Passport ranks. Must match public.tester_rank() in
@@ -61,7 +63,18 @@ export const CONNECT_REASONS = [
   { slug: "fan", label: "Just a fan" },
 ] as const;
 
-export const BOOST = { perDay: 10, maxDays: 7, options: [1, 3, 7] } as const;
+// The Spotlight: 4 spots in the Featured row, 3 days each, first come first
+// served with a line when they're all taken. Must match book_spotlight() in
+// supabase/migrations/20261007000000_spotlight.sql.
+export const SPOTLIGHT = { slots: 4, days: 3, cost: 25, proCost: 15 } as const;
+
+// Credits you can buy on the website (never turned back into money). Must
+// match public.credit_packs().
+export const CREDIT_PACKS = [
+  { credits: 25, cents: 500 },
+  { credits: 60, cents: 1000, note: "20% more" },
+  { credits: 150, cents: 2000, note: "Best value" },
+] as const;
 
 export const CATEGORIES = [
   { slug: "ai", label: "AI tools" },
@@ -125,7 +138,7 @@ export function isOneOf<T extends Option>(list: readonly T[], value: unknown): v
 export const EARN = {
   tip: { min: 100, max: 50000, feePercent: 5, presets: [300, 500, 1000, 2500] },
   sponsor: { minPrice: 10, maxPrice: 500, minBudget: 1000, maxBudget: 100000, minTries: 10, feePercent: 12, maxRunning: 3 },
-  pro: { price: 600, days: 30, boostPerDay: 5 },
+  pro: { price: 600, days: 30 },
   payoutMin: 500,
 } as const;
 

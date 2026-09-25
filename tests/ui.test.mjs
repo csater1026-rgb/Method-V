@@ -371,7 +371,7 @@ await run("launch days + boosts", desktop, async (page) => {
   await go(page, "/");
   const featured = page.getByRole("region", { name: "Featured apps" });
   const labels = await featured.locator("article .tag-accent").allTextContents();
-  ok(labels.some((l) => l.startsWith("Launch day")) && labels.some((l) => l.startsWith("Boosted")), `Featured row includes launch-day and boosted apps (${labels.join(" | ")})`);
+  ok(labels.some((l) => l.startsWith("Launch day")) && labels.some((l) => l.startsWith("Spotlight")), `Featured row includes launch-day and Spotlight apps (${labels.join(" | ")})`);
   await go(page, "/browse");
   const soon = page.getByRole("region", { name: "Upcoming launches" });
   ok((await soon.locator("li").count()) === 1 && (await soon.textContent()).includes("QuizPop"), "Launching soon lists QuizPop");
@@ -381,18 +381,22 @@ await run("launch days + boosts", desktop, async (page) => {
 
   await go(page, "/apps/quizpop");
   ok(await page.getByText(/^Launching in/).first().isVisible(), "app page shows the launch countdown");
-  ok(await page.locator(".tag-accent", { hasText: "Boosted" }).isVisible(), "app page shows Boosted");
+  ok(await page.locator(".tag-accent", { hasText: "Spotlight" }).isVisible(), "app page shows it's in the Spotlight");
   const grow = page.getByRole("region", { name: "Grow" });
   ok(await grow.getByText("Builder tools · preview in demo mode").isVisible(), "Grow panel preview in demo mode");
-  await grow.getByRole("button", { name: /3 days/ }).click();
-  await grow.getByText("Method V is running in demo mode").waitFor({ timeout: 5000 });
-  ok(true, "boost button explains demo mode");
-  await grow.screenshot({ path: OUT + "grow-panel.png" });
+  ok(await grow.getByText(/is in the Spotlight for another/).isVisible(), "Grow panel counts down the Spotlight");
+  ok((await grow.getByRole("button", { name: /Book the Spotlight/ }).count()) === 0, "no second booking while it's on");
 
   await go(page, "/apps/splitsy");
   ok(await page.getByRole("region", { name: "Grow" }).getByText("It's launch day!").isVisible(), "launch-day state on the app page");
   await go(page, "/apps/noteflow");
-  ok(await page.getByRole("region", { name: "Grow" }).getByLabel("Launch date and time").isVisible(), "unscheduled app offers a launch date picker");
+  const growNote = page.getByRole("region", { name: "Grow" });
+  ok(await growNote.getByLabel("Launch date and time").isVisible(), "unscheduled app offers a launch date picker");
+  ok(await growNote.getByText("A spot is free: it starts right away.").isVisible(), "Spotlight says when it would start");
+  await growNote.getByRole("button", { name: "Book the Spotlight · ⚡25" }).click();
+  await growNote.getByText("Method V is running in demo mode").waitFor({ timeout: 5000 });
+  ok(true, "booking the Spotlight explains demo mode");
+  await growNote.screenshot({ path: OUT + "grow-panel.png" });
 });
 
 await run("build in public", desktop, async (page) => {
@@ -633,6 +637,13 @@ await run("test & earn (phone)", phone, async (page) => {
 await run("credits", phone, async (page) => {
   await go(page, "/credits");
   ok(await page.getByText("How credits work").isVisible(), "credits page explains the rules");
+  const buy = page.getByRole("region", { name: "Buy credits" });
+  const packs = (await buy.locator("li button").allTextContents()).map((t) => t.replace(/\s+/g, " "));
+  ok(packs.length === 3 && packs[0].includes("25") && packs[0].includes("$5") && packs[2].includes("$20"), `three credit packs (${packs.join(" | ")})`);
+  await buy.locator("li button").first().click();
+  await buy.locator(".text-danger").waitFor({ timeout: 5000 });
+  ok(true, `buying explains what's missing (${await buy.locator(".text-danger").textContent()})`);
+  await noSideScroll(page, "credits with packs");
 });
 
 await run("+ opens the camera/library", phone, async (page) => {

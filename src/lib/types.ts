@@ -51,9 +51,11 @@ export type App = {
   feedback_count: number;
   would_use_yes_count: number;
   rating_sum: number;
-  // Launch day starts at launch_at and lasts 24 hours; boosted until boosted_until.
+  // Launch day starts at launch_at and lasts 24 hours. In the Spotlight from
+  // boosted_from (null for old Boosts: already on) until boosted_until.
   launch_at: string | null;
   boosted_until: string | null;
+  boosted_from?: string | null;
   backer_count: number;
   created_at: string;
 };
