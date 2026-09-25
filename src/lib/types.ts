@@ -309,6 +309,7 @@ export type PackageDeal = {
   proof_url: string | null;
   problem: string;
   card_until: string | null;
+  payment_id: string | null;
   created_at: string;
   paid_at: string | null;
   delivered_at: string | null;

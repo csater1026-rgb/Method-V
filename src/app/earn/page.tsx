@@ -40,8 +40,12 @@ export default async function EarnPage({ searchParams }: PageProps<"/earn">) {
     if (admin) {
       // Back from Stripe onboarding: read the account now instead of waiting for the webhook.
       if (params.setup === "done") await syncPayoutAccount(admin, viewer.id);
-      // Refunds those steps (or an earlier failed try) marked get sent.
-      await settleRefunds(admin, {});
+      // Refunds those steps (or an earlier failed try) marked get sent: your own
+      // payments, and the ones on deals you're part of (so a builder opening
+      // Earn also sends an expired request's refund to its sponsor).
+      await settleRefunds(admin, { userId: viewer.id });
+      const dealPayments = packageDeals.map((d) => d.payment_id).filter((id): id is string => Boolean(id));
+      if (dealPayments.length > 0) await settleRefunds(admin, { paymentIds: dealPayments });
     }
     [earnings, deals] = await Promise.all([getEarnings(viewer), getMySponsorships(viewer)]);
   }

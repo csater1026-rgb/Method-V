@@ -22,7 +22,7 @@ import {
   demoUpdates,
 } from "./demo";
 import { SIGNALS, bumpInterest, mergeInterests, rankFeed, rankQuestions, type Interests } from "./interests";
-import { SUGGESTION_LIMIT, topUpSuggestions } from "./suggest";
+import { SUGGESTION_LIMIT, setUpFirst, topUpSuggestions } from "./suggest";
 import { isSupabaseConfigured, publicFileUrl } from "./supabase/env";
 import { createClient } from "./supabase/server";
 import type {
@@ -1369,7 +1369,7 @@ export async function getSuggestions(viewer: Viewer | null): Promise<Suggestion[
     .neq("id", viewer.id)
     .order("created_at", { ascending: false })
     .limit(40);
-  const newest = (fresh ?? []).map((r) => ({ ...toSummary(r), shared_categories: [], shared_skills: [] }));
+  const newest = setUpFirst((fresh ?? []).map((r) => ({ ...toSummary(r), shared_categories: [], shared_skills: [] })));
   if (newest.length === 0) return matched;
   const { data: followed } = await supabase
     .from("follows")
@@ -1507,7 +1507,7 @@ export async function getMyPackageDeals(viewer: Viewer): Promise<PackageDeal[]> 
   const { data, error } = await supabase
     .from("package_deals")
     .select(
-      `id, kind, status, price_cents, fee_cents, brief, proof_url, problem, card_until, created_at, paid_at, delivered_at, sponsor_user,
+      `id, kind, status, price_cents, fee_cents, brief, proof_url, problem, card_until, payment_id, created_at, paid_at, delivered_at, sponsor_user,
        host:apps!package_deals_host_app_fkey(slug, name),
        sp_app:apps!package_deals_sponsor_app_fkey(slug, name),
        sp_brand:brands!package_deals_sponsor_brand_fkey(slug, name),
@@ -1529,6 +1529,7 @@ export async function getMyPackageDeals(viewer: Viewer): Promise<PackageDeal[]> 
       proof_url: r.proof_url,
       problem: r.problem ?? "",
       card_until: r.card_until,
+      payment_id: r.payment_id ?? null,
       created_at: r.created_at,
       paid_at: r.paid_at,
       delivered_at: r.delivered_at,

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { settleRefunds } from "@/lib/payments";
-import { isStripeConfigured, webhookSecrets } from "@/lib/stripe";
+import { connectWebhookSecret, isStripeConfigured, webhookSecret } from "@/lib/stripe";
 import { verifyStripeSignature } from "@/lib/stripe-core";
 import { createAdminClient } from "@/lib/supabase/server";
 
@@ -20,14 +20,18 @@ export async function POST(request: Request) {
 
   const payload = await request.text();
   const signature = request.headers.get("stripe-signature");
-  if (!webhookSecrets.some((secret) => verifyStripeSignature(payload, signature, secret))) {
+  // Your own account's destination: payments and payout accounts. The
+  // connected-accounts destination: payout accounts only, never payments.
+  const fromPlatform = verifyStripeSignature(payload, signature, webhookSecret);
+  const fromConnect = !fromPlatform && verifyStripeSignature(payload, signature, connectWebhookSecret);
+  if (!fromPlatform && !fromConnect) {
     return new NextResponse("Bad signature", { status: 400 });
   }
 
   const event = JSON.parse(payload) as StripeEvent;
   const obj = event.data.object;
 
-  if (event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded") {
+  if (fromPlatform && (event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded")) {
     if (obj.payment_status !== "paid") return NextResponse.json({ received: true });
     const paymentId = (obj.metadata as Record<string, string> | null)?.payment_id;
     if (!paymentId) return NextResponse.json({ received: true });

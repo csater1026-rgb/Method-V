@@ -342,7 +342,11 @@ export function PackageDealCard({ deal }: { deal: PackageDeal }) {
           <button type="button" className="btn-accent" disabled={pending} onClick={() => run(() => approvePackage(deal.id))}>
             Approve · pay the builder
           </button>
-          <span className="text-xs text-muted">Approved by itself after {PACKAGE_RULES.approveDays} days.</span>
+          <span className="text-xs text-muted">
+            {deal.kind === "card"
+              ? `Approved by itself when the card's ${PACKAGE_RULES.cardDays} days end.`
+              : `Approved by itself after ${PACKAGE_RULES.approveDays} days.`}
+          </span>
         </div>
       )}
       {!host && (deal.status === "accepted" || deal.status === "delivered") && (

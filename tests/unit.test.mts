@@ -16,7 +16,7 @@ import { deadExpoTokens, isExpoToken, secretMatches, toMessage } from "../src/li
 import webpush from "web-push";
 import { pushTarget } from "../src/lib/push-route.ts";
 import { bumpInterest, mergeInterests, parseInterests, rankFeed, serializeInterests } from "../src/lib/interests.ts";
-import { topUpSuggestions } from "../src/lib/suggest.ts";
+import { setUpFirst, topUpSuggestions } from "../src/lib/suggest.ts";
 import { EMAIL_TEMPLATES } from "../src/lib/email-templates.ts";
 import { isOpenPath, welcomeUrl } from "../src/lib/gate.ts";
 
@@ -206,6 +206,8 @@ ok(JSON.stringify(pushTarget("https://evil.example")) === '{"screen":"/"}' && JS
   ok(ids(topUpSuggestions([], [p("me"), p("b"), p("c")], ["me"])) === "b,c", "no one in common yet → newest builders, never yourself");
   ok(ids(topUpSuggestions([p("a")], [p("a"), p("b"), p("c")], ["me", "c"])) === "a,b", "matches first, no repeats, skips people you follow");
   ok(topUpSuggestions([], Array.from({ length: 20 }, (_, i) => p(`n${i}`)), []).length === 8, "at most 8 suggestions");
+  const people = ["builder_3f9a1c2b7d", "june_designs", "builder_aaaaaaaaaa", "methodv"].map((username) => ({ username }));
+  ok(setUpFirst(people).map((x) => x.username).join() === "june_designs,methodv,builder_3f9a1c2b7d,builder_aaaaaaaaaa", "builders with a real username come before brand-new placeholder accounts (which still show)");
 }
 
 // Method V's sign-in emails (pasted into Supabase from /setup/emails).

@@ -37,7 +37,7 @@ import type {
 } from "@shared/types";
 
 import { SIGNALS, bumpInterest, mergeInterests, rankFeed, rankQuestions, type Interests } from "@shared/interests";
-import { SUGGESTION_LIMIT, topUpSuggestions } from "@shared/suggest";
+import { SUGGESTION_LIMIT, setUpFirst, topUpSuggestions } from "@shared/suggest";
 
 import { DEMO_MESSAGE, DROPS_BUCKET, SITE_URL, SUPABASE_KEY, SUPABASE_URL, fileUrl } from "./config";
 import { fail, friendly, ok, type Result } from "./result";
@@ -166,6 +166,9 @@ export async function getHome(
       .select(CARD_SELECT)
       .not("link_checked_at", "is", null)
       .or(`featured_until.gt.${now},boosted_until.gt.${now}`)
+      // Hand-picked first, then Spotlights ending soonest (the ones on now),
+      // so bookings still waiting in line don't take the 10 places.
+      .order("boosted_until", { ascending: true, nullsFirst: true })
       .limit(10),
     viewerId ? supabase.rpc("suggest_builders", { p_limit: SUGGESTION_LIMIT }) : Promise.resolve({ data: [] }),
     supabase.from("apps").select(CARD_SELECT).not("link_checked_at", "is", null).order("created_at", { ascending: false }).limit(10),
@@ -205,7 +208,7 @@ export async function getHome(
       .neq("id", viewerId)
       .order("created_at", { ascending: false })
       .limit(40);
-    const newestPeople = ((fresh ?? []) as any[]).map((r) => ({ ...toSummary(r), shared_categories: [], shared_skills: [] }));
+    const newestPeople = setUpFirst(((fresh ?? []) as any[]).map((r) => ({ ...toSummary(r), shared_categories: [], shared_skills: [] })));
     if (newestPeople.length > 0) {
       const { data: followed } = await supabase
         .from("follows")

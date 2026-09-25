@@ -136,8 +136,7 @@ as $$
 $$;
 
 alter table public.payments drop constraint if exists payments_kind_check;
--- 'package' is added by 20261008000000_sponsor_packages.sql; listed here so running this file again is safe.
-alter table public.payments add constraint payments_kind_check check (kind in ('tip', 'sponsorship', 'pro', 'credits', 'package'));
+alter table public.payments add constraint payments_kind_check check (kind in ('tip', 'sponsorship', 'pro', 'credits'));
 
 create or replace function public.prepare_payment(
   p_kind text, p_ref uuid default null, p_amount integer default null,

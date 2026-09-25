@@ -8,13 +8,23 @@ import { formEncode, type StripeParams } from "./stripe-core";
 
 const secretKey = process.env.STRIPE_SECRET_KEY ?? "";
 // Stripe sends your own payments and your builders' payout accounts to two
-// separate webhook destinations, each with its own signing secret.
-export const webhookSecrets = [process.env.STRIPE_WEBHOOK_SECRET ?? "", process.env.STRIPE_CONNECT_WEBHOOK_SECRET ?? ""].filter(Boolean);
-export const isStripeConfigured = Boolean(secretKey && process.env.STRIPE_WEBHOOK_SECRET);
+// separate webhook destinations, each with its own signing secret. Only the
+// first (your account) may complete payments; the second only updates payout
+// accounts.
+export const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET ?? "";
+export const connectWebhookSecret = process.env.STRIPE_CONNECT_WEBHOOK_SECRET ?? "";
+export const isStripeConfigured = Boolean(secretKey && webhookSecret);
 
 export const PAYMENTS_OFF_MESSAGE = "Payments aren't switched on for this site yet.";
 
-export class StripeError extends Error {}
+export class StripeError extends Error {
+  // Stripe's error code, e.g. "charge_already_refunded".
+  code?: string;
+  constructor(message: string, code?: string) {
+    super(message);
+    this.code = code;
+  }
+}
 
 async function stripe<T>(method: "GET" | "POST", path: string, params?: StripeParams, idempotencyKey?: string): Promise<T> {
   if (!isStripeConfigured) throw new StripeError(PAYMENTS_OFF_MESSAGE);
@@ -30,10 +40,10 @@ async function stripe<T>(method: "GET" | "POST", path: string, params?: StripePa
   if (idempotencyKey) headers["Idempotency-Key"] = idempotencyKey;
 
   const res = await fetch(url, { method, headers, body, cache: "no-store", signal: AbortSignal.timeout(15_000) });
-  const json = (await res.json().catch(() => ({}))) as T & { error?: { message?: string } };
+  const json = (await res.json().catch(() => ({}))) as T & { error?: { message?: string; code?: string } };
   if (!res.ok) {
     console.error("Stripe error", path, res.status, json.error?.message);
-    throw new StripeError("The payment service had a problem. Try again in a moment.");
+    throw new StripeError("The payment service had a problem. Try again in a moment.", json.error?.code);
   }
   return json;
 }

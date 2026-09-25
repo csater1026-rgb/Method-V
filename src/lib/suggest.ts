@@ -21,3 +21,13 @@ export function topUpSuggestions<T extends { id: string }>(
   }
   return out;
 }
+
+// New accounts start as builder_<10 characters> until they pick a username.
+const PLACEHOLDER = /^builder_[0-9a-f]{10}$/;
+
+// Newest builders to fill with, the ones who've set up a profile first (a
+// real username); brand-new placeholder accounts go last, not away, so a
+// young site still shows everyone.
+export function setUpFirst<T extends { username: string }>(people: T[]): T[] {
+  return [...people.filter((p) => !PLACEHOLDER.test(p.username)), ...people.filter((p) => PLACEHOLDER.test(p.username))];
+}

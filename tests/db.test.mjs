@@ -10,7 +10,7 @@ import { readdirSync, readFileSync } from "node:fs";
 const migrationsDir = new URL("../supabase/migrations/", import.meta.url);
 // Sponsorship packages replace pay-per-try offers, so they're applied after
 // the per-try tests (which still check deals already running).
-const LATE = ["20261008000000_sponsor_packages.sql"];
+const LATE = ["20261008000000_sponsor_packages.sql", "20261009000000_review_fixes.sql"];
 const migrations = readdirSync(migrationsDir)
   .filter((f) => f.endsWith(".sql") && !LATE.includes(f))
   .sort()
@@ -54,6 +54,25 @@ const ok = (cond, msg) => {
   console.log(`${cond ? "PASS" : "FAIL"} ${msg}`);
   if (!cond) failures++;
 };
+
+// Each of the newest migrations is safe to run twice in a row (people paste
+// them twice). Files are run in order, so this is checked where each one sits.
+async function runAgain(files) {
+  const failed = [];
+  for (const f of files) {
+    try {
+      await db.exec(readFileSync(new URL(f, migrationsDir), "utf8"));
+    } catch (e) {
+      failed.push(`${f}: ${e.message}`);
+    }
+  }
+  return failed;
+}
+{
+  const newest = readdirSync(migrationsDir).filter((f) => f >= "20261001000000" && f.endsWith(".sql") && !LATE.includes(f)).sort();
+  const failed = await runAgain(newest);
+  ok(failed.length === 0 && newest.length === 7, `the newest migrations are safe to run twice (${failed.join("; ") || newest.join(", ")})`);
+}
 
 async function as(role, uid, sql, params) {
   await db.exec(`reset role; select set_config('request.jwt.claim.sub', '${uid ?? ""}', false);`);
@@ -953,6 +972,10 @@ ok(!!(await fails("anon", null, "insert into public.sponsorships (sponsor_brand,
 // the work is done.
 {
   for (const f of LATE) await db.exec(readFileSync(new URL(f, migrationsDir), "utf8"));
+  {
+    const failed = await runAgain(LATE);
+    ok(failed.length === 0, `sponsorship packages and the review fixes are safe to run twice (${failed.join("; ") || "clean"})`);
+  }
   ok(String(await fails("authenticated", J, "select public.offer_sponsorship($1, $2, 50, 2000)", [sponsorApp, hostApp])).includes("packages"), "pay-per-try offers point to packages now");
   const pkgApp = await makeApp(H, "pkg-host");
   const setPkg = (uid, kind, price, active = true) =>
@@ -1051,21 +1074,65 @@ ok(!!(await fails("anon", null, "insert into public.sponsorships (sponsor_brand,
   ok((await bal(H)) - beforePro === 9300, "Pro builders keep 93%");
   ok(!!(await fails("authenticated", J, "update public.package_deals set status = 'completed' where id = $1", [pro])), "nobody changes deals directly");
   ok((await as("authenticated", F, "select count(*)::int n from public.package_deals")).rows[0].n === 0, "deals are private to the two sides");
+
+  // Picking several packages and then paying for them all can't get past 3 open at once.
+  await db.query("update public.package_deals set created_at = now() - interval '2 days' where sponsor_user = $1", [J]);
+  await db.query("update public.profiles set pro_until = null where id = $1", [J]);
+  await setPkg(H, "site", 4000);
+  await setPkg(H, "drop", 3000);
+  const picks = [];
+  for (const kind of ["video", "card", "site", "drop"]) picks.push((await request(J, kind)).rows[0].id);
+  for (const id of picks.slice(0, 3)) await payFor(id);
+  ok(
+    String(await fails("authenticated", J, "select public.prepare_payment('package', $1)", [picks[3]])).includes("as many sponsorships"),
+    "a 4th open package can't be paid for",
+  );
+  ok(String(await fails("authenticated", J, "select public.request_package($1, 'video', $2, null, '')", [pkgApp, sponsorApp])).includes("as many sponsorships"), "or even picked while 3 are open");
+
+  // Opening 4 checkouts first and paying them all: the one past the limit is refunded.
+  await db.query("update public.package_deals set status = 'completed' where sponsor_user = $1 and status = 'requested'", [J]);
+  await db.query("update public.package_deals set created_at = now() - interval '2 days' where sponsor_user = $1", [J]);
+  const rush = [];
+  for (const kind of ["video", "card", "site", "drop"]) rush.push((await request(J, kind)).rows[0].id);
+  const rushPays = [];
+  for (const id of rush) rushPays.push((await prep(J, "package", id, null)).rows[0].id);
+  for (const [i, pay] of rushPays.entries()) {
+    const amount = (await db.query("select amount_cents from public.payments where id = $1", [pay])).rows[0].amount_cents;
+    await as("service_role", null, "select public.complete_payment($1, $2, $3, $4)", [pay, `cs_rush${i}`, amount, `pi_rush${i}`]);
+  }
+  const rushStatus = await Promise.all(rush.map(status));
+  const refund4 = (await db.query("select refund_cents, amount_cents from public.payments where id = $1", [rushPays[3]])).rows[0];
+  ok(
+    rushStatus.join() === "requested,requested,requested,cancelled" && refund4.refund_cents === refund4.amount_cents,
+    `checkouts paid past the limit are cancelled and refunded in full (${rushStatus.join()})`,
+  );
+
+  // Boosts bought before the Spotlight keep their spot.
+  const boosted = await makeApp(B, "old-boost");
+  await db.query(dropSql, [boosted, B, `${B}/boost.mp4`, 20]);
+  await db.query("update public.apps set boosted_until = now() + interval '5 days', boosted_from = null where id = $1", [boosted]);
+  await db.query("insert into public.credit_events (user_id, delta, reason) values ($1, 30, 'welcome')", [B]);
+  await db.query("delete from public.spotlights where user_id = $1", [B]);
+  ok(String(await fails("authenticated", B, "select public.book_spotlight($1)", [boosted])).includes("boosted until"), "a Boost still running isn't overwritten by a Spotlight booking");
+  await db.query("delete from public.spotlights");
+  for (const hours of [24, 48, 60]) {
+    await db.query("insert into public.spotlights (app_id, user_id, cost, starts_at, ends_at) values ($1, $2, 0, now() - interval '1 hour', now() + make_interval(hours => $3))", [pkgApp, H, hours]);
+  }
+  ok((await as("anon", null, "select public.spotlight_next_start() > now() + interval '20 hours' as later")).rows[0].later, "Boosts still running take one of the 4 spots");
+  await db.query("delete from public.spotlights where cost = 0");
+
+  // @methodv: reserved when signed in, but Method V can give it out from the SQL Editor.
+  const handleNow = (await db.query("select username from public.profiles where id = $1", [B])).rows[0].username;
+  ok(String(await fails("authenticated", B, "update public.profiles set username = 'methodv' where id = $1", [B])).includes("reserved"), "still reserved for people signing in");
+  await db.query("update public.profiles set username = 'methodv' where id = $1", [B]);
+  ok((await db.query("select username from public.profiles where id = $1", [B])).rows[0].username === "methodv", "the SQL Editor can still give out @methodv (fresh setups)");
+  await db.query("update public.profiles set username = $2 where id = $1", [B, handleNow]);
 }
 
-// The newest migrations can be run again without errors (people paste them twice).
+// The newest migration can be run again later, with real data in the tables.
 {
-  const again = readdirSync(migrationsDir).filter((f) => f >= "20261001000000").sort();
-  let clean = true;
-  for (const f of again) {
-    try {
-      await db.exec(readFileSync(new URL(f, migrationsDir), "utf8"));
-    } catch (e) {
-      clean = false;
-      console.log(`  ${f}: ${e.message}`);
-    }
-  }
-  ok(clean && again.length === 8, `the newest migrations are safe to run twice (${again.join(", ")})`);
+  const failed = await runAgain(LATE);
+  ok(failed.length === 0, `the newest migrations can be run again with data in place (${failed.join("; ") || LATE.join(", ")})`);
 }
 
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");

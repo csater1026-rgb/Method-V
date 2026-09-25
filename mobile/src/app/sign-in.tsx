@@ -34,6 +34,12 @@ export default function SignInScreen() {
     if (Platform.OS === "ios" && AUTH_PROVIDERS.includes("apple")) void AppleAuthentication.isAvailableAsync().then(setAppleReady);
   }, []);
 
+  // Signed in from the first screen: Home only opens up once the session is
+  // set (the rest of the app is protected until then), so go there now.
+  useEffect(() => {
+    if (isLive && auth.session && !router.canGoBack()) router.replace("/");
+  }, [auth.session, router]);
+
   const input = { borderWidth: 1, borderColor: t.line, backgroundColor: t.surface, color: t.ink, borderRadius: 8, paddingHorizontal: 12, minHeight: 48, fontFamily: fonts.body, fontSize: 17 } as const;
 
   async function run(key: string, action: () => Promise<{ ok: boolean; error?: string; data?: unknown }>) {
@@ -45,9 +51,9 @@ export default function SignInScreen() {
     if (r.data === "check-email") return setAwaiting("signup");
     if (r.data === "cancelled") return;
     if (r.data === "sent") return setAwaiting("email");
-    // Opened as the first screen (signed out), there's nothing to go back to.
+    // Opened as a sheet: close it. Opened as the first screen (signed out),
+    // the effect below opens Home once the new session is in place.
     if (router.canGoBack()) router.back();
-    else router.replace("/");
   }
 
   if (awaiting) {
