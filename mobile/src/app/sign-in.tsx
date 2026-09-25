@@ -45,7 +45,9 @@ export default function SignInScreen() {
     if (r.data === "check-email") return setAwaiting("signup");
     if (r.data === "cancelled") return;
     if (r.data === "sent") return setAwaiting("email");
-    router.back();
+    // Opened as the first screen (signed out), there's nothing to go back to.
+    if (router.canGoBack()) router.back();
+    else router.replace("/");
   }
 
   if (awaiting) {
@@ -85,8 +87,12 @@ export default function SignInScreen() {
   return (
     <Wrap t={t}>
       <PixelCoder size={88} />
-      <Display size={42}>{mode === "signup" ? "Join Method V" : "Sign in to Method V"}</Display>
-      {!isLive && <Body muted>{DEMO_MESSAGE}</Body>}
+      <Display size={42}>{mode === "signup" ? "Join Method V" : "Log in or create an account"}</Display>
+      {isLive ? (
+        <Body muted>Method V is for members. Sign in to see the apps, or join free in a minute.</Body>
+      ) : (
+        <Body muted>{DEMO_MESSAGE}</Body>
+      )}
 
       {(appleReady || AUTH_PROVIDERS.includes("google")) && (
         <View style={{ gap: 10 }}>
