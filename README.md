@@ -67,6 +67,8 @@ Builder tools (launch day, the Spotlight, share kit) live in the *Grow* panel on
 
 **Native app (in progress):** the iPhone and Android app lives in [`mobile/`](mobile/README.md) and is built with Expo. It has Home, the Drops feed, posting with the camera, Browse, app pages, profiles and sign-in. Store builds run on EAS, so no Mac is needed. See `mobile/README.md` to run it or ship it.
 
+**Members only:** on the live site, signed-out visitors land on the welcome page (`/login`: log in or create an account, then a short "What's on Method V"), and go back to the page they wanted after signing in. Sign-in, webhooks, APIs, embeds, badges, Try-it links, icons and setup pages stay open; the list is in `src/lib/gate.ts`. Demo mode (no Supabase keys) has no wall.
+
 **Sign in, on the website and in the app:** email and password (sign in or create an account), Google and Apple (plus GitHub on the website), or an emailed link or code. The emailed option is also "forgot password", and you can set a new password under Edit profile. It's one account everywhere.
 
 Payments are off until Stripe is connected (step 6 below). Until then offers and challenges still work, and anything that takes money says payments aren't switched on.

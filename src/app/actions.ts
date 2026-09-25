@@ -86,8 +86,18 @@ export async function signIn(_prev: SignInState, formData: FormData): Promise<Si
     email,
     options: { emailRedirectTo: `${await siteOrigin()}/auth/callback?next=${encodeURIComponent(next)}` },
   });
-  if (error) return { status: "error", error: error.message };
+  if (error) {
+    console.error("sign-in email failed", error.message);
+    return { status: "error", error: emailError(error.message) };
+  }
   return { status: "sent", email };
+}
+
+// Supabase's errors when it can't send an email, in words people can act on.
+function emailError(message: string): string {
+  if (/rate limit|too many|seconds/i.test(message)) return "Too many emails asked for. Wait a minute, then try again.";
+  if (/sending|smtp|email/i.test(message)) return "We couldn't send the email just now. Try again in a minute, or sign in with your password.";
+  return message;
 }
 
 // Email + password: "signin" or "signup" (the form's mode field). New
@@ -121,7 +131,13 @@ export async function passwordAuth(_prev: SignInState, formData: FormData): Prom
       password,
       options: { emailRedirectTo: `${await siteOrigin()}/auth/callback?next=${encodeURIComponent(next)}` },
     });
-    if (error) return { status: "error", error: rpcError(error.message, "Couldn't create your account. Try again.") };
+    if (error) {
+      if (/sending|smtp|rate limit/i.test(error.message)) {
+        console.error("sign-up email failed", error.message);
+        return { status: "error", error: emailError(error.message) };
+      }
+      return { status: "error", error: rpcError(error.message, "Couldn't create your account. Try again.") };
+    }
     if (!data.session) return { status: "confirm", email };
   }
   revalidatePath("/", "layout");

@@ -18,6 +18,7 @@ import { pushTarget } from "../src/lib/push-route.ts";
 import { bumpInterest, mergeInterests, parseInterests, rankFeed, serializeInterests } from "../src/lib/interests.ts";
 import { topUpSuggestions } from "../src/lib/suggest.ts";
 import { EMAIL_TEMPLATES } from "../src/lib/email-templates.ts";
+import { isOpenPath, welcomeUrl } from "../src/lib/gate.ts";
 
 let failures = 0;
 const ok = (cond: boolean, msg: string) => {
@@ -215,6 +216,16 @@ ok(JSON.stringify(pushTarget("https://evil.example")) === '{"screen":"/"}' && JS
   ok(["Confirm sign up", "Magic link", "Reset password", "Change email address", "Invite user"].every((n) => by(n).html.includes('href="{{ .ConfirmationURL }}"')), "and the others the link");
   ok(EMAIL_TEMPLATES.every((t) => (t.html.match(/\{\{[^}]*\}\}/g) ?? []).every((p) => /^\{\{ \.(Token|ConfirmationURL|Email|NewEmail) \}\}$/.test(p))), "only Supabase's own placeholders");
   ok(EMAIL_TEMPLATES.every((t) => t.subject.includes("Method V") && t.html.includes("METHOD")), "every email says it's from Method V");
+}
+
+// Signed-out visitors see the welcome page first; only what must work without
+// an account stays open.
+{
+  const gated = ["/", "/drops", "/browse", "/apps/noteflow", "/u/methodv", "/q/abc", "/credits", "/challenges", "/settings", "/loginx", "/api"];
+  const open = ["/login", "/auth/callback", "/api/push/send", "/api/stripe/webhook", "/api/health", "/embed/noteflow", "/badge/noteflow", "/try/noteflow", "/go/noteflow", "/sw.js", "/manifest.webmanifest", "/app-icon/192", "/setup/emails", "/offline"];
+  ok(gated.every((p) => !isOpenPath(p)), `the site itself needs an account (${gated.filter(isOpenPath).join(", ") || "all gated"})`);
+  ok(open.every(isOpenPath), `sign-in, webhooks, embeds and icons still work signed out (${open.filter((p) => !isOpenPath(p)).join(", ") || "all open"})`);
+  ok(welcomeUrl("/", "") === "/login" && welcomeUrl("/apps/noteflow", "?tab=qa") === "/login?next=%2Fapps%2Fnoteflow%3Ftab%3Dqa", "after signing in you land where you were going");
 }
 
 // Vercel never uploads mobile/ (.vercelignore), so nothing the website builds

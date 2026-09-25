@@ -16,6 +16,8 @@ import { ThemeToggle } from "./ThemeToggle";
 export async function Nav() {
   const viewer = await getViewer();
   const counts = await getInboxCounts(viewer);
+  // Signed out on the live site: only the welcome page is open, so no menu.
+  const gated = isSupabaseConfigured && !viewer;
 
   return (
     <>
@@ -25,13 +27,15 @@ export async function Nav() {
             <Wordmark className="text-[20px] sm:text-[22px]" />
           </Link>
 
-          <NavLinks profileHref={viewer ? `/u/${viewer.username}` : "/login"} />
+          {!gated && <NavLinks profileHref={viewer ? `/u/${viewer.username}` : "/login"} />}
 
           <div className="ml-auto flex items-center gap-2">
             <ThemeToggle />
-            <Link href="/submit" className="btn-accent hidden sm:inline-flex">
-              Post a Drop
-            </Link>
+            {!gated && (
+              <Link href="/submit" className="btn-accent hidden sm:inline-flex">
+                Post a Drop
+              </Link>
+            )}
             {viewer ? (
               <>
                 <CreditsChip credits={viewer.credits} />
@@ -51,7 +55,7 @@ export async function Nav() {
           </div>
         </div>
       </header>
-      <MobileTabs profileHref={viewer ? `/u/${viewer.username}` : "/login"} canPost={Boolean(viewer) || !isSupabaseConfigured} />
+      {!gated && <MobileTabs profileHref={viewer ? `/u/${viewer.username}` : "/login"} canPost={Boolean(viewer) || !isSupabaseConfigured} />}
     </>
   );
 }
