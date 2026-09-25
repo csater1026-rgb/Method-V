@@ -547,7 +547,9 @@ await run("tester passport", desktop, async (page) => {
   const passport = page.getByRole("region", { name: "Tester Passport" });
   ok(await passport.getByRole("heading", { name: "Pro Tester" }).isVisible(), "41 feedback + 17 helpful = Pro Tester");
   ok(await passport.getByText("Next: Trusted Tester").isVisible(), "shows the next rank");
-  ok((await passport.locator("li.border-accent").count()) === 8, "8 of 10 category stamps filled");
+  ok((await passport.getByRole("list", { name: "Categories tested" }).locator("li").count()) === 8, "8 of 10 category stamps filled");
+  ok((await passport.getByText("Still to collect: Dev tools · Other").isVisible()), "the rest are listed to collect");
+  ok((await passport.getByRole("list", { name: "Ranks" }).locator('li[aria-current="step"]').textContent()) === "Pro", "the rank ladder marks where you are");
   await passport.scrollIntoViewIfNeeded();
   await page.waitForTimeout(800);
   await passport.screenshot({ path: OUT + "passport.png" });

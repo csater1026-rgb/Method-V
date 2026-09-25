@@ -168,6 +168,31 @@ body {
   vertical-align: -0.115em;
 }
 
+/* A category stamp in the Tester Passport: an inked rectangle with a thin
+   inner rule, like a visa stamp. Rotation is set per stamp. */
+@utility stamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 2px solid var(--color-accent);
+  outline: 1px solid color-mix(in srgb, var(--color-accent) 45%, transparent);
+  outline-offset: -5px;
+  border-radius: 6px;
+  padding: 0.45rem 0.75rem;
+  color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 7%, transparent);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+@utility stamp-count {
+  border-left: 1px solid color-mix(in srgb, var(--color-accent) 45%, transparent);
+  padding-left: 0.5rem;
+}
+
 /* Small label above a page title ("Get hired · hire builders"): the logo's
    font, bold, spaced-out capitals in the accent color. */
 @utility eyebrow {

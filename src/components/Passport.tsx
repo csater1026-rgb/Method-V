@@ -7,8 +7,14 @@ import type { Passport as PassportData, Profile, TopBuilder, TopTester } from "@
 import { Avatar } from "./Avatar";
 import { Handle } from "./Handle";
 
-// The Tester Passport on a profile: rank, progress to the next rank, a stamp
-// per category tested and the weekly streak.
+// Short names for the rank ladder, so all five fit on a phone.
+const LADDER: Record<string, string> = { new: "New", scout: "Scout", tester: "Tester", pro: "Pro", trusted: "Trusted" };
+
+// Stamps sit at slightly different angles, like real ones.
+const TILT = [-3, 2, -1.5, 2.5, -2, 1.5, -2.5, 2, -1, 3];
+
+// The Tester Passport on a profile: where you are on the rank ladder, what the
+// next rank needs, a stamp per category you've tested, and your streak.
 export function PassportCard({ profile, passport, isSelf }: { profile: Profile; passport: PassportData; isSelf: boolean }) {
   const given = profile.feedback_given_count;
   const helpful = profile.feedback_helpful_count;
@@ -16,65 +22,88 @@ export function PassportCard({ profile, passport, isSelf }: { profile: Profile; 
   const index = TESTER_RANKS.findIndex((r) => r.slug === rankSlug);
   const rank = TESTER_RANKS[index];
   const next = TESTER_RANKS[index + 1];
-  const stamped = CATEGORIES.filter((c) => (passport.categories[c.slug] ?? 0) > 0).length;
+  const stamped = CATEGORIES.filter((c) => (passport.categories[c.slug] ?? 0) > 0);
+  const toCollect = CATEGORIES.filter((c) => !(passport.categories[c.slug] ?? 0));
 
   return (
-    <section aria-label="Tester Passport" className="rounded-xl border border-line bg-surface p-4 sm:p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="font-mono text-[10.5px] tracking-widest text-muted uppercase">Tester Passport</p>
-          <h2 className="display mt-1 text-4xl">{rank.label}</h2>
-          <p className="mt-1 text-sm text-muted">{rank.perk}</p>
+    <section aria-label="Tester Passport" className="overflow-hidden rounded-xl border border-line bg-surface">
+      <div className="flex flex-col gap-5 p-4 sm:flex-row sm:items-end sm:justify-between sm:p-5">
+        <div className="min-w-0">
+          <p className="eyebrow">Tester Passport</p>
+          <h2 className="display mt-1 text-5xl leading-none">{rank.label}</h2>
+          <p className="mt-2 text-sm text-muted">{rank.perk}</p>
         </div>
-        <div className="flex gap-2">
-          <Stat value={given} label="feedback" />
-          <Stat value={helpful} label="helpful" />
-          <Stat value={passport.streak} label={passport.streak === 1 ? "week streak" : "wk streak"} />
-        </div>
+        <dl className="grid shrink-0 grid-cols-3 divide-x divide-line rounded-lg border border-line bg-bg/40">
+          <Stat value={given} label="Feedback" />
+          <Stat value={helpful} label="Helpful" />
+          <Stat value={passport.streak} label={passport.streak === 1 ? "Week streak" : "Wk streak"} />
+        </dl>
       </div>
 
-      {next && (
-        <div className="mt-4">
-          <p className="text-sm">
-            Next: <span className="font-semibold">{next.label}</span>{" "}
-            <span className="text-muted">· {next.perk}</span>
+      {/* The rank ladder: every rank, filled up to yours. */}
+      <ol aria-label="Ranks" className="grid grid-cols-5 gap-1.5 px-4 sm:px-5">
+        {TESTER_RANKS.map((r, i) => (
+          <li key={r.slug} aria-current={i === index ? "step" : undefined}>
+            <div className={`h-1.5 rounded-full ${i <= index ? "bg-accent" : "bg-surface-2"}`} />
+            <p className={`mt-1.5 truncate text-[11px] ${i === index ? "font-semibold text-ink" : i < index ? "text-ink/70" : "text-muted"}`}>
+              {LADDER[r.slug]}
+            </p>
+          </li>
+        ))}
+      </ol>
+
+      <div className="mt-4 border-t border-line px-4 py-4 sm:px-5">
+        {next ? (
+          <>
+            <p className="text-sm">
+              <span className="font-semibold">Next: {next.label}</span> <span className="text-muted">· {next.perk}</span>
+            </p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <Progress label="Feedback given" value={given} goal={next.given} />
+              {next.helpful > 0 && <Progress label="Marked helpful" value={helpful} goal={next.helpful} />}
+            </div>
+          </>
+        ) : (
+          <p className="text-sm font-semibold">Top rank. Your feedback shows first to builders.</p>
+        )}
+      </div>
+
+      <div className="border-t border-line px-4 py-4 sm:px-5">
+        <div className="flex items-baseline justify-between gap-3">
+          <p className="text-sm font-semibold">Stamps</p>
+          <p className="font-mono text-xs text-muted">
+            {stamped.length}/{CATEGORIES.length}
+            {stamped.length === CATEGORIES.length ? " · All-rounder" : ""}
           </p>
-          <div className="mt-2 grid gap-2 sm:grid-cols-2">
-            <Progress label="Feedback" value={given} goal={next.given} />
-            {next.helpful > 0 && <Progress label="Marked helpful" value={helpful} goal={next.helpful} />}
-          </div>
         </div>
-      )}
-
-      <div className="mt-5">
-        <p className="text-sm">
-          <span className="font-semibold">Stamps</span>{" "}
-          <span className="text-muted">
-            · {stamped} of {CATEGORIES.length} categories
-            {stamped === CATEGORIES.length ? " · All-rounder" : ""}
-          </span>
-        </p>
-        <ul className="mt-2 flex flex-wrap gap-2">
-          {CATEGORIES.map((c, i) => {
-            const n = passport.categories[c.slug] ?? 0;
-            return (
-              <li
-                key={c.slug}
-                title={`${c.label}: ${n} tested`}
-                className={`rise flex h-[62px] w-[62px] flex-col items-center justify-center rounded-full border-2 text-center ${
-                  n > 0 ? "-rotate-6 border-accent bg-accent/10 text-accent" : "border-dashed border-line text-muted/60"
-                }`}
-                style={{ "--i": i } as React.CSSProperties}
-              >
-                <span className="font-mono text-[8.5px] leading-tight tracking-wide uppercase">{c.label.split(" ")[0]}</span>
-                {n > 0 && <span className="font-mono text-xs font-bold">{n}</span>}
-              </li>
-            );
-          })}
-        </ul>
+        {stamped.length > 0 ? (
+          <ul aria-label="Categories tested" className="mt-3 flex flex-wrap gap-x-3 gap-y-3 py-1">
+            {stamped.map((c, i) => {
+              const n = passport.categories[c.slug] ?? 0;
+              return (
+                <li
+                  key={c.slug}
+                  title={`${c.label}: ${n} tested`}
+                  className="stamp rise"
+                  style={{ "--i": i, rotate: `${TILT[i % TILT.length]}deg` } as React.CSSProperties}
+                >
+                  <span>{c.label}</span>
+                  <span className="stamp-count">×{n}</span>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p className="mt-2 text-sm text-muted">No stamps yet. Test an app in any category to get the first one.</p>
+        )}
+        {toCollect.length > 0 && stamped.length > 0 && (
+          <p className="mt-3 text-xs text-muted">
+            Still to collect: {toCollect.map((c) => c.label).join(" · ")}
+          </p>
+        )}
       </div>
 
-      <p className="mt-4 text-xs text-muted">
+      <p className="border-t border-line bg-bg/40 px-4 py-3 text-xs text-muted sm:px-5">
         Give feedback {STREAK_BONUS.weeks} weeks in a row for a ⚡{STREAK_BONUS.credits} bonus. Ranks never go down.
         {isSelf && (
           <>
@@ -91,25 +120,27 @@ export function PassportCard({ profile, passport, isSelf }: { profile: Profile; 
 
 function Stat({ value, label }: { value: number; label: string }) {
   return (
-    <div className="min-w-16 rounded-lg border border-line bg-bg/50 px-2.5 py-1.5 text-center">
-      <div className="font-mono text-lg font-bold">{value}</div>
-      <div className="font-mono text-[9.5px] tracking-wide text-muted uppercase">{label}</div>
+    <div className="px-4 py-2 text-center sm:px-5">
+      <dd className="font-mono text-2xl font-bold">{formatCount(value)}</dd>
+      <dt className="text-[11px] whitespace-nowrap text-muted">{label}</dt>
     </div>
   );
 }
 
 function Progress({ label, value, goal }: { label: string; value: number; goal: number }) {
   const pct = Math.min(100, Math.round((value / goal) * 100));
+  const done = value >= goal;
   return (
     <div>
-      <div className="flex justify-between font-mono text-[10.5px] text-muted uppercase">
-        <span>{label}</span>
-        <span>
-          {Math.min(value, goal)} / {goal}
+      <div className="flex justify-between text-xs">
+        <span className="text-muted">{label}</span>
+        <span className={`font-mono ${done ? "text-accent" : "text-ink"}`}>
+          {done ? "✓ " : ""}
+          {Math.min(value, goal)}/{goal}
         </span>
       </div>
-      <div className="mt-1 h-2 overflow-hidden rounded-full bg-surface-2" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label={label}>
-        <div className="h-full bg-accent" style={{ width: `${pct}%` }} />
+      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-2" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label={label}>
+        <div className="h-full rounded-full bg-accent" style={{ width: `${pct}%` }} />
       </div>
     </div>
   );
