@@ -9,6 +9,7 @@ import { AppTile } from "./AppTile";
 import { Avatar } from "./Avatar";
 import { Poll } from "./Poll";
 import { CategoryChip } from "./Tags";
+import { Handle } from "./Handle";
 
 // The Questions tab in Drops: one question per screen, swipe for the next.
 // Polls answer with one tap; everything else opens the thread. Always dark,
@@ -52,7 +53,7 @@ function QuestionSlide({ q, signedIn }: { q: QuestionCard; signedIn: boolean }) 
           <h2 className="text-[26px] leading-tight font-semibold break-words sm:text-3xl">{q.body}</h2>
         </Link>
         <p className="flex items-center gap-1.5 text-sm text-muted">
-          <Avatar username={q.user.username} name={q.user.display_name} src={q.user.avatar_url} size={20} />@{q.user.username}
+          <Avatar username={q.user.username} name={q.user.display_name} src={q.user.avatar_url} size={20} /><Handle username={q.user.username} />
         </p>
 
         {q.poll && <Poll questionId={q.id} poll={q.poll} signedIn={signedIn} size="lg" />}

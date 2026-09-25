@@ -9,7 +9,7 @@ import { formatCount, timeAgo } from "@shared/format";
 import { DropPlaceholder } from "@/components/AppCard";
 import { Loading } from "@/components/PixelCoder";
 import { Sponsored } from "@/components/Sponsored";
-import { Avatar, Body, Button, Card, Display, ErrorText, Mono, StatusBadge, Tag, tap } from "@/components/ui";
+import { Avatar, Body, Button, Card, Display, ErrorText, Handle, Mono, StatusBadge, Tag, tap } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import { SITE_URL } from "@/lib/config";
 import { addComment, getAppDetail, getAppQuestions, setLike } from "@/lib/data";
@@ -142,11 +142,11 @@ export default function AppScreen() {
           <Avatar username={app.owner.username} name={app.owner.display_name} src={app.owner.avatar_url} size={44} />
           <View style={{ flex: 1 }}>
             <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
-              <Body bold>{app.owner.display_name || `@${app.owner.username}`}</Body>
+              <Body bold>{app.owner.display_name || <Handle username={app.owner.username} />}</Body>
               <StatusBadge roles={app.owner.roles} />
             </View>
             <Body muted size={13}>
-              @{app.owner.username}
+              <Handle username={app.owner.username} size={13} />
             </Body>
           </View>
           <Mono>Profile →</Mono>
@@ -185,7 +185,7 @@ export default function AppScreen() {
             <Avatar username={c.user.username} name={c.user.display_name} src={c.user.avatar_url} size={30} />
             <View style={{ flex: 1 }}>
               <Body size={13} bold>
-                {c.user.display_name || `@${c.user.username}`} <Mono>{timeAgo(c.created_at)}</Mono>
+                {c.user.display_name || <Handle username={c.user.username} size={13} />} <Mono>{timeAgo(c.created_at)}</Mono>
               </Body>
               <Body size={14}>{c.body}</Body>
             </View>

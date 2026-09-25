@@ -10,6 +10,7 @@ import { timeAgo } from "@/lib/format";
 import type { ConnectionRequest, Message, Notification } from "@/lib/types";
 
 import { Avatar } from "./Avatar";
+import { Handle } from "./Handle";
 
 // The inbox icon in the top bar, with one combined unread count.
 export function InboxIcon({ count }: { count: number }) {
@@ -105,7 +106,7 @@ export function ActivityList({ items }: { items: Notification[] }) {
                 <span className="h-9 w-9" />
               )}
               <span className="min-w-0 flex-1 text-sm">
-                <span className="font-semibold">{n.actor?.display_name || (n.actor ? `@${n.actor.username}` : "Someone")}</span>{" "}
+                <span className="font-semibold">{n.actor?.display_name || (n.actor ? <Handle username={n.actor.username} /> : "Someone")}</span>{" "}
                 {text}
                 <span className="block text-xs text-muted" suppressHydrationWarning>
                   {timeAgo(n.created_at)}
@@ -142,7 +143,7 @@ export function RequestRow({ request, incoming }: { request: ConnectionRequest; 
       <div className="min-w-0 flex-1 text-sm">
         <p>
           <Link href={`/u/${request.person.username}`} className="font-semibold hover:underline">
-            {request.person.display_name || `@${request.person.username}`}
+            {request.person.display_name || <Handle username={request.person.username} />}
           </Link>{" "}
           <span className="tag ml-1">{labelFor(CONNECT_REASONS, request.reason)}</span>
         </p>

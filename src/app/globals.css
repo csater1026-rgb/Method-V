@@ -158,6 +158,16 @@ body {
   vertical-align: -0.12em;
 }
 
+/* The pixel V at the end of Method V's own @handle: sized to the text
+   around it, point on the baseline, shadow row just below. */
+@utility handle-v {
+  display: inline-block;
+  height: 0.8em;
+  width: auto;
+  margin-left: 0.04em;
+  vertical-align: -0.115em;
+}
+
 /* Small label above a page title ("Get hired · hire builders"): the logo's
    font, bold, spaced-out capitals in the accent color. */
 @utility eyebrow {

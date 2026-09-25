@@ -900,6 +900,24 @@ ok(!!(await fails("anon", null, "insert into public.sponsorships (sponsor_brand,
   ok(!!(await fails("authenticated", C, "select public.register_web_push('http://evil.example/x', $1, $2)", ["B".repeat(87), "a".repeat(22)])), "browser endpoints must be https");
 }
 
+// @methodv is reserved for Method V's own account.
+{
+  const nameOf = async (id) => (await db.query("select username from public.profiles where id = $1", [id])).rows[0].username;
+  const before = await nameOf(A);
+  const reserved = (e) => typeof e === "string" && e.includes("reserved");
+  ok(reserved(await fails("authenticated", B, "update public.profiles set username = 'methodv' where id = $1", [B])), "nobody else can take @methodv");
+  ok(!!(await fails("postgres", null, "insert into public.profiles (id, username) values ('99999999-9999-9999-9999-999999999999', 'methodv')")), "a new profile can't be made as @methodv");
+  // The account that already has it (set up before the reservation) keeps it.
+  await db.exec("alter table public.profiles disable trigger profiles_reserved_handle");
+  await db.query("update public.profiles set username = 'methodv' where id = $1", [A]);
+  await db.exec("alter table public.profiles enable trigger profiles_reserved_handle");
+  ok(!(await fails("authenticated", A, "update public.profiles set username = 'methodv', bio = 'Official' where id = $1", [A])), "the Method V account can still save its profile");
+  await db.exec("alter table public.profiles disable trigger profiles_reserved_handle");
+  await db.query("update public.profiles set username = $2, bio = '' where id = $1", [A, before]);
+  await db.exec("alter table public.profiles enable trigger profiles_reserved_handle");
+  ok(reserved(await fails("authenticated", B, "update public.profiles set username = 'methodv' where id = $1", [B])), "still reserved once it's free");
+}
+
 // The newest migrations can be run again without errors (people paste them twice).
 {
   const again = readdirSync(migrationsDir).filter((f) => f >= "20261001000000").sort();
@@ -912,7 +930,7 @@ ok(!!(await fails("anon", null, "insert into public.sponsorships (sponsor_brand,
       console.log(`  ${f}: ${e.message}`);
     }
   }
-  ok(clean && again.length === 5, `the newest migrations are safe to run twice (${again.join(", ")})`);
+  ok(clean && again.length === 6, `the newest migrations are safe to run twice (${again.join(", ")})`);
 }
 
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");

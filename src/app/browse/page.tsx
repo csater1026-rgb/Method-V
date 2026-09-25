@@ -7,6 +7,7 @@ import { StatusBadge } from "@/components/Tags";
 import { UpcomingLaunches } from "@/components/UpcomingLaunches";
 import { CATEGORIES, PRICING, STAGES } from "@/lib/constants";
 import { getApps, getUpcomingLaunches, searchPeople, type BrowseFilters } from "@/lib/data";
+import { Handle } from "@/components/Handle";
 
 export const metadata: Metadata = { title: "Browse apps" };
 
@@ -121,9 +122,9 @@ export default async function BrowsePage({ searchParams }: PageProps<"/browse">)
                 >
                   <Avatar username={p.username} name={p.display_name} src={p.avatar_url} size={36} />
                   <span className="min-w-0">
-                    <span className="block max-w-40 truncate text-sm font-semibold">{p.display_name || `@${p.username}`}</span>
+                    <span className="block max-w-40 truncate text-sm font-semibold">{p.display_name || <Handle username={p.username} />}</span>
                     <span className="flex items-center gap-1.5 text-xs text-muted">
-                      @{p.username}
+                      <Handle username={p.username} />
                       <StatusBadge roles={p.roles} />
                     </span>
                   </span>

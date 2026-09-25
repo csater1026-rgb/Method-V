@@ -8,7 +8,7 @@ import { socialLinks } from "@shared/socials";
 
 import { AppCard } from "@/components/AppCard";
 import { Loading } from "@/components/PixelCoder";
-import { Avatar, Body, Button, Display, ErrorText, Mono, StatusBadge, Tag } from "@/components/ui";
+import { Avatar, Body, Button, Display, ErrorText, Handle, Mono, StatusBadge, Tag } from "@/components/ui";
 import { fileUrl } from "@/lib/config";
 import { useAuth } from "@/lib/auth";
 import { getProfileBundle, setFollow } from "@/lib/data";
@@ -75,11 +75,13 @@ export default function ProfileScreen() {
       <View>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <Display size={46} style={{ flexShrink: 1 }}>
-            {profile.display_name || `@${profile.username}`}
+            {profile.display_name || <Handle username={profile.username} size={46} />}
           </Display>
           {pro && <Tag tone="accent">Pro</Tag>}
         </View>
-        <Body muted>@{profile.username}</Body>
+        <Body muted>
+          <Handle username={profile.username} />
+        </Body>
         {/* Their socials, right under their name. */}
         {socialLinks(profile).length > 0 && (
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 8 }}>

@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ROLES } from "@shared/constants";
 
 import { PixelCoder } from "@/components/PixelCoder";
-import { Avatar, Body, Button, Card, Display, ErrorText, Mono, StatusBadge, tap } from "@/components/ui";
+import { Avatar, Body, Button, Card, Display, ErrorText, Handle, Mono, StatusBadge, tap } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import { DEMO_MESSAGE, MIN_PASSWORD, SITE_URL, isLive } from "@/lib/config";
 import { setPhoto, setRoles } from "@/lib/data";
@@ -58,9 +58,11 @@ export default function MeScreen() {
         <Avatar username={viewer.username} name={viewer.display_name} src={viewer.avatar_url} size={64} />
         <View style={{ flex: 1, gap: 4 }}>
           <Display size={34} numberOfLines={1}>
-            {viewer.display_name || `@${viewer.username}`}
+            {viewer.display_name || <Handle username={viewer.username} size={34} />}
           </Display>
-          <Body muted>@{viewer.username}</Body>
+          <Body muted>
+            <Handle username={viewer.username} />
+          </Body>
           <StatusBadge roles={viewer.roles} />
         </View>
       </View>

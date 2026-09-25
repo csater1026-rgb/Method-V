@@ -4,6 +4,7 @@ import { timeAgo } from "@/lib/format";
 import type { Backer } from "@/lib/types";
 
 import { Avatar } from "./Avatar";
+import { Handle } from "./Handle";
 
 // The backers wall: who backed this app and what they said. Never amounts.
 export function Backers({ backers, count, appName }: { backers: Backer[]; count: number; appName: string }) {
@@ -23,7 +24,7 @@ export function Backers({ backers, count, appName }: { backers: Backer[]; count:
               </Link>
               <div className="min-w-0 text-sm">
                 <Link href={`/u/${b.user.username}`} className="font-semibold hover:underline">
-                  {b.user.display_name || `@${b.user.username}`}
+                  {b.user.display_name || <Handle username={b.user.username} />}
                 </Link>{" "}
                 <span className="text-muted" suppressHydrationWarning>
                   backed it · {timeAgo(b.created_at)}

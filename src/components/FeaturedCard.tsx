@@ -5,6 +5,7 @@ import type { AppCard, FeaturedApp } from "@/lib/types";
 
 import { Avatar } from "./Avatar";
 import { DropPlaceholder } from "./DropVideo";
+import { Handle } from "./Handle";
 
 const LABELS: Record<FeaturedApp["reason"], string> = {
   featured: "Featured",
@@ -55,7 +56,7 @@ export function FeaturedCard({ app, rank }: { app: AppCard & { reason?: Featured
         <div className="mt-auto flex items-center gap-1.5 text-xs text-muted">
           <Avatar username={app.owner.username} name={app.owner.display_name} src={app.owner.avatar_url} size={18} />
           <Link href={`/u/${app.owner.username}`} className="truncate hover:text-ink">
-            @{app.owner.username}
+            <Handle username={app.owner.username} />
           </Link>
           <span className="ml-auto shrink-0 font-mono text-[11px]">{formatCount(app.try_count)} tries</span>
         </div>

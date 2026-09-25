@@ -13,6 +13,7 @@ import {
 } from "@/lib/data";
 import { timeAgo } from "@/lib/format";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { Handle } from "@/components/Handle";
 
 export const metadata: Metadata = { title: "Inbox" };
 
@@ -90,7 +91,7 @@ async function Conversations({ viewer }: { viewer: NonNullable<Awaited<ReturnTyp
             <span className="min-w-0 flex-1">
               <span className="flex items-baseline justify-between gap-2">
                 <span className={`truncate ${c.unread ? "font-bold" : "font-semibold"}`}>
-                  {c.person.display_name || `@${c.person.username}`}
+                  {c.person.display_name || <Handle username={c.person.username} />}
                 </span>
                 <span className="shrink-0 text-xs text-muted" suppressHydrationWarning>
                   {timeAgo(c.last.created_at)}

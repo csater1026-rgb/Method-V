@@ -35,6 +35,7 @@ import {
 } from "@/lib/data";
 import { formatCount, formatDuration, timeAgo } from "@/lib/format";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { Handle } from "@/components/Handle";
 
 export async function generateMetadata({ params }: PageProps<"/apps/[slug]">): Promise<Metadata> {
   const app = await getApp((await params).slug);
@@ -171,10 +172,10 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
             <Avatar username={app.owner.username} name={app.owner.display_name} src={app.owner.avatar_url} size={44} />
             <div>
               <span className="flex flex-wrap items-center gap-2 font-semibold">
-                {app.owner.display_name || `@${app.owner.username}`}
+                {app.owner.display_name || <Handle username={app.owner.username} />}
                 <StatusBadge roles={app.owner.roles} />
               </span>
-              <span className="block text-sm text-muted">@{app.owner.username}</span>
+              <span className="block text-sm text-muted"><Handle username={app.owner.username} /></span>
               <RoleTags roles={app.owner.roles} except={primaryStatus(app.owner.roles)} className="mt-1" />
             </div>
           </Link>

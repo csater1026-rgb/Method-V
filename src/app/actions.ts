@@ -9,6 +9,7 @@ import {
   CONNECT_REASONS,
   EARN,
   MIN_PASSWORD,
+  OFFICIAL_HANDLE,
   ROLES,
   TESTER_PACKS,
   WOULD_USE,
@@ -233,6 +234,9 @@ export async function updateProfile(_prev: ProfileState, formData: FormData): Pr
   if (!/^[a-z0-9_]{3,24}$/.test(username)) {
     return { status: "error", error: "Usernames are 3–24 characters: lowercase letters, numbers and _." };
   }
+  if (username === OFFICIAL_HANDLE && auth.viewer.username !== OFFICIAL_HANDLE) {
+    return { status: "error", error: "That username is reserved." };
+  }
   const roles = formData.getAll("roles").filter((r): r is string => isOneOf(ROLES, r));
   const website = text(formData, "website_url");
   if (website && !parseAppUrl(website)) return { status: "error", error: "Website must be a public http(s) link." };
@@ -274,6 +278,7 @@ export async function updateProfile(_prev: ProfileState, formData: FormData): Pr
 
   if (error) {
     if (error.code === "23505") return { status: "error", error: "That username is taken." };
+    if (error.code === "P0001" && error.message === "That username is reserved.") return { status: "error", error: error.message };
     return { status: "error", error: "Couldn't save your profile." };
   }
   revalidatePath("/", "layout");

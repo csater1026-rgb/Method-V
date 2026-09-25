@@ -5,6 +5,7 @@ import { formatCount } from "@/lib/format";
 import type { Passport as PassportData, Profile, TopBuilder, TopTester } from "@/lib/types";
 
 import { Avatar } from "./Avatar";
+import { Handle } from "./Handle";
 
 // The Tester Passport on a profile: rank, progress to the next rank, a stamp
 // per category tested and the weekly streak.
@@ -135,7 +136,7 @@ export function TopBuilders({ builders }: { builders: TopBuilder[] }) {
               <span className={`w-6 font-mono text-sm font-bold ${i < 3 ? "text-accent" : "text-muted"}`}>{i + 1}</span>
               <Link href={`/u/${b.username}`} className="flex min-w-0 flex-1 items-center gap-2 hover:underline">
                 <Avatar username={b.username} name={b.display_name} src={b.avatar_url} size={28} />
-                <span className="truncate font-semibold">{b.display_name || `@${b.username}`}</span>
+                <span className="truncate font-semibold">{b.display_name || <Handle username={b.username} />}</span>
               </Link>
               <span className="shrink-0 font-mono text-xs text-muted">
                 {formatCount(b.tries)} tries<span className="hidden sm:inline"> · {formatCount(b.likes)} likes</span>
@@ -163,7 +164,7 @@ export function TopTesters({ testers }: { testers: TopTester[] }) {
               <span className={`w-6 font-mono text-sm font-bold ${i < 3 ? "text-accent" : "text-muted"}`}>{i + 1}</span>
               <Link href={`/u/${t.username}`} className="flex min-w-0 flex-1 items-center gap-2 hover:underline">
                 <Avatar username={t.username} name={t.display_name} src={t.avatar_url} size={28} />
-                <span className="truncate font-semibold">{t.display_name || `@${t.username}`}</span>
+                <span className="truncate font-semibold">{t.display_name || <Handle username={t.username} />}</span>
               </Link>
               <span className="shrink-0 font-mono text-xs text-muted">
                 {t.helpful_count} helpful<span className="hidden sm:inline"> · {t.feedback_count} given</span>

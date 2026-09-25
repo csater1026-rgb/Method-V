@@ -5,7 +5,7 @@ import { formatCount } from "@shared/format";
 
 import { useTheme } from "@/theme";
 
-import { Avatar, Body, Card, Display, Mono } from "./ui";
+import { Avatar, Body, Card, Display, Handle, Mono } from "./ui";
 
 type Row = { user_id: string; username: string; display_name: string; avatar_url?: string | null; stat: string };
 
@@ -41,7 +41,7 @@ export function Leaderboard({ title, note, empty, rows }: { title: string; note:
             </Mono>
             <Avatar username={r.username} name={r.display_name} src={r.avatar_url} size={28} />
             <Body bold numberOfLines={1} style={{ flex: 1 }}>
-              {r.display_name || `@${r.username}`}
+              {r.display_name || <Handle username={r.username} />}
             </Body>
             <Mono>{r.stat}</Mono>
           </Pressable>

@@ -6,6 +6,7 @@ import { Avatar } from "@/components/Avatar";
 import { Thread } from "@/components/Inbox";
 import { getThread, getViewer } from "@/lib/data";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { Handle } from "@/components/Handle";
 
 export async function generateMetadata({ params }: PageProps<"/inbox/[username]">): Promise<Metadata> {
   return { title: `Messages with @${(await params).username}` };
@@ -30,8 +31,8 @@ export default async function ThreadPage({ params }: PageProps<"/inbox/[username
         <Link href={`/u/${person.username}`} className="flex items-center gap-2">
           <Avatar username={person.username} name={person.display_name} src={person.avatar_url} size={36} />
           <span>
-            <span className="block font-semibold">{person.display_name || `@${person.username}`}</span>
-            <span className="block text-xs text-muted">@{person.username}</span>
+            <span className="block font-semibold">{person.display_name || <Handle username={person.username} />}</span>
+            <span className="block text-xs text-muted"><Handle username={person.username} /></span>
           </span>
         </Link>
       </header>

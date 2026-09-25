@@ -9,6 +9,7 @@ import { AvatarForm } from "./AvatarForm";
 import { NotificationsForm } from "./NotificationsForm";
 import { PasswordForm } from "./PasswordForm";
 import { ProfileForm } from "./ProfileForm";
+import { Handle } from "@/components/Handle";
 
 export const metadata: Metadata = { title: "Edit profile" };
 
@@ -36,7 +37,7 @@ export default async function SettingsPage() {
       />
       <PasswordForm />
       <section aria-label="Sign out" className="mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-6">
-        <p className="text-sm text-muted">Signed in as @{profile.username}.</p>
+        <p className="text-sm text-muted">Signed in as <Handle username={profile.username} />.</p>
         <SignOutButton />
       </section>
     </div>

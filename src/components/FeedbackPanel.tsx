@@ -11,6 +11,7 @@ import type { Feedback, FeedbackPanel as Panel, TestRequest } from "@/lib/types"
 
 import { Avatar } from "./Avatar";
 import { RankTag } from "./Passport";
+import { Handle } from "./Handle";
 
 type AppRef = { id: string; slug: string; name: string };
 
@@ -322,7 +323,7 @@ function FeedbackItem({ item, appSlug, canMarkHelpful }: { item: Feedback; appSl
     <article className="mt-3 rounded-lg border border-line bg-bg/50 p-4 text-sm">
       <header className="flex flex-wrap items-center gap-2">
         <Link href={`/u/${item.user.username}`} className="flex items-center gap-2 font-semibold hover:underline">
-          <Avatar username={item.user.username} name={item.user.display_name} src={item.user.avatar_url} size={24} />@{item.user.username}
+          <Avatar username={item.user.username} name={item.user.display_name} src={item.user.avatar_url} size={24} /><Handle username={item.user.username} />
         </Link>
         <RankTag rank={item.user_rank} />
         <span className="text-accent" aria-label={`${item.rating} out of 5 stars`}>

@@ -8,7 +8,7 @@ import type { Suggestion } from "@shared/types";
 import { useAuth } from "@/lib/auth";
 import { setFollow } from "@/lib/data";
 
-import { Avatar, Body, Button, Card, Display, ErrorText, Tag } from "./ui";
+import { Avatar, Body, Button, Card, Display, ErrorText, Handle, Tag } from "./ui";
 
 // "Builders like you": people who build in the categories you build, like and
 // test, or share your skills. Same as the website's Home.
@@ -58,10 +58,10 @@ function SuggestionCard({ person: p }: { person: Suggestion }) {
         <Avatar username={p.username} name={p.display_name} src={p.avatar_url} size={44} />
         <View style={{ flex: 1 }}>
           <Body bold numberOfLines={1}>
-            {p.display_name || `@${p.username}`}
+            {p.display_name || <Handle username={p.username} />}
           </Body>
           <Body muted size={12} numberOfLines={1}>
-            @{p.username}
+            <Handle username={p.username} size={12} />
           </Body>
         </View>
       </Pressable>

@@ -8,7 +8,7 @@ import type { Answer } from "@shared/types";
 import { Loading } from "@/components/PixelCoder";
 import { Poll } from "@/components/Poll";
 import { VoteButton } from "@/components/VoteButton";
-import { Avatar, Body, Button, Card, Display, ErrorText, Mono, Tag } from "@/components/ui";
+import { Avatar, Body, Button, Card, Display, ErrorText, Handle, Mono, Tag } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import { answerQuestion, getQuestion, markBestAnswer } from "@/lib/data";
 import { useLoad } from "@/lib/useLoad";
@@ -155,7 +155,7 @@ export default function QuestionScreen() {
       <View style={{ borderTopWidth: 1, borderTopColor: t.line, padding: 12, gap: 8, backgroundColor: t.bg }}>
         {replyTo && (
           <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-            <Mono>Replying to @{replyTo.user.username}</Mono>
+            <Mono>Replying to <Handle username={replyTo.user.username} size={11} /></Mono>
             <Pressable onPress={() => setReplyTo(null)} hitSlop={8}>
               <Mono>Cancel</Mono>
             </Pressable>
@@ -190,7 +190,7 @@ function Byline({ user, at }: { user: Answer["user"]; at: string }) {
     <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
       <Avatar username={user.username} name={user.display_name} src={user.avatar_url} size={18} />
       <Body muted size={12}>
-        @{user.username} · {timeAgo(at)}
+        <Handle username={user.username} size={12} /> · {timeAgo(at)}
       </Body>
     </View>
   );

@@ -8,6 +8,7 @@ import { timeAgo } from "@/lib/format";
 import type { Update } from "@/lib/types";
 
 import { Avatar } from "./Avatar";
+import { Handle } from "./Handle";
 
 type AppOption = { id: string; name: string };
 
@@ -111,7 +112,7 @@ function UpdateRow({ update, mine }: { update: Update; mine: boolean }) {
       <div className="min-w-0 flex-1">
         <p className="flex flex-wrap items-center gap-x-2 text-sm">
           <Link href={`/u/${update.user.username}`} className="font-semibold hover:underline">
-            {update.user.display_name || `@${update.user.username}`}
+            {update.user.display_name || <Handle username={update.user.username} />}
           </Link>
           {update.app && (
             <Link href={`/apps/${update.app.slug}`} className="tag hover:border-accent">

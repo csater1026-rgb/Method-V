@@ -3,7 +3,7 @@ import { Image } from "expo-image";
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View, type TextProps, type ViewStyle } from "react-native";
 import Svg, { Rect } from "react-native-svg";
 
-import { ROLES, labelFor, primaryStatus } from "@shared/constants";
+import { OFFICIAL_HANDLE, ROLES, labelFor, primaryStatus } from "@shared/constants";
 import { V_HEIGHT, V_WIDTH, pixelVRects } from "@shared/pixel-v";
 
 import { MINT, MINT_INK, fonts, useTheme } from "@/theme";
@@ -192,5 +192,22 @@ export function Wordmark({ size = 22 }: { size?: number }) {
         ))}
       </Svg>
     </View>
+  );
+}
+
+// Someone's @handle, inside a text. Method V's own account ends in the logo's
+// pixel V, sized to the text around it (pass that text's font size).
+export function Handle({ username, size = 15 }: { username: string; size?: number }) {
+  if (username !== OFFICIAL_HANDLE) return <>@{username}</>;
+  const h = size * 0.8;
+  return (
+    <>
+      @{OFFICIAL_HANDLE.slice(0, -1)}
+      <Svg width={(h * V_WIDTH) / V_HEIGHT} height={h} viewBox={`0 0 ${V_WIDTH} ${V_HEIGHT}`} accessibilityLabel="v">
+        {V_PIXELS.map((r, i) => (
+          <Rect key={i} x={r.x} y={r.y} width={r.w} height={r.h} fill={r.fill} />
+        ))}
+      </Svg>
+    </>
   );
 }

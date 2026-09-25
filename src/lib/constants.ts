@@ -161,3 +161,8 @@ export const MIN_PASSWORD = 8;
 
 // The Method V tagline: browser tab title, footer, install description.
 export const TAGLINE = "Real apps. Real builders. Real feedback.";
+
+// Method V's own account. Its handle is drawn with the logo's pixel V in
+// place of the last letter (see Handle on the website and in the app). The
+// name is reserved in the database so nobody else can take it.
+export const OFFICIAL_HANDLE = "methodv";

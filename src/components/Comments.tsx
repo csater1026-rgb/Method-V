@@ -8,6 +8,7 @@ import { timeAgo } from "@/lib/format";
 import type { Comment } from "@/lib/types";
 
 import { Avatar } from "./Avatar";
+import { Handle } from "./Handle";
 
 type Props = {
   dropId: string;
@@ -81,7 +82,7 @@ export function Comments({ dropId, appSlug, comments, viewerId, bare = false }: 
             <div className="min-w-0 flex-1">
               <p className="text-sm">
                 <Link href={`/u/${c.user.username}`} className="font-semibold hover:underline">
-                  @{c.user.username}
+                  <Handle username={c.user.username} />
                 </Link>{" "}
                 <span className="text-xs text-muted" suppressHydrationWarning>
                   {timeAgo(c.created_at)}

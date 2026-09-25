@@ -14,6 +14,7 @@ import { getConnectionState, getMyApps, getPassport, getProfile, getUpdates, get
 import { formatCount } from "@/lib/format";
 import { socialLinks } from "@/lib/socials";
 import { publicFileUrl } from "@/lib/supabase/env";
+import { Handle } from "@/components/Handle";
 
 export async function generateMetadata({ params }: PageProps<"/u/[username]">): Promise<Metadata> {
   const { username } = await params;
@@ -51,14 +52,14 @@ export default async function ProfilePage({ params }: PageProps<"/u/[username]">
           <div className="flex flex-wrap items-center gap-3">
             <div>
               <h1 className="display text-6xl break-words">
-                {profile.display_name || `@${profile.username}`}
+                {profile.display_name || <Handle username={profile.username} />}
                 {pro && (
                   <span className="tag-accent ml-3 align-middle text-xs" title="Method V Pro">
                     Pro
                   </span>
                 )}
               </h1>
-              <p className="text-muted">@{profile.username}</p>
+              <p className="text-muted"><Handle username={profile.username} /></p>
               {/* Their socials, right under their name. */}
               {links.length > 0 ? (
                 <ul aria-label="Social links" className="mt-2 flex flex-wrap gap-1.5">

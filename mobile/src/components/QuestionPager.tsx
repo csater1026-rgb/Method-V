@@ -10,7 +10,7 @@ import { media } from "@/theme";
 
 import { Poll } from "./Poll";
 import { VoteButton } from "./VoteButton";
-import { Avatar, Body, Button, Display, Mono, Tag } from "./ui";
+import { Avatar, Body, Button, Display, Handle, Mono, Tag } from "./ui";
 
 const DARK = { ink: media.ink, muted: media.muted, line: media.line };
 
@@ -84,7 +84,7 @@ function QuestionPage({ q, height, topInset }: { q: QuestionCard; height: number
       <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
         <Avatar username={q.user.username} name={q.user.display_name} src={q.user.avatar_url} size={20} />
         <Body size={13} style={{ color: media.muted }}>
-          @{q.user.username}
+          <Handle username={q.user.username} size={13} />
         </Body>
       </View>
 
@@ -93,7 +93,7 @@ function QuestionPage({ q, height, topInset }: { q: QuestionCard; height: number
       {topAnswer && (
         <Pressable onPress={open} style={{ borderWidth: 1, borderColor: media.line, borderRadius: 10, padding: 12, gap: 4, backgroundColor: media.surface }}>
           <Mono style={{ color: media.muted }}>
-            @{topAnswer.user.username}
+            <Handle username={topAnswer.user.username} size={11} />
             {topAnswer.id === q.best_answer_id ? " · ✓ best" : ""}
           </Mono>
           <Body size={14} numberOfLines={3} style={{ color: media.ink }}>

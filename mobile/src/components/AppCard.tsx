@@ -8,7 +8,7 @@ import type { AppCard as Card } from "@shared/types";
 
 import { media, useTheme } from "@/theme";
 
-import { Avatar, Body, Display, Mono, Tag } from "./ui";
+import { Avatar, Body, Display, Handle, Mono, Tag } from "./ui";
 
 // A striped stand-in when there's no poster (like the website's).
 export function DropPlaceholder({ name, compact }: { name: string; compact?: boolean }) {
@@ -66,7 +66,7 @@ export function AppCard({ app, wide }: { app: Card; wide?: boolean }) {
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 2 }}>
             <Avatar username={app.owner.username} name={app.owner.display_name} src={app.owner.avatar_url} size={20} />
             <Body size={12} muted numberOfLines={1} style={{ flex: 1 }}>
-              {app.owner.display_name || `@${app.owner.username}`}
+              {app.owner.display_name || <Handle username={app.owner.username} size={12} />}
             </Body>
             <Mono>{formatCount(app.try_count)} tries</Mono>
           </View>
