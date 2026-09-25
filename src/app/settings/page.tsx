@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { getNotificationSettings, getOwnProfile, getViewer } from "@/lib/data";
+import { SignOutButton } from "@/components/SignOutButton";
 import { isSupabaseConfigured, publicFileUrl } from "@/lib/supabase/env";
 
 import { AvatarForm } from "./AvatarForm";
@@ -34,6 +35,10 @@ export default async function SettingsPage() {
         vapidKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ""}
       />
       <PasswordForm />
+      <section aria-label="Sign out" className="mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-6">
+        <p className="text-sm text-muted">Signed in as @{profile.username}.</p>
+        <SignOutButton />
+      </section>
     </div>
   );
 }

@@ -9,6 +9,7 @@ import { FollowButton } from "@/components/FollowButton";
 import { PassportCard } from "@/components/Passport";
 import { Updates } from "@/components/Updates";
 import { Chip, RoleTags, StatusBadge, primaryStatus } from "@/components/Tags";
+import { SignOutButton } from "@/components/SignOutButton";
 import { getConnectionState, getMyApps, getPassport, getProfile, getUpdates, getViewer, isPro } from "@/lib/data";
 import { formatCount } from "@/lib/format";
 import { socialLinks } from "@/lib/socials";
@@ -98,6 +99,7 @@ export default async function ProfilePage({ params }: PageProps<"/u/[username]">
                   <Link href="/earn" className="btn-ghost">
                     Earn
                   </Link>
+                  <SignOutButton />
                 </span>
               ) : (
                 <span className="flex flex-wrap items-start gap-2">

@@ -1,6 +1,5 @@
 import Link from "next/link";
 
-import { signOut } from "@/app/actions";
 import { getInboxCounts, getViewer } from "@/lib/data";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
@@ -9,6 +8,7 @@ import { CreditsChip } from "./CreditsChip";
 import { InboxIcon } from "./Inbox";
 import { MobileTabs } from "./MobileTabs";
 import { NavLinks } from "./NavLinks";
+import { SignOutButton } from "./SignOutButton";
 import { Wordmark } from "./Wordmark";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -39,9 +39,9 @@ export async function Nav() {
                 <Link href={`/u/${viewer.username}`} aria-label="Your profile">
                   <Avatar username={viewer.username} src={viewer.avatar_url} size={32} />
                 </Link>
-                <form action={signOut} className="hidden sm:block">
-                  <button className="text-sm text-muted hover:text-ink">Sign out</button>
-                </form>
+                <span className="hidden sm:block">
+                  <SignOutButton className="text-sm text-muted hover:text-ink" />
+                </span>
               </>
             ) : (
               <Link href="/login" className="btn-ghost px-3 whitespace-nowrap sm:px-4">
