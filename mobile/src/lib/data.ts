@@ -37,6 +37,7 @@ import type {
 } from "@shared/types";
 
 import { SIGNALS, bumpInterest, mergeInterests, rankFeed, rankQuestions, type Interests } from "@shared/interests";
+import { SUGGESTION_LIMIT, topUpSuggestions } from "@shared/suggest";
 
 import { DEMO_MESSAGE, DROPS_BUCKET, SITE_URL, SUPABASE_KEY, SUPABASE_URL, fileUrl } from "./config";
 import { fail, friendly, ok, type Result } from "./result";
@@ -166,7 +167,7 @@ export async function getHome(
       .not("link_checked_at", "is", null)
       .or(`featured_until.gt.${now},boosted_until.gt.${now}`)
       .limit(10),
-    viewerId ? supabase.rpc("suggest_builders", { p_limit: 8 }) : Promise.resolve({ data: [] }),
+    viewerId ? supabase.rpc("suggest_builders", { p_limit: SUGGESTION_LIMIT }) : Promise.resolve({ data: [] }),
     supabase.from("apps").select(CARD_SELECT).not("link_checked_at", "is", null).order("created_at", { ascending: false }).limit(10),
   ]);
   let top = (featured.data ?? []).map(toCard);
@@ -188,11 +189,29 @@ export async function getHome(
     const { data: pics } = await supabase.from("profiles").select("id, avatar_path").in("id", suggestedRows.map((r) => r.id));
     for (const p of (pics ?? []) as any[]) photos.set(p.id, p.avatar_path);
   }
-  const suggestions = suggestedRows.map((r) => ({
+  let suggestions = suggestedRows.map((r) => ({
     ...toSummary({ ...r, avatar_path: photos.get(r.id) ?? null }),
     shared_categories: r.shared_categories ?? [],
     shared_skills: r.shared_skills ?? [],
   }));
+  // Not enough in common yet: fill with the newest builders (same as the website).
+  if (viewerId && suggestions.length < SUGGESTION_LIMIT) {
+    const { data: fresh } = await supabase
+      .from("profiles")
+      .select(SUMMARY)
+      .neq("id", viewerId)
+      .order("created_at", { ascending: false })
+      .limit(40);
+    const newestPeople = ((fresh ?? []) as any[]).map((r) => ({ ...toSummary(r), shared_categories: [], shared_skills: [] }));
+    if (newestPeople.length > 0) {
+      const { data: followed } = await supabase
+        .from("follows")
+        .select("following_id")
+        .eq("follower_id", viewerId)
+        .in("following_id", newestPeople.map((p) => p.id));
+      suggestions = topUpSuggestions(suggestions, newestPeople, [viewerId, ...((followed ?? []) as any[]).map((f) => f.following_id as string)]);
+    }
+  }
   return { featured: top, suggestions, newest: (newest.data ?? []).map(toCard), ...(await getLeaderboards()) };
 }
 

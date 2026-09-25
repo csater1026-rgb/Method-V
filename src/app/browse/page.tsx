@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { AppCard } from "@/components/AppCard";
+import { Avatar } from "@/components/Avatar";
+import { StatusBadge } from "@/components/Tags";
 import { UpcomingLaunches } from "@/components/UpcomingLaunches";
 import { CATEGORIES, PRICING, STAGES } from "@/lib/constants";
-import { getApps, getUpcomingLaunches, type BrowseFilters } from "@/lib/data";
+import { getApps, getUpcomingLaunches, searchPeople, type BrowseFilters } from "@/lib/data";
 
 export const metadata: Metadata = { title: "Browse apps" };
 
@@ -25,7 +27,11 @@ export default async function BrowsePage({ searchParams }: PageProps<"/browse">)
     sort: one(params.sort),
   };
   const hasFilters = Object.entries(filters).some(([k, v]) => v && k !== "sort");
-  const [apps, upcoming] = await Promise.all([getApps(filters), hasFilters ? Promise.resolve([]) : getUpcomingLaunches()]);
+  const [apps, upcoming, people] = await Promise.all([
+    getApps(filters),
+    hasFilters ? Promise.resolve([]) : getUpcomingLaunches(),
+    searchPeople(filters.q),
+  ]);
 
   const categoryHref = (slug?: string) => {
     const next = new URLSearchParams();
@@ -52,8 +58,8 @@ export default async function BrowsePage({ searchParams }: PageProps<"/browse">)
         <input
           name="q"
           defaultValue={filters.q}
-          placeholder="Search apps…"
-          aria-label="Search apps"
+          placeholder="Search apps or people…"
+          aria-label="Search apps or people"
           className="field"
         />
         <input
@@ -101,6 +107,31 @@ export default async function BrowsePage({ searchParams }: PageProps<"/browse">)
             Clear filters
           </Link>
         </p>
+      )}
+
+      {people.length > 0 && (
+        <section aria-label="People" className="mt-6">
+          <h2 className="display text-3xl">People</h2>
+          <ul className="no-scrollbar mt-2 flex gap-2 overflow-x-auto pb-1">
+            {people.map((p) => (
+              <li key={p.id} className="shrink-0">
+                <Link
+                  href={`/u/${p.username}`}
+                  className="flex items-center gap-2.5 rounded-xl border border-line bg-surface py-2 pr-4 pl-2 transition hover:border-accent"
+                >
+                  <Avatar username={p.username} name={p.display_name} src={p.avatar_url} size={36} />
+                  <span className="min-w-0">
+                    <span className="block max-w-40 truncate text-sm font-semibold">{p.display_name || `@${p.username}`}</span>
+                    <span className="flex items-center gap-1.5 text-xs text-muted">
+                      @{p.username}
+                      <StatusBadge roles={p.roles} />
+                    </span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       {apps.length > 0 ? (

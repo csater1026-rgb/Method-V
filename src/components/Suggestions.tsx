@@ -8,7 +8,7 @@ import { FollowButton } from "./FollowButton";
 import { RoleTags } from "./Tags";
 
 // "Builders like you": people who build in the categories you build, like and
-// test, or share your skills.
+// test, or share your skills, topped up with the newest builders.
 export function Suggestions({ people, signedIn }: { people: Suggestion[]; signedIn: boolean }) {
   if (people.length === 0) return null;
   return (
@@ -31,10 +31,12 @@ export function Suggestions({ people, signedIn }: { people: Suggestion[]; signed
                 </span>
               </Link>
               <RoleTags roles={p.roles} />
-              {shared.length > 0 && (
+              {shared.length > 0 ? (
                 <p className="text-xs text-muted">
                   In common: <span className="text-ink">{shared.slice(0, 3).join(" · ")}</span>
                 </p>
+              ) : (
+                <p className="text-xs text-muted">New on Method V</p>
               )}
               <div className="mt-auto pt-1">
                 <FollowButton profileId={p.id} initialFollowing={false} signedIn={signedIn} />

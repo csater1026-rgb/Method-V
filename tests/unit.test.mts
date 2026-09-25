@@ -16,6 +16,7 @@ import { deadExpoTokens, isExpoToken, secretMatches, toMessage } from "../src/li
 import webpush from "web-push";
 import { pushTarget } from "../src/lib/push-route.ts";
 import { bumpInterest, mergeInterests, parseInterests, rankFeed, serializeInterests } from "../src/lib/interests.ts";
+import { topUpSuggestions } from "../src/lib/suggest.ts";
 
 let failures = 0;
 const ok = (cond: boolean, msg: string) => {
@@ -195,6 +196,15 @@ ok(JSON.stringify(pushTarget("/apps/palettepal#feedback")) === '{"screen":"/apps
 ok(JSON.stringify(pushTarget("/q/2b1f6c0e-1111-2222-3333-444455556666")) === '{"screen":"/q/2b1f6c0e-1111-2222-3333-444455556666"}', "a question push opens the thread");
 ok(JSON.stringify(pushTarget("/inbox/june_designs")) === '{"web":"/inbox/june_designs"}', "a message opens the inbox on the website");
 ok(JSON.stringify(pushTarget("https://evil.example")) === '{"screen":"/"}' && JSON.stringify(pushTarget("//evil.example")) === '{"screen":"/"}', "never another site");
+
+// "Builders like you" on a young site: fill with the newest builders.
+{
+  const p = (id: string) => ({ id });
+  const ids = (xs: { id: string }[]) => xs.map((x) => x.id).join(",");
+  ok(ids(topUpSuggestions([], [p("me"), p("b"), p("c")], ["me"])) === "b,c", "no one in common yet → newest builders, never yourself");
+  ok(ids(topUpSuggestions([p("a")], [p("a"), p("b"), p("c")], ["me", "c"])) === "a,b", "matches first, no repeats, skips people you follow");
+  ok(topUpSuggestions([], Array.from({ length: 20 }, (_, i) => p(`n${i}`)), []).length === 8, "at most 8 suggestions");
+}
 
 // Vercel never uploads mobile/ (.vercelignore), so nothing the website builds
 // or type checks may import from it.

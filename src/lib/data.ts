@@ -22,6 +22,7 @@ import {
   demoUpdates,
 } from "./demo";
 import { SIGNALS, bumpInterest, mergeInterests, rankFeed, rankQuestions, type Interests } from "./interests";
+import { SUGGESTION_LIMIT, topUpSuggestions } from "./suggest";
 import { isSupabaseConfigured, publicFileUrl } from "./supabase/env";
 import { createClient } from "./supabase/server";
 import type {
@@ -768,6 +769,27 @@ export async function getTopTesters(): Promise<TopTester[]> {
   }));
 }
 
+// People search on Browse: by username or name.
+export async function searchPeople(q: string | undefined, max = 12): Promise<ProfileSummary[]> {
+  const needle = (q ?? "").replace(/[^\p{L}\p{N} _-]/gu, " ").trim().slice(0, 40);
+  if (needle.length < 2) return [];
+  if (!isSupabaseConfigured) {
+    const low = needle.toLowerCase();
+    return demoProfiles
+      .filter((p) => `${p.username} ${p.display_name}`.toLowerCase().includes(low))
+      .slice(0, max)
+      .map(toSummary);
+  }
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("profiles")
+    .select(summaryCols())
+    .or(`username.ilike."%${needle}%",display_name.ilike."%${needle}%"`)
+    .order("username")
+    .limit(max);
+  return (data ?? []).map(toSummary);
+}
+
 // This month's top builders: tries on their apps plus likes on their Drops
 // (x2), from other people. Null until migration 20261003000000 is run.
 export async function getTopBuilders(): Promise<TopBuilder[] | null> {
@@ -1302,16 +1324,33 @@ export async function getSuggestions(viewer: Viewer | null): Promise<Suggestion[
   }
   if (!viewer) return [];
   const supabase = await createClient();
-  const { data } = await supabase.rpc("suggest_builders", { p_limit: 8 });
+  const { data } = await supabase.rpc("suggest_builders", { p_limit: SUGGESTION_LIMIT });
   const rows = (data ?? []) as Suggestion[];
   // suggest_builders doesn't return photos.
   const photos = await photoUrls(rows.map((r) => r.id));
-  return rows.map((r) => ({
+  const matched: Suggestion[] = rows.map((r) => ({
     ...toSummary(r),
     avatar_url: photos.get(r.id) ?? null,
     shared_categories: r.shared_categories ?? [],
     shared_skills: r.shared_skills ?? [],
   }));
+  if (matched.length >= SUGGESTION_LIMIT) return matched;
+
+  // Not enough in common yet: fill with the newest builders.
+  const { data: fresh } = await supabase
+    .from("profiles")
+    .select(summaryCols())
+    .neq("id", viewer.id)
+    .order("created_at", { ascending: false })
+    .limit(40);
+  const newest = (fresh ?? []).map((r) => ({ ...toSummary(r), shared_categories: [], shared_skills: [] }));
+  if (newest.length === 0) return matched;
+  const { data: followed } = await supabase
+    .from("follows")
+    .select("following_id")
+    .eq("follower_id", viewer.id)
+    .in("following_id", newest.map((p) => p.id));
+  return topUpSuggestions(matched, newest, [viewer.id, ...(followed ?? []).map((f) => f.following_id as string)]);
 }
 
 // ---------------------------------------------------------------------------

@@ -83,6 +83,11 @@ await run("home (phone)", phone, async (page) => {
 });
 
 await run("home + browse sort", desktop, async (page) => {
+  // People search on Browse.
+  await go(page, "/browse?q=ada");
+  const people = page.getByRole("region", { name: "People" });
+  ok((await people.getByRole("link").first().getAttribute("href")) === "/u/ada_builds", "Browse search finds people by name");
+
   await go(page, "/browse?sort=tried");
   const names = await page.locator("main article a.display").allTextContents();
   ok(names[0] === "PalettePal", `Browse "Most tried" sorts by tries (${names.join(",")})`);

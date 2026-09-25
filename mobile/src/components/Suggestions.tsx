@@ -74,11 +74,9 @@ function SuggestionCard({ person: p }: { person: Suggestion }) {
           ))}
         </View>
       )}
-      {shared.length > 0 && (
-        <Body muted size={12}>
-          In common: {shared.slice(0, 3).join(" · ")}
-        </Body>
-      )}
+      <Body muted size={12}>
+        {shared.length > 0 ? `In common: ${shared.slice(0, 3).join(" · ")}` : "New on Method V"}
+      </Body>
       <View style={{ flex: 1 }} />
       <Button
         label={following ? "Following" : "Follow"}
