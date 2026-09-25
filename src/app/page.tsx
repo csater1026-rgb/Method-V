@@ -1,16 +1,19 @@
 import Link from "next/link";
 
+import { ChallengeBanner } from "@/components/ChallengeBanner";
 import { FeaturedCard } from "@/components/FeaturedCard";
 import { TopBuilders, TopTesters } from "@/components/Passport";
 import { Suggestions } from "@/components/Suggestions";
-import { getApps, getFeatured, getSuggestions, getTopBuilders, getTopTesters, getViewer } from "@/lib/data";
+import { getApps, getFeatured, getRunningChallenge, getSuggestions, getTopBuilders, getTopTesters, getViewer } from "@/lib/data";
 
-// Home: Featured, builders to follow, the newest projects, then this month's
-// top builders and top testers. Everything else lives on Browse.
+// Home: a running challenge (only while one is on), Featured, builders to
+// follow, the newest projects, then this month's top builders and top
+// testers. Everything else lives on Browse.
 
 export default async function HomePage() {
   const viewer = await getViewer();
-  const [featured, suggestions, newest, topBuilders, topTesters] = await Promise.all([
+  const [challenge, featured, suggestions, newest, topBuilders, topTesters] = await Promise.all([
+    getRunningChallenge(),
     getFeatured(),
     getSuggestions(viewer),
     getApps({}, 10),
@@ -20,6 +23,11 @@ export default async function HomePage() {
 
   return (
     <div className="mx-auto w-full max-w-6xl py-6">
+      {challenge && (
+        <div className="mb-6">
+          <ChallengeBanner challenge={challenge} />
+        </div>
+      )}
       <header className="flex items-center justify-between gap-3 px-4">
         <h1 className="display text-3xl">{featured.curated ? "Featured" : "Hot right now"}</h1>
         <Link href="/browse" className="btn-ghost shrink-0 px-3" aria-label="Search apps">

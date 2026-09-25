@@ -67,7 +67,7 @@ await run("home (phone)", phone, async (page) => {
   ok((await justPosted.locator("article").first().getAttribute("class")).includes("snap-start"), "Just posted swipes sideways too");
   ok((await justPosted.locator("article .tag-accent").count()) === 0, "Just posted cards have no Featured-style labels");
   const order = await page.locator("main section[aria-label]").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
-  ok(order.join(" > ") === "Featured apps > Builders like you > Just posted > Top builders > Top testers", `Home order: ${order.join(" > ")}`);
+  ok(order.join(" > ") === "Challenge > Featured apps > Builders like you > Just posted > Top builders > Top testers", `Home order: ${order.join(" > ")}`);
   const builders = await page.getByRole("region", { name: "Top builders" }).locator("li a").allTextContents();
   ok(builders[0]?.includes("June Okafor"), `top builder this month leads (${builders.join(", ")})`);
   ok((await justPosted.getByRole("link", { name: "See all →" }).getAttribute("href")) === "/browse", "Just posted links to Browse");
@@ -225,7 +225,7 @@ await run("menu: Profile, no jobs board", desktop, async (page) => {
   await go(page, "/");
   const nav = page.locator("header nav").first();
   const links = (await nav.getByRole("link").allTextContents()).join(",");
-  ok(links === "Home,Drops,Browse,Profile,Challenges", `top menu: ${links}`);
+  ok(links === "Home,Drops,Browse,Profile", `top menu: ${links}`);
   ok((await nav.getByRole("link", { name: "Profile" }).getAttribute("href")) === "/login", "Profile asks you to sign in first when signed out");
   await go(page, "/jobs");
   ok(new URL(page.url()).pathname === "/browse", "the old jobs board sends people to Browse");
@@ -721,7 +721,12 @@ await run("earn + pro (phone)", phone, async (page) => {
 
 await run("challenges (desktop)", desktop, async (page) => {
   await go(page, "/");
-  ok(await page.getByRole("navigation").getByRole("link", { name: "Challenges" }).first().isVisible(), "Challenges in the desktop nav");
+  ok((await page.getByRole("navigation").getByRole("link", { name: "Challenges" }).count()) === 0, "no Challenges tab in the menu");
+  const banner = page.getByRole("region", { name: "Challenge" });
+  ok((await banner.getByRole("link").getAttribute("href")) === "/challenges/best-supabase-app", "the running challenge ending soonest is on Home");
+  await banner.getByRole("link").click();
+  await page.waitForURL(/\/challenges\/best-supabase-app/);
+  ok(true, "the banner opens the challenge");
   await go(page, "/challenges");
   ok((await page.locator("main li a[href^='/challenges/']").count()) === 2, "two demo challenges");
   await go(page, "/challenges/best-supabase-app");

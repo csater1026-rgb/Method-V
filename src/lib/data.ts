@@ -1511,6 +1511,31 @@ export async function getChallenges(): Promise<Challenge[]> {
   return (data ?? []) as Challenge[];
 }
 
+// The challenge running right now (the one ending soonest), for the banner at
+// the top of Home. Null when none is on.
+export async function getRunningChallenge(): Promise<Challenge | null> {
+  const now = Date.now();
+  if (!isSupabaseConfigured) {
+    return (
+      demoChallenges
+        .map((c) => demoChallenge(c, now))
+        .filter((c) => new Date(c.starts_at).getTime() <= now && now < new Date(c.ends_at).getTime())
+        .sort((a, b) => a.ends_at.localeCompare(b.ends_at))[0] ?? null
+    );
+  }
+  const at = new Date(now).toISOString();
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("challenges")
+    .select(CHALLENGE_FIELDS)
+    .lte("starts_at", at)
+    .gt("ends_at", at)
+    .order("ends_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  return (data as Challenge | null) ?? null;
+}
+
 export async function getChallenge(
   slug: string,
   viewer: Viewer | null,
