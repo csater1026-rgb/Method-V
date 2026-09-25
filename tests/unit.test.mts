@@ -196,5 +196,21 @@ ok(JSON.stringify(pushTarget("/q/2b1f6c0e-1111-2222-3333-444455556666")) === '{"
 ok(JSON.stringify(pushTarget("/inbox/june_designs")) === '{"web":"/inbox/june_designs"}', "a message opens the inbox on the website");
 ok(JSON.stringify(pushTarget("https://evil.example")) === '{"screen":"/"}' && JSON.stringify(pushTarget("//evil.example")) === '{"screen":"/"}', "never another site");
 
+// Vercel never uploads mobile/ (.vercelignore), so nothing the website builds
+// or type checks may import from it.
+{
+  const { readdirSync: ls, statSync } = await import("node:fs");
+  const walk = (dir: string): string[] =>
+    ls(dir).flatMap((f) => {
+      const p = `${dir}/${f}`;
+      return statSync(p).isDirectory() ? walk(p) : /\.(ts|tsx|mts|mjs)$/.test(f) ? [p] : [];
+    });
+  const root = new URL("..", import.meta.url).pathname;
+  const offenders = [...walk(`${root}src`), ...walk(`${root}tests`), ...walk(`${root}scripts`)].filter((f) =>
+    /from\s+["'][^"']*\/mobile\//.test(readFileSync(f, "utf8")),
+  );
+  ok(offenders.length === 0, `the website never imports from mobile/ (${offenders.map((f) => f.replace(root, "")).join(", ") || "none"})`);
+}
+
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");
 process.exit(failures ? 1 : 0);
