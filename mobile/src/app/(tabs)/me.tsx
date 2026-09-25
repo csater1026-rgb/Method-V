@@ -9,6 +9,7 @@ import { ROLES } from "@shared/constants";
 
 import { PixelCoder } from "@/components/PixelCoder";
 import { Avatar, Body, Button, Card, Display, ErrorText, Handle, Mono, StatusBadge, tap } from "@/components/ui";
+import { useTour } from "@/components/Tour";
 import { useAuth } from "@/lib/auth";
 import { DEMO_MESSAGE, MIN_PASSWORD, SITE_URL, isLive } from "@/lib/config";
 import { setPhoto, setRoles } from "@/lib/data";
@@ -23,6 +24,7 @@ export default function MeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { viewer, signOut } = useAuth();
+  const tour = useTour();
   const web = (path: string) => SITE_URL && void WebBrowser.openBrowserAsync(`${SITE_URL}${path}`);
 
   if (!viewer) {
@@ -40,6 +42,7 @@ export default function MeScreen() {
         ) : (
           <Button label="See a sample profile" kind="ghost" onPress={() => router.push("/u/ada_builds")} />
         )}
+        <Button label="Take the tour" kind="ghost" onPress={tour.start} />
       </View>
     );
   }
@@ -79,6 +82,7 @@ export default function MeScreen() {
         </Card>
       ) : null}
       <PasswordCard />
+      <Button label="Take the tour again" kind="ghost" onPress={tour.start} />
       <Button label="Sign out" kind="ghost" onPress={() => void signOut()} />
     </ScrollView>
   );
