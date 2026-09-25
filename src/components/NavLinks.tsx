@@ -29,6 +29,7 @@ export function NavLinks({ profileHref }: { profileHref: string }) {
           <Link
             key={link.href}
             href={link.href}
+            data-tour={link.label.toLowerCase()}
             aria-current={active ? "page" : undefined}
             className={`px-3 py-1.5 text-sm font-semibold transition ${
               active ? "text-ink shadow-[inset_0_-2px_0_var(--color-accent)]" : "text-muted hover:text-ink"

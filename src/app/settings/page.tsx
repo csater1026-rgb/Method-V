@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { getNotificationSettings, getOwnProfile, getViewer } from "@/lib/data";
@@ -37,7 +38,12 @@ export default async function SettingsPage() {
       />
       <PasswordForm />
       <section aria-label="Sign out" className="mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-6">
-        <p className="text-sm text-muted">Signed in as <Handle username={profile.username} />.</p>
+        <p className="text-sm text-muted">
+          Signed in as <Handle username={profile.username} />.{" "}
+          <Link href="/?tour=1" className="text-accent hover:underline">
+            Take the tour again
+          </Link>
+        </p>
         <SignOutButton />
       </section>
     </div>

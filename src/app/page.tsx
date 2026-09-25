@@ -40,7 +40,7 @@ export default async function HomePage() {
       </header>
 
       {featured.apps.length > 0 ? (
-        <section aria-label="Featured apps" className="no-scrollbar mt-3 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-2">
+        <section aria-label="Featured apps" data-tour="featured" className="no-scrollbar mt-3 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-2">
           {featured.apps.map((app, i) => (
             <FeaturedCard key={app.id} app={app} rank={i} />
           ))}

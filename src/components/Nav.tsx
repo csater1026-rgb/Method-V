@@ -9,6 +9,7 @@ import { InboxIcon } from "./Inbox";
 import { MobileTabs } from "./MobileTabs";
 import { NavLinks } from "./NavLinks";
 import { SignOutButton } from "./SignOutButton";
+import { Tour } from "./Tour";
 import { Wordmark } from "./Wordmark";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -32,7 +33,7 @@ export async function Nav() {
           <div className="ml-auto flex items-center gap-2">
             <ThemeToggle />
             {!gated && (
-              <Link href="/submit" className="btn-accent hidden sm:inline-flex">
+              <Link href="/submit" data-tour="post" className="btn-accent hidden sm:inline-flex">
                 Post a Drop
               </Link>
             )}
@@ -40,7 +41,7 @@ export async function Nav() {
               <>
                 <CreditsChip credits={viewer.credits} />
                 <InboxIcon count={counts.notifications + counts.messages + counts.requests} />
-                <Link href={`/u/${viewer.username}`} aria-label="Your profile">
+                <Link href={`/u/${viewer.username}`} aria-label="Your profile" data-tour="profile">
                   <Avatar username={viewer.username} src={viewer.avatar_url} size={32} />
                 </Link>
                 <span className="hidden sm:block">
@@ -56,6 +57,7 @@ export async function Nav() {
         </div>
       </header>
       {!gated && <MobileTabs profileHref={viewer ? `/u/${viewer.username}` : "/login"} canPost={Boolean(viewer) || !isSupabaseConfigured} />}
+      {!gated && <Tour userId={viewer?.id ?? null} />}
     </>
   );
 }

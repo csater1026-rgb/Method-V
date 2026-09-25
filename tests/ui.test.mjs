@@ -746,6 +746,47 @@ await run("email templates page", desktop, async (page) => {
   ok((await page.locator('meta[name="robots"]').getAttribute("content"))?.includes("noindex"), "setup page isn't indexed");
 });
 
+await run("first-time tour", desktop, async (page) => {
+  await go(page, "/");
+  await page.waitForTimeout(900);
+  ok((await page.getByRole("dialog", { name: "Tour" }).count()) === 0, "no tour for signed-out visitors unless asked");
+  await go(page, "/?tour=1");
+  const tour = page.getByRole("dialog", { name: "Tour" });
+  await tour.getByRole("heading", { name: "Welcome to Method V" }).waitFor({ timeout: 5000 });
+  ok(true, "the tour opens with a welcome");
+  await tour.getByRole("button", { name: "Start the tour" }).click();
+  ok(await tour.getByRole("heading", { name: "Featured" }).isVisible(), "step 1 points at Featured");
+  ok((await tour.locator("[data-tour-highlight]").count()) === 1, "and highlights it on the page");
+  await page.screenshot({ path: OUT + "tour-featured.png" });
+  const titles = [];
+  for (let i = 0; i < 6; i++) {
+    await tour.getByRole("button", { name: "Next" }).click();
+    titles.push(await tour.getByRole("heading").textContent());
+  }
+  ok(titles.join(" > ") === "Drops > Post your app > Browse > Credits > Your inbox > Your profile", `walks through the site (${titles.join(" > ")})`);
+  await tour.getByRole("button", { name: "Back" }).click();
+  ok((await tour.getByRole("heading").textContent()) === "Your inbox", "Back goes back a step");
+  await page.keyboard.press("ArrowRight");
+  await tour.getByRole("button", { name: "Next" }).click();
+  ok(await tour.getByRole("link", { name: "Find apps to test" }).isVisible(), "ends with where to start");
+  await tour.getByRole("button", { name: "Close" }).click();
+  ok((await page.getByRole("dialog", { name: "Tour" }).count()) === 0 && new URL(page.url()).search === "", "closing it tidies the address");
+});
+
+await run("tour on a phone, skipped", phone, async (page) => {
+  await go(page, "/?tour=1");
+  const tour = page.getByRole("dialog", { name: "Tour" });
+  await tour.getByRole("button", { name: "Start the tour" }).click();
+  await tour.getByRole("button", { name: "Next" }).click();
+  ok((await tour.getByRole("heading").textContent()) === "Drops", "phones get the same steps");
+  const box = await tour.locator("[data-tour-highlight]").boundingBox();
+  ok(box && box.y > 700, `Drops is highlighted in the bottom tab bar on phones (y=${Math.round(box?.y ?? 0)})`);
+  await noSideScroll(page, "tour on a phone");
+  await page.screenshot({ path: OUT + "tour-phone.png" });
+  await tour.getByRole("button", { name: "Skip tour" }).click();
+  ok((await page.getByRole("dialog", { name: "Tour" }).count()) === 0, "Skip tour closes it straight away");
+});
+
 await run("challenges (desktop)", desktop, async (page) => {
   await go(page, "/");
   ok((await page.getByRole("navigation").getByRole("link", { name: "Challenges" }).count()) === 0, "no Challenges tab in the menu");

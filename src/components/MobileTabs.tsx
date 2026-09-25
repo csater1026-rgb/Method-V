@@ -43,20 +43,20 @@ export function MobileTabs({ profileHref, canPost }: { profileHref: string; canP
           // does nothing special.
           if (!canPost) {
             return (
-              <button key={tab.label} type="button" aria-label="Post a Drop" className={look} onClick={() => signIn("post a Drop", "/submit")}>
+              <button key={tab.label} type="button" aria-label="Post a Drop" data-tour="post" className={look} onClick={() => signIn("post a Drop", "/submit")}>
                 +
               </button>
             );
           }
           if (pathname === "/submit") {
             return (
-              <Link key={tab.label} href={tab.href} aria-label="Post a Drop" className={look}>
+              <Link key={tab.label} href={tab.href} aria-label="Post a Drop" data-tour="post" className={look}>
                 +
               </Link>
             );
           }
           return (
-            <label key={tab.label} className={`${look} cursor-pointer`}>
+            <label key={tab.label} data-tour="post" className={`${look} cursor-pointer`}>
               <span aria-hidden>+</span>
               <input
                 type="file"
@@ -78,6 +78,7 @@ export function MobileTabs({ profileHref, canPost }: { profileHref: string; canP
           <Link
             key={tab.label}
             href={tab.href}
+            data-tour={tab.icon}
             aria-current={active ? "page" : undefined}
             className={`flex w-14 flex-col items-center gap-0.5 text-[11px] font-semibold ${active ? "text-accent" : "text-muted"}`}
           >

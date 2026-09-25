@@ -17,6 +17,7 @@ export function InboxIcon({ count }: { count: number }) {
   return (
     <Link
       href="/inbox"
+      data-tour="inbox"
       aria-label={count ? `Inbox, ${count} new` : "Inbox"}
       className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-line bg-surface hover:border-accent"
     >
