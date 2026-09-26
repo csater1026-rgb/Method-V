@@ -6,6 +6,7 @@ import type { Passport as PassportData, Profile, TopBuilder, TopTester } from "@
 
 import { Avatar } from "./Avatar";
 import { Handle } from "./Handle";
+import { Coin } from "./Coin";
 
 // Short names for the rank ladder, so all five fit on a phone.
 const LADDER: Record<string, string> = { new: "New", scout: "Scout", tester: "Tester", pro: "Pro", trusted: "Trusted" };
@@ -104,7 +105,8 @@ export function PassportCard({ profile, passport, isSelf }: { profile: Profile; 
       </div>
 
       <p className="border-t border-line bg-bg/40 px-4 py-3 text-xs text-muted sm:px-5">
-        Give feedback {STREAK_BONUS.weeks} weeks in a row for a ⚡{STREAK_BONUS.credits} bonus. Ranks never go down.
+        Give feedback {STREAK_BONUS.weeks} weeks in a row for a <Coin />
+        {STREAK_BONUS.credits} bonus. Ranks never go down.
         {isSelf && (
           <>
             {" "}

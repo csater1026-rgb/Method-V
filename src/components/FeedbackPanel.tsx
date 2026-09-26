@@ -12,6 +12,7 @@ import type { Feedback, FeedbackPanel as Panel, TestRequest } from "@/lib/types"
 import { Avatar } from "./Avatar";
 import { RankTag } from "./Passport";
 import { Handle } from "./Handle";
+import { Coin } from "./Coin";
 
 type AppRef = { id: string; slug: string; name: string };
 
@@ -26,7 +27,8 @@ export function FeedbackPanel({ panel, app }: { panel: Panel; app: AppRef }) {
         <h2 className="display text-4xl">Test &amp; earn</h2>
         {open && panel.mode !== "owner" && (
           <span className="tag-accent">
-            ⚡ Earn {CREDITS.feedbackReward} credits · {open.slots_total - open.slots_filled} spots left
+            <Coin />
+            Earn {CREDITS.feedbackReward} credits · {open.slots_total - open.slots_filled} spots left
           </span>
         )}
       </div>
@@ -39,7 +41,15 @@ export function FeedbackPanel({ panel, app }: { panel: Panel; app: AppRef }) {
           <HowStep n={2} title="Give feedback">
             Would you use it? What worked, what didn&apos;t? Only the builder sees it.
           </HowStep>
-          <HowStep n={3} title={`Earn ⚡${CREDITS.feedbackReward}`}>
+          <HowStep
+            n={3}
+            title={
+              <>
+                Earn <Coin />
+                {CREDITS.feedbackReward}
+              </>
+            }
+          >
             Spend credits to get testers for your own app.
           </HowStep>
         </ol>
@@ -85,7 +95,7 @@ export function FeedbackPanel({ panel, app }: { panel: Panel; app: AppRef }) {
   );
 }
 
-function HowStep({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
+function HowStep({ n, title, children }: { n: number; title: React.ReactNode; children: React.ReactNode }) {
   return (
     <li className="rounded-lg border border-line bg-bg p-3">
       <span className="eyebrow">0{n}</span>
@@ -269,18 +279,21 @@ function OwnerView({
                 disabled={pending || credits < cost}
                 className="btn-ghost"
               >
-                +{n} testers · ⚡{cost}
+                +{n} testers · <Coin />
+                {cost}
               </button>
             );
           })}
           {open && (
             <button type="button" onClick={cancel} disabled={pending} className="text-sm text-muted hover:text-danger">
-              Stop and refund ⚡{(open.slots_total - open.slots_filled) * CREDITS.perTester}
+              Stop and refund <Coin />
+              {(open.slots_total - open.slots_filled) * CREDITS.perTester}
             </button>
           )}
         </div>
         <p className="mt-2 text-xs text-muted">
-          You have ⚡{credits}.{" "}
+          You have <Coin />
+          {credits}.{" "}
           <Link href="/test" className="text-accent hover:underline">
             Test other apps
           </Link>{" "}
@@ -349,7 +362,8 @@ function FeedbackItem({ item, appSlug, canMarkHelpful }: { item: Feedback; appSl
             <span className="text-xs text-accent">✓ Marked helpful</span>
           ) : (
             <button type="button" onClick={mark} disabled={pending} className="btn-ghost px-3 py-1 text-xs">
-              Mark helpful · gives them ⚡{CREDITS.helpfulBonus}
+              Mark helpful · gives them <Coin />
+              {CREDITS.helpfulBonus}
             </button>
           )}
           {error && <p className="mt-1 text-xs text-danger">{error}</p>}

@@ -19,6 +19,7 @@ import { CREDIT_PACKS, EARN, formatCents } from "@/lib/constants";
 import type { ActionResult, Sponsorship } from "@/lib/types";
 
 import { useSignIn } from "./SignIn";
+import { Coin } from "./Coin";
 
 type MyApp = { id: string; name: string };
 // Something you can sponsor with: one of your apps, or a verified brand.
@@ -320,7 +321,7 @@ export function BuyCredits() {
               onClick={() => checkout.go(() => buyCredits(p.credits))}
             >
               <span className="font-mono text-3xl font-bold">
-                <span className="text-accent">⚡</span>
+                <Coin />
                 {p.credits}
               </span>
               <span className="font-semibold">{formatCents(p.cents)}</span>

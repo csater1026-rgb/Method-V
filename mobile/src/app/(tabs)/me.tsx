@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ROLES } from "@shared/constants";
 
 import { PixelCoder } from "@/components/PixelCoder";
-import { Avatar, Body, Button, Card, Display, ErrorText, Handle, Mono, StatusBadge, tap } from "@/components/ui";
+import { Avatar, Body, Button, Card, Coin, Display, ErrorText, Handle, Mono, StatusBadge, tap } from "@/components/ui";
 import { useTour } from "@/components/Tour";
 import { useAuth } from "@/lib/auth";
 import { DEMO_MESSAGE, MIN_PASSWORD, SITE_URL, isLive } from "@/lib/config";
@@ -72,7 +72,10 @@ export default function MeScreen() {
       <PhotoCard />
       <StatusCard />
       <NotificationsCard />
-      <Mono muted={false}>⚡{viewer.credits} credits</Mono>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+        <Coin size={13} />
+        <Mono muted={false}>{viewer.credits} credits</Mono>
+      </View>
       <Button label="View your profile" onPress={() => router.push(`/u/${viewer.username}`)} />
       {SITE_URL ? (
         <Card style={{ gap: 4 }}>

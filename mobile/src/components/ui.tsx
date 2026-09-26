@@ -4,6 +4,7 @@ import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View, type Te
 import Svg, { Rect } from "react-native-svg";
 
 import { OFFICIAL_HANDLE, ROLES, labelFor, primaryStatus } from "@shared/constants";
+import { COIN_HEIGHT, COIN_WIDTH, pixelCoinRects } from "@shared/pixel-coin";
 import { V_HEIGHT, V_WIDTH, pixelVRects } from "@shared/pixel-v";
 
 import { MINT, MINT_INK, fonts, useTheme } from "@/theme";
@@ -209,5 +210,19 @@ export function Handle({ username, size = 15 }: { username: string; size?: numbe
         ))}
       </Svg>
     </>
+  );
+}
+
+// The credit coin (mint, stamped with the logo's V), the same as the
+// website's. Drawn from the website's src/lib/pixel-coin.ts.
+const COIN_PIXELS = pixelCoinRects();
+
+export function Coin({ size = 14 }: { size?: number }) {
+  return (
+    <Svg width={(size * COIN_WIDTH) / COIN_HEIGHT} height={size} viewBox={`0 0 ${COIN_WIDTH} ${COIN_HEIGHT}`} accessible={false}>
+      {COIN_PIXELS.map((r, i) => (
+        <Rect key={i} x={r.x} y={r.y} width={r.w} height={r.h} fill={r.fill} />
+      ))}
+    </Svg>
   );
 }

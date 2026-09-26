@@ -5,6 +5,7 @@ import { AppCard } from "@/components/AppCard";
 import { TopTesters } from "@/components/Passport";
 import { CREDITS } from "@/lib/constants";
 import { getTestQueue, getTopTesters, getViewer } from "@/lib/data";
+import { Coin } from "@/components/Coin";
 
 export const metadata: Metadata = {
   title: "Test & earn",
@@ -30,7 +31,15 @@ export default async function TestPage() {
         <Step n={2} title="Give feedback">
           Would you use it? What worked? What confused you? Only the builder sees it.
         </Step>
-        <Step n={3} title={`Earn ⚡${CREDITS.feedbackReward}`}>
+        <Step
+          n={3}
+          title={
+            <>
+              Earn <Coin />
+              {CREDITS.feedbackReward}
+            </>
+          }
+        >
           Spend {CREDITS.perTester} credits per tester to put your own app in this queue. Helpful feedback earns a bonus.
         </Step>
       </ol>
@@ -39,7 +48,10 @@ export default async function TestPage() {
         <h2 className="display text-4xl">Waiting for testers</h2>
         {viewer ? (
           <Link href="/credits" className="text-sm text-muted hover:text-ink">
-            You have <span className="font-semibold text-ink">⚡{viewer.credits}</span> · history
+            You have <span className="font-semibold text-ink">
+              <Coin />
+              {viewer.credits}
+            </span> · history
           </Link>
         ) : (
           <Link href="/login?next=/test" className="text-sm text-accent hover:underline">
@@ -55,7 +67,8 @@ export default async function TestPage() {
               <AppCard app={app} index={i} />
               <div className="flex items-center justify-between gap-2 px-1 text-sm">
                 <span className="font-mono text-xs font-semibold text-accent">
-                  ⚡{CREDITS.feedbackReward} · {app.spots_left} {app.spots_left === 1 ? "spot" : "spots"} left
+                  <Coin />
+                  {CREDITS.feedbackReward} · {app.spots_left} {app.spots_left === 1 ? "spot" : "spots"} left
                 </span>
                 <Link href={`/apps/${app.slug}#feedback`} className="btn-ghost px-3 py-1.5">
                   Test it →
@@ -82,7 +95,7 @@ export default async function TestPage() {
   );
 }
 
-function Step({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
+function Step({ n, title, children }: { n: number; title: React.ReactNode; children: React.ReactNode }) {
   return (
     <li className="rise rounded-xl border border-line bg-surface p-4" style={{ "--i": n } as React.CSSProperties}>
       <span className="font-mono text-xs text-accent">0{n} /</span>

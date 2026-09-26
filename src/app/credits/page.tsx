@@ -7,6 +7,7 @@ import { CREDITS, CREDIT_REASONS, SPOTLIGHT, STREAK_BONUS } from "@/lib/constant
 import { getCreditHistory, getViewer } from "@/lib/data";
 import { timeAgo } from "@/lib/format";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { Coin } from "@/components/Coin";
 
 export const metadata: Metadata = { title: "Credits" };
 
@@ -23,7 +24,10 @@ export default async function CreditsPage({ searchParams }: PageProps<"/credits"
       <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-line bg-surface p-5">
         <div>
           <p className="text-sm text-muted">Your balance</p>
-          <p className="font-mono text-5xl font-bold"><span className="text-accent">⚡</span>{viewer?.credits ?? 0}</p>
+          <p className="font-mono text-5xl font-bold">
+            <Coin />
+            {viewer?.credits ?? 0}
+          </p>
         </div>
         <Link href="/test" className="btn-accent">
           Earn more in Test &amp; earn
@@ -39,7 +43,7 @@ export default async function CreditsPage({ searchParams }: PageProps<"/credits"
       <section id="buy" aria-label="Buy credits" className="mt-10 scroll-mt-24">
         <h2 className="display text-4xl">Buy credits</h2>
         <p className="mt-1 mb-4 text-sm text-muted">
-          For the Spotlight (⚡{SPOTLIGHT.cost}) or testers for your app. Or earn them free by testing apps. Credits can&apos;t be
+          For the Spotlight (<Coin />{SPOTLIGHT.cost}) or testers for your app. Or earn them free by testing apps. Credits can&apos;t be
           turned back into money.
         </p>
         <BuyCredits />
@@ -47,21 +51,21 @@ export default async function CreditsPage({ searchParams }: PageProps<"/credits"
 
       <h2 className="display mt-10 text-4xl">How credits work</h2>
       <ul className="mt-2 flex flex-col gap-1.5 text-sm text-ink/90">
-        <li>• Everyone starts with ⚡{CREDITS.welcome}.</li>
+        <li>• Everyone starts with <Coin />{CREDITS.welcome}.</li>
         <li>
           • Try an app in <Link href="/test" className="text-accent hover:underline">Test &amp; earn</Link> and give feedback:
-          earn ⚡{CREDITS.feedbackReward}.
+          earn <Coin />{CREDITS.feedbackReward}.
         </li>
-        <li>• When a builder marks your feedback helpful: +⚡{CREDITS.helpfulBonus}.</li>
-        <li>• Spend ⚡{CREDITS.perTester} per tester to put your own app in the queue. Unused spots are refunded if you stop.</li>
+        <li>• When a builder marks your feedback helpful: +<Coin />{CREDITS.helpfulBonus}.</li>
+        <li>• Spend <Coin />{CREDITS.perTester} per tester to put your own app in the queue. Unused spots are refunded if you stop.</li>
         <li>• You can earn from up to {CREDITS.dailyPaidFeedback} feedbacks a day, so the queue stays fair.</li>
         <li>
-          • Tester Passport perks: Testers earn ⚡3 per paid feedback, Pro Testers can earn from 20 a day, and{" "}
-          {STREAK_BONUS.weeks} weeks in a row earns a ⚡{STREAK_BONUS.credits} bonus.
+          • Tester Passport perks: Testers earn <Coin />3 per paid feedback, Pro Testers can earn from 20 a day, and{" "}
+          {STREAK_BONUS.weeks} weeks in a row earns a <Coin />{STREAK_BONUS.credits} bonus.
         </li>
         <li>
-          • Book the Spotlight: one of {SPOTLIGHT.slots} spots in the Featured row for {SPOTLIGHT.days} days, ⚡{SPOTLIGHT.cost}{" "}
-          (⚡{SPOTLIGHT.proCost} with Pro). First come, first served.
+          • Book the Spotlight: one of {SPOTLIGHT.slots} spots in the Featured row for {SPOTLIGHT.days} days, <Coin />{SPOTLIGHT.cost}{" "}
+          (<Coin />{SPOTLIGHT.proCost} with Pro). First come, first served.
         </li>
       </ul>
 

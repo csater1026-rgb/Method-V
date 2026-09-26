@@ -10,6 +10,7 @@ import type { AppStatus } from "@/lib/data";
 import type { ActionResult } from "@/lib/types";
 
 import { Countdown } from "./Countdown";
+import { Coin } from "./Coin";
 
 type Props = {
   app: { id: string; slug: string; name: string; launch_at: string | null };
@@ -141,12 +142,14 @@ export function GrowPanel({ app, status, credits, spotlightCost, nextSpotlight, 
                 disabled={pending || credits < spotlightCost || nextSpotlight === null}
                 onClick={() => run(() => bookSpotlight(app.id, app.slug))}
               >
-                Book the Spotlight · ⚡{spotlightCost}
+                Book the Spotlight · <Coin />
+                {spotlightCost}
               </button>
             </>
           )}
           <p className="mt-2 text-xs text-muted">
-            You have ⚡{credits}.{" "}
+            You have <Coin />
+            {credits}.{" "}
             {!spotlightUntil && !spotlightStarts && credits < spotlightCost && (
               <Link href="/credits#buy" className="text-accent hover:underline">
                 Get credits →

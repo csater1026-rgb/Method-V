@@ -395,7 +395,7 @@ await run("launch days + boosts", desktop, async (page) => {
   const growNote = page.getByRole("region", { name: "Grow" });
   ok(await growNote.getByLabel("Launch date and time").isVisible(), "unscheduled app offers a launch date picker");
   ok(await growNote.getByText("A spot is free: it starts right away.").isVisible(), "Spotlight says when it would start");
-  await growNote.getByRole("button", { name: "Book the Spotlight · ⚡25" }).click();
+  await growNote.getByRole("button", { name: "Book the Spotlight · 25" }).click();
   await growNote.getByText("Method V is running in demo mode").waitFor({ timeout: 5000 });
   ok(true, "booking the Spotlight explains demo mode");
   await growNote.screenshot({ path: OUT + "grow-panel.png" });

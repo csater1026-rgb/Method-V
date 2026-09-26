@@ -39,7 +39,7 @@ export const CREDIT_REASONS: Record<string, string> = {
 export const TESTER_RANKS = [
   { slug: "new", label: "New tester", given: 0, helpful: 0, perk: "Give feedback to earn stamps" },
   { slug: "scout", label: "Scout", given: 5, helpful: 0, perk: "Scout badge on your profile" },
-  { slug: "tester", label: "Tester", given: 15, helpful: 3, perk: "Earn ⚡3 per paid feedback instead of ⚡2" },
+  { slug: "tester", label: "Tester", given: 15, helpful: 3, perk: "Earn 3 credits per paid feedback instead of 2" },
   { slug: "pro", label: "Pro Tester", given: 40, helpful: 10, perk: "Earn from 20 feedbacks a day instead of 10" },
   { slug: "trusted", label: "Trusted Tester", given: 100, helpful: 30, perk: "Your feedback shows first to builders" },
 ] as const;
