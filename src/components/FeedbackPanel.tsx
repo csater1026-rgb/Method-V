@@ -28,7 +28,7 @@ export function FeedbackPanel({ panel, app }: { panel: Panel; app: AppRef }) {
         {open && panel.mode !== "owner" && (
           <span className="tag-accent">
             <Coin />
-            Earn {CREDITS.feedbackReward} credits · {open.slots_total - open.slots_filled} spots left
+            Earn {CREDITS.feedbackReward} V Coin · {open.slots_total - open.slots_filled} spots left
           </span>
         )}
       </div>
@@ -50,14 +50,14 @@ export function FeedbackPanel({ panel, app }: { panel: Panel; app: AppRef }) {
               </>
             }
           >
-            Spend credits to get testers for your own app.
+            Credits here are called V Coin. Spend them to get testers for your own app.
           </HowStep>
         </ol>
       )}
 
       {panel.mode === "demo" && (
         <p className="mt-2 text-sm text-muted">
-          Testers who try an app and leave honest feedback earn credits, and builders spend credits to get testers. It&apos;s
+          Testers who try an app and leave honest feedback earn credits, called V Coin, and builders spend them to get testers. It&apos;s
           off in demo mode.
         </p>
       )}
@@ -67,7 +67,7 @@ export function FeedbackPanel({ panel, app }: { panel: Panel; app: AppRef }) {
           <Link href={`/login?next=${encodeURIComponent(`/apps/${app.slug}#feedback`)}`} className="text-accent hover:underline">
             Sign in
           </Link>{" "}
-          to try {app.name}, give feedback{open ? ` and earn ${CREDITS.feedbackReward} credits` : ""}.
+          to try {app.name}, give feedback{open ? ` and earn ${CREDITS.feedbackReward} V Coin` : ""}.
         </p>
       )}
 
@@ -76,7 +76,7 @@ export function FeedbackPanel({ panel, app }: { panel: Panel; app: AppRef }) {
           <div className="mt-3">
             <p className="text-sm text-muted">
               {panel.mine.earned > 0
-                ? `Thanks! You earned ${panel.mine.earned} credits for this.`
+                ? `Thanks! You earned ${panel.mine.earned} V Coin for this.`
                 : "Thanks! Your feedback went to the builder."}{" "}
               Only you and the builder can see it.
             </p>
@@ -111,7 +111,7 @@ function TryFirst({ app, open }: { app: AppRef; open: TestRequest | null }) {
     <div className="mt-3 flex flex-col gap-3">
       <p className="text-sm text-muted">
         Open {app.name} with Try it, use it for a minute, then come back here to give feedback
-        {open ? ` and earn ${CREDITS.feedbackReward} credits` : ""}.
+        {open ? ` and earn ${CREDITS.feedbackReward} V Coin` : ""}.
       </p>
       <div className="flex flex-wrap gap-2">
         <a

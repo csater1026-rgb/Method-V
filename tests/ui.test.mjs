@@ -643,8 +643,8 @@ await run("test & earn (phone)", phone, async (page) => {
 
 await run("credits", phone, async (page) => {
   await go(page, "/credits");
-  ok(await page.getByText("How credits work").isVisible(), "credits page explains the rules");
-  const buy = page.getByRole("region", { name: "Buy credits" });
+  ok(await page.getByText("How V Coin works").isVisible(), "credits page explains the rules");
+  const buy = page.getByRole("region", { name: "Buy V Coin" });
   const packs = (await buy.locator("li button").allTextContents()).map((t) => t.replace(/\s+/g, " "));
   ok(packs.length === 3 && packs[0].includes("25") && packs[0].includes("$5") && packs[2].includes("$20"), `three credit packs (${packs.join(" | ")})`);
   await buy.locator("li button").first().click();
@@ -766,7 +766,7 @@ await run("first-time tour", desktop, async (page) => {
     await tour.getByRole("button", { name: "Next" }).click();
     titles.push(await tour.getByRole("heading").textContent());
   }
-  ok(titles.join(" > ") === "Drops > Post your app > Browse > Credits > Your inbox > Your profile", `walks through the site (${titles.join(" > ")})`);
+  ok(titles.join(" > ") === "Drops > Post your app > Browse > V Coin > Your inbox > Your profile", `walks through the site (${titles.join(" > ")})`);
   await tour.getByRole("button", { name: "Back" }).click();
   ok((await tour.getByRole("heading").textContent()) === "Your inbox", "Back goes back a step");
   await page.keyboard.press("ArrowRight");

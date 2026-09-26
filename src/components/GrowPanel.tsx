@@ -152,7 +152,7 @@ export function GrowPanel({ app, status, credits, spotlightCost, nextSpotlight, 
             {credits}.{" "}
             {!spotlightUntil && !spotlightStarts && credits < spotlightCost && (
               <Link href="/credits#buy" className="text-accent hover:underline">
-                Get credits →
+                Get V Coin →
               </Link>
             )}
           </p>

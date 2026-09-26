@@ -37,8 +37,8 @@ const STEPS: Step[] = [
     target: ["browse"],
   },
   {
-    title: "Credits",
-    body: "Earn credits by testing apps and giving feedback. Spend them on testers for your own app, or a Spotlight spot on Featured.",
+    title: "V Coin",
+    body: "Credits on Method V are called V Coin. Earn them by testing apps and giving feedback, then spend them on testers for your own app or a Spotlight spot on Featured.",
     target: ["credits"],
   },
   {
@@ -53,7 +53,7 @@ const STEPS: Step[] = [
   },
   {
     title: "You're all set",
-    body: "Start by testing an app (and earning credits), or post your own.",
+    body: "Start by testing an app (and earning V Coin), or post your own.",
   },
 ];
 

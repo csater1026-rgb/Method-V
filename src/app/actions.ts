@@ -939,7 +939,7 @@ export async function reportPackage(dealId: string, problem: string): Promise<Ac
 export async function buyCredits(credits: number): Promise<CheckoutResult> {
   const pack = CREDIT_PACKS.find((p) => p.credits === credits);
   if (!pack) return { ok: false, error: "Pick a credit pack." };
-  return startCheckout({ kind: "credits", ref: null, amount: pack.credits }, `${pack.credits} Method V credits`, "/credits");
+  return startCheckout({ kind: "credits", ref: null, amount: pack.credits }, `${pack.credits} V Coin (Method V credits)`, "/credits");
 }
 
 export async function fundSponsorship(id: string): Promise<CheckoutResult> {

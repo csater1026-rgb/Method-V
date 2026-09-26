@@ -5,6 +5,8 @@ export const MAX_DROP_SECONDS = 60;
 export const MAX_DROP_BYTES = 100 * 1024 * 1024;
 export const DROP_VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
 
+// Credits are called V Coin on screen: introduce them as credits the first
+// time a page mentions them ("credits, called V Coin"), then say V Coin.
 // Must match the numbers in supabase/migrations/*_phase3_credits_feedback.sql.
 export const CREDITS = {
   welcome: 10,
@@ -23,7 +25,7 @@ export const WOULD_USE = [
 ] as const;
 
 export const CREDIT_REASONS: Record<string, string> = {
-  welcome: "Welcome credits",
+  welcome: "Welcome V Coin",
   feedback_reward: "Feedback reward",
   feedback_helpful: "Feedback marked helpful",
   testers_requested: "Asked for testers",
@@ -31,7 +33,7 @@ export const CREDIT_REASONS: Record<string, string> = {
   streak_bonus: "4-week testing streak",
   boost: "Boosted an app",
   spotlight: "Booked the Spotlight",
-  credit_pack: "Bought credits",
+  credit_pack: "Bought V Coin",
 };
 
 // Tester Passport ranks. Must match public.tester_rank() in
@@ -39,7 +41,7 @@ export const CREDIT_REASONS: Record<string, string> = {
 export const TESTER_RANKS = [
   { slug: "new", label: "New tester", given: 0, helpful: 0, perk: "Give feedback to earn stamps" },
   { slug: "scout", label: "Scout", given: 5, helpful: 0, perk: "Scout badge on your profile" },
-  { slug: "tester", label: "Tester", given: 15, helpful: 3, perk: "Earn 3 credits per paid feedback instead of 2" },
+  { slug: "tester", label: "Tester", given: 15, helpful: 3, perk: "Earn 3 V Coin per paid feedback instead of 2" },
   { slug: "pro", label: "Pro Tester", given: 40, helpful: 10, perk: "Earn from 20 feedbacks a day instead of 10" },
   { slug: "trusted", label: "Trusted Tester", given: 100, helpful: 30, perk: "Your feedback shows first to builders" },
 ] as const;

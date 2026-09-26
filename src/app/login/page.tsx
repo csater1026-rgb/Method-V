@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 
 const ABOUT = [
   { title: "60-second Drops", body: "Swipe through short demos of apps people actually built, and try the ones you like." },
-  { title: "Test and earn", body: "Give honest feedback on apps and earn credits and Tester Passport stamps." },
+  { title: "Test and earn", body: "Give honest feedback on apps and earn credits (called V Coin) and Tester Passport stamps." },
   { title: "Get real feedback", body: "Post your own app and hear from real testers, not bots." },
   { title: "Meet builders", body: "Follow people who build what you like, ask questions and connect." },
 ];

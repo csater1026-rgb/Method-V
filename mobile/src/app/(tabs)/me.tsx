@@ -48,7 +48,7 @@ export default function MeScreen() {
   const links: [string, string][] = [
     ["Stats", "/dashboard"],
     ["Earn", "/earn"],
-    ["Credits", "/credits"],
+    ["V Coin credits", "/credits"],
     ["Inbox", "/inbox"],
     ["Edit profile", "/settings"],
   ];
@@ -72,7 +72,7 @@ export default function MeScreen() {
       <NotificationsCard />
       <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
         <Coin size={13} />
-        <Mono muted={false}>{viewer.credits} credits</Mono>
+        <Mono muted={false}>{viewer.credits} V Coin</Mono>
       </View>
       <Button label="View your profile" onPress={() => router.push(`/u/${viewer.username}`)} />
       {SITE_URL ? (

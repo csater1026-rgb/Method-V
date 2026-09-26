@@ -213,8 +213,8 @@ export function Handle({ username, size = 15 }: { username: string; size?: numbe
   );
 }
 
-// The credit coin (mint, stamped with the logo's V), the same as the
-// website's. Drawn from the website's src/lib/pixel-coin.ts.
+// V Coin, Method V's credits (a mint coin stamped with the logo's V), the
+// same as the website's. Drawn from the website's src/lib/pixel-coin.ts.
 const COIN_PIXELS = pixelCoinRects();
 
 export function Coin({ size = 14 }: { size?: number }) {

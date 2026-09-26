@@ -22,8 +22,8 @@ const STEPS: Step[] = [
   { title: "Drops", body: "Swipe through 60-second demos. For you learns what you like, and Questions is where builders ask the community.", route: "/drops", tab: 1 },
   { title: "Post your app", body: "Tap + to share what you built with a 60-second Drop and get honest feedback from real testers.", tab: 2 },
   { title: "Browse", body: "Search every app, filter by category or tech stack, and find people by name.", route: "/browse", tab: 3 },
-  { title: "You", body: "Your profile and Tester Passport, your photo and status, notifications, and your credits (earn them by testing apps).", route: "/me", tab: 4 },
-  { title: "You're all set", body: "Start by testing an app to earn credits, or post your own.", route: "/" },
+  { title: "You", body: "Your profile and Tester Passport, your photo and status, notifications, and your credits, called V Coin (earn them by testing apps).", route: "/me", tab: 4 },
+  { title: "You're all set", body: "Start by testing an app to earn V Coin, or post your own.", route: "/" },
 ];
 
 const TABS = 5;

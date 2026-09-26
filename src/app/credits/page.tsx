@@ -9,7 +9,7 @@ import { timeAgo } from "@/lib/format";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { Coin } from "@/components/Coin";
 
-export const metadata: Metadata = { title: "Credits" };
+export const metadata: Metadata = { title: "V Coin credits" };
 
 export default async function CreditsPage({ searchParams }: PageProps<"/credits">) {
   const params = await searchParams;
@@ -20,10 +20,13 @@ export default async function CreditsPage({ searchParams }: PageProps<"/credits"
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-8">
       <h1 className="display rise text-6xl">Credits</h1>
+      <p className="mt-1 text-muted">
+        Credits on Method V are called <span className="font-semibold text-ink">V Coin</span>. Earn them by testing apps, or buy a pack.
+      </p>
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-line bg-surface p-5">
         <div>
-          <p className="text-sm text-muted">Your balance</p>
+          <p className="text-sm text-muted">Your V Coin</p>
           <p className="font-mono text-5xl font-bold">
             <Coin />
             {viewer?.credits ?? 0}
@@ -36,20 +39,20 @@ export default async function CreditsPage({ searchParams }: PageProps<"/credits"
 
       {params.paid && (
         <p className="mt-4 rounded-xl border border-accent/40 bg-accent/10 px-4 py-3 text-sm">
-          Thanks! Your credits are on their way; they show up here in a few seconds.
+          Thanks! Your V Coin is on its way; it shows up here in a few seconds.
         </p>
       )}
 
-      <section id="buy" aria-label="Buy credits" className="mt-10 scroll-mt-24">
-        <h2 className="display text-4xl">Buy credits</h2>
+      <section id="buy" aria-label="Buy V Coin" className="mt-10 scroll-mt-24">
+        <h2 className="display text-4xl">Buy V Coin</h2>
         <p className="mt-1 mb-4 text-sm text-muted">
-          For the Spotlight (<Coin />{SPOTLIGHT.cost}) or testers for your app. Or earn them free by testing apps. Credits can&apos;t be
+          For the Spotlight (<Coin />{SPOTLIGHT.cost}) or testers for your app. Or earn them free by testing apps. V Coin can&apos;t be
           turned back into money.
         </p>
         <BuyCredits />
       </section>
 
-      <h2 className="display mt-10 text-4xl">How credits work</h2>
+      <h2 className="display mt-10 text-4xl">How V Coin works</h2>
       <ul className="mt-2 flex flex-col gap-1.5 text-sm text-ink/90">
         <li>• Everyone starts with <Coin />{CREDITS.welcome}.</li>
         <li>
@@ -69,7 +72,7 @@ export default async function CreditsPage({ searchParams }: PageProps<"/credits"
         </li>
       </ul>
 
-      {!isSupabaseConfigured && <p className="mt-6 text-sm text-muted">Credits are off in demo mode.</p>}
+      {!isSupabaseConfigured && <p className="mt-6 text-sm text-muted">V Coin is off in demo mode.</p>}
 
       {viewer && (
         <>
