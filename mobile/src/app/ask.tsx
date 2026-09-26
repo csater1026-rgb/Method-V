@@ -2,7 +2,7 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from "react-native";
 
-import { Loading } from "@/components/PixelCoder";
+import { Loading } from "@/components/Loading";
 import { Body, Button, Card, Display, ErrorText, Mono, tap } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import { DEMO_MESSAGE, isLive } from "@/lib/config";

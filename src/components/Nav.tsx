@@ -8,6 +8,7 @@ import { CreditsChip } from "./CreditsChip";
 import { InboxIcon } from "./Inbox";
 import { MobileTabs } from "./MobileTabs";
 import { NavLinks } from "./NavLinks";
+import { SignInLink } from "./SignInLink";
 import { SignOutButton } from "./SignOutButton";
 import { Tour } from "./Tour";
 import { Wordmark } from "./Wordmark";
@@ -49,9 +50,7 @@ export async function Nav() {
                 </span>
               </>
             ) : (
-              <Link href="/login" className="btn-ghost px-3 whitespace-nowrap sm:px-4">
-                Sign in
-              </Link>
+              <SignInLink />
             )}
           </div>
         </div>

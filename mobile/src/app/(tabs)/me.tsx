@@ -7,7 +7,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ROLES } from "@shared/constants";
 
-import { PixelCoder } from "@/components/PixelCoder";
 import { Avatar, Body, Button, Card, Coin, Display, ErrorText, Handle, Mono, StatusBadge, tap } from "@/components/ui";
 import { useTour } from "@/components/Tour";
 import { useAuth } from "@/lib/auth";
@@ -30,7 +29,6 @@ export default function MeScreen() {
   if (!viewer) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24, gap: 16, paddingTop: insets.top, backgroundColor: t.bg }}>
-        <PixelCoder size={140} />
         <Display size={40} style={{ textAlign: "center" }}>
           Your Method V
         </Display>

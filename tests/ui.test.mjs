@@ -564,6 +564,7 @@ await run("tester passport", desktop, async (page) => {
 await run("login", phone, async (page) => {
   await go(page, "/login");
   ok(await page.getByLabel("Password", { exact: true }).isVisible(), "sign in with email and password");
+  ok((await page.locator("header").getByRole("link", { name: "Sign in" }).count()) === 0, "no Sign in button up top on the sign-in page");
   ok(await page.getByRole("button", { name: "Sign in", exact: true }).isDisabled(), "sign-in disabled in demo mode");
   await page.getByRole("tab", { name: "Create account" }).click();
   ok((await page.getByRole("tab", { name: "Create account" }).getAttribute("aria-selected")) === "true", "switch to Create account");
@@ -573,6 +574,8 @@ await run("login", phone, async (page) => {
   ok(await page.getByRole("button", { name: "Email me a sign-in link" }).isDisabled(), "emailed link is still there as the fallback");
   ok((await page.getByLabel("Password", { exact: true }).count()) === 0, "the link option needs no password");
   await noSideScroll(page, "login");
+  await go(page, "/browse");
+  ok(await page.locator("header").getByRole("link", { name: "Sign in" }).isVisible(), "other pages still have Sign in up top");
 });
 
 await run("submit", desktop, async (page) => {

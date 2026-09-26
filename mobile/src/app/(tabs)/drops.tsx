@@ -9,7 +9,7 @@ import { formatCount, formatDuration } from "@shared/format";
 import type { FeedItem } from "@shared/types";
 
 import { DropPlaceholder } from "@/components/AppCard";
-import { Loading } from "@/components/PixelCoder";
+import { Loading } from "@/components/Loading";
 import { Sponsored } from "@/components/Sponsored";
 import { Avatar, Body, Button, Display, ErrorText, Handle, Mono, StatusBadge, Tag, tap } from "@/components/ui";
 import { useAuth } from "@/lib/auth";

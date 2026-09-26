@@ -2,12 +2,11 @@ import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from "react-native";
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CATEGORIES, DROP_VIDEO_TYPES, MAX_DROP_BYTES, MAX_DROP_SECONDS } from "@shared/constants";
 
-import { PixelCoder } from "@/components/PixelCoder";
 import { Body, Button, Card, Display, ErrorText, Mono, tap } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import { isLive } from "@/lib/config";
@@ -36,7 +35,6 @@ export default function PostScreen() {
   if (isLive && !viewer) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24, gap: 16, backgroundColor: t.bg }}>
-        <PixelCoder size={140} />
         <Display size={40} style={{ textAlign: "center" }}>
           Post a Drop
         </Display>
@@ -186,7 +184,7 @@ export default function PostScreen() {
 
       {progress !== null && (
         <View accessibilityRole="progressbar" accessibilityLabel="Posting" style={{ position: "absolute", inset: 0, backgroundColor: t.bg, alignItems: "center", justifyContent: "center", gap: 16 }}>
-          <PixelCoder size={160} />
+          <ActivityIndicator size="large" color={t.accent} />
           <Display size={32}>{progress < 1 ? `Uploading ${Math.round(progress * 100)}%` : "Checking your link…"}</Display>
         </View>
       )}

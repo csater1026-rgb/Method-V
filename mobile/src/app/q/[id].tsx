@@ -5,7 +5,7 @@ import { KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, 
 import { timeAgo } from "@shared/format";
 import type { Answer } from "@shared/types";
 
-import { Loading } from "@/components/PixelCoder";
+import { Loading } from "@/components/Loading";
 import { Poll } from "@/components/Poll";
 import { VoteButton } from "@/components/VoteButton";
 import { Avatar, Body, Button, Card, Display, ErrorText, Handle, Mono, Tag } from "@/components/ui";

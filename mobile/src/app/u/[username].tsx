@@ -7,7 +7,7 @@ import { formatCount } from "@shared/format";
 import { socialLinks } from "@shared/socials";
 
 import { AppCard } from "@/components/AppCard";
-import { Loading } from "@/components/PixelCoder";
+import { Loading } from "@/components/Loading";
 import { Avatar, Body, Button, Display, ErrorText, Handle, Mono, StatusBadge, Tag } from "@/components/ui";
 import { fileUrl } from "@/lib/config";
 import { useAuth } from "@/lib/auth";

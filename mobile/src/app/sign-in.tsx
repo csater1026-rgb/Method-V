@@ -3,8 +3,7 @@ import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from "react-native";
 
-import { PixelCoder } from "@/components/PixelCoder";
-import { Body, Button, Display, ErrorText, Mono } from "@/components/ui";
+import { Body, Button, Display, ErrorText, Mono, Wordmark } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import { AUTH_PROVIDERS, DEMO_MESSAGE, MIN_PASSWORD, isLive } from "@/lib/config";
 import { fonts, useColorSchemeName, useTheme } from "@/theme";
@@ -92,7 +91,7 @@ export default function SignInScreen() {
 
   return (
     <Wrap t={t}>
-      <PixelCoder size={88} />
+      <Wordmark size={26} />
       <Display size={42}>{mode === "signup" ? "Join Method V" : "Log in or create an account"}</Display>
       {isLive ? (
         <Body muted>Method V is for members. Sign in to see the apps, or join free in a minute.</Body>

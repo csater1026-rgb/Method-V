@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppCard } from "@/components/AppCard";
 import { Leaderboard, builderStat, testerStat } from "@/components/Leaderboard";
-import { Loading } from "@/components/PixelCoder";
+import { Loading } from "@/components/Loading";
 import { Suggestions } from "@/components/Suggestions";
 import { Body, Button, Card, Display, ErrorText, Eyebrow, Mono, Wordmark } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
