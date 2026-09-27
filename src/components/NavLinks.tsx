@@ -3,13 +3,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-// "Profile" goes to your profile, or to sign in first.
+// "Profile" goes to your profile, or to sign in first. "Earn" is tips,
+// sponsorship deals and payouts.
 // Challenges aren't in the menu: a running one shows as a banner on Home.
 function pageLinks(profileHref: string): { href: string; label: string }[] {
   return [
     { href: "/", label: "Home" },
     { href: "/drops", label: "Drops" },
     { href: "/browse", label: "Browse" },
+    { href: "/earn", label: "Earn" },
     { href: profileHref, label: "Profile" },
   ];
 }

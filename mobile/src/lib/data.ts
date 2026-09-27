@@ -8,6 +8,7 @@ import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import { Platform } from "react-native";
 
 import { CATEGORIES, ROLES, isOneOf } from "@shared/constants";
+import { parseList } from "@shared/format";
 import {
   demoApps,
   demoBrands,
@@ -707,6 +708,28 @@ export async function answerQuestion(questionId: string, body: string, parentId:
 }
 
 // Your status (and other role tags), shown as a badge by your photo.
+// Your name, bio and skills (Me tab), with the same limits as the website's
+// Edit profile. Website, LinkedIn and socials stay on the website.
+export type About = { display_name: string; bio: string; skills: string[] };
+
+export async function getMyAbout(): Promise<Result<About>> {
+  const auth = await signedIn();
+  if (!auth.ok) return auth;
+  const { data, error } = await supabase!.from("profiles").select("display_name, bio, skills").eq("id", auth.data.id).maybeSingle();
+  if (error || !data) return fail("Couldn't load your profile.");
+  return ok({ display_name: data.display_name ?? "", bio: data.bio ?? "", skills: (data.skills as string[] | null) ?? [] });
+}
+
+export async function saveAbout(input: { display_name: string; bio: string; skills: string }): Promise<Result> {
+  const auth = await signedIn();
+  if (!auth.ok) return auth;
+  const { error } = await supabase!
+    .from("profiles")
+    .update({ display_name: input.display_name.trim().slice(0, 60), bio: input.bio.trim().slice(0, 280), skills: parseList(input.skills, 20) })
+    .eq("id", auth.data.id);
+  return error ? fail("Couldn't save your profile.") : ok(undefined);
+}
+
 export async function setRoles(roles: string[]): Promise<Result> {
   const auth = await signedIn();
   if (!auth.ok) return auth;

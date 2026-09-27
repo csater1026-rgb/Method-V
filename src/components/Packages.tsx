@@ -127,7 +127,7 @@ export function SponsorPackages({
   const choice = packages.find((p) => p.kind === picked);
 
   return (
-    <section aria-label="Sponsor" className="rounded-xl border border-line bg-surface p-4 sm:p-5">
+    <section id="sponsor" aria-label="Sponsor" className="scroll-mt-20 rounded-xl border border-line bg-surface p-4 sm:p-5">
       <h2 className="display text-3xl">Sponsor {app.name}</h2>
       <p className="mt-1 text-sm text-muted">
         Pick a package. You pay now and Method V holds it: if the builder doesn&apos;t accept within {PACKAGE_RULES.answerDays}{" "}

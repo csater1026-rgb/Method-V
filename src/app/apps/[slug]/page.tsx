@@ -150,6 +150,12 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
           )}
           <ShareButton path={`/apps/${app.slug}`} title={`${app.name} on Method V`} layout="inline" />
           {!isOwner && <BackButton app={{ id: app.id, slug: app.slug, name: app.name }} signedIn={Boolean(viewer) || !isSupabaseConfigured} />}
+          {/* Jumps down to the builder's sponsorship packages (only when they offer some). */}
+          {!isOwner && packages.some((p) => p.active) && (
+            <a href="#sponsor" className="btn-ghost">
+              Sponsor this app
+            </a>
+          )}
         </div>
 
         {app.sponsor && <SponsoredBy sponsor={app.sponsor} />}

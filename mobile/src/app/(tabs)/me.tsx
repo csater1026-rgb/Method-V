@@ -12,7 +12,7 @@ import { Avatar, Body, Button, Card, Coin, Display, ErrorText, Handle, Mono, Sta
 import { useTour } from "@/components/Tour";
 import { useAuth } from "@/lib/auth";
 import { DEMO_MESSAGE, MIN_PASSWORD, SITE_URL, isLive } from "@/lib/config";
-import { setPhoto, setRoles } from "@/lib/data";
+import { getMyAbout, saveAbout, setPhoto, setRoles, type About } from "@/lib/data";
 import { getPushKinds, pushIsOn, pushSupported, savePushKinds, turnOffPush, turnOnPush, type PushKinds } from "@/lib/push";
 import { useLoad } from "@/lib/useLoad";
 import { fonts, useTheme } from "@/theme";
@@ -71,6 +71,7 @@ export default function MeScreen() {
         </View>
       </View>
       <PhotoCard />
+      <AboutCard />
       <StatusCard />
       <NotificationsCard />
       <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
@@ -85,6 +86,7 @@ export default function MeScreen() {
           ))}
         </Card>
       ) : null}
+      <AccountCard />
       <PasswordCard />
       <Button label="Take the tour again" kind="ghost" onPress={tour.start} />
       <Button label="Sign out" kind="ghost" onPress={() => void signOut()} />
@@ -354,6 +356,103 @@ function DeleteAccountCard({ username }: { username: string }) {
       </Pressable>
       <ErrorText>{error}</ErrorText>
       <Button label="Cancel" kind="ghost" onPress={() => (setOpen(false), setTyped(""), setError(null))} />
+    </Card>
+  );
+}
+
+// Your name, bio and skills, edited right here (the rest, like your website
+// and socials, is on the website's Edit profile).
+function AboutCard() {
+  const t = useTheme();
+  const { refresh } = useAuth();
+  const saved = useLoad<About | null>(async () => {
+    const r = await getMyAbout();
+    return r.ok ? r.data : null;
+  }, []);
+  const [draft, setDraft] = useState<{ display_name: string; bio: string; skills: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  const current = saved.data;
+  if (!current) return null;
+  const form = draft ?? { display_name: current.display_name, bio: current.bio, skills: current.skills.join(", ") };
+  const set = (key: keyof typeof form) => (value: string) => (setMessage(null), setDraft({ ...form, [key]: value }));
+
+  return (
+    <Card style={{ gap: 10 }}>
+      <Body bold>About you</Body>
+      <Body muted size={13}>
+        Shown on your profile.
+      </Body>
+      <Mono>Name</Mono>
+      <TextInput
+        value={form.display_name}
+        onChangeText={set("display_name")}
+        maxLength={60}
+        placeholder="Your name"
+        placeholderTextColor={t.muted}
+        accessibilityLabel="Display name"
+        style={{ borderWidth: 1, borderColor: t.line, backgroundColor: t.bg, color: t.ink, borderRadius: 8, paddingHorizontal: 12, minHeight: 44, fontFamily: fonts.body, fontSize: 16 }}
+      />
+      <Mono>Bio · up to 280 characters</Mono>
+      <TextInput
+        value={form.bio}
+        onChangeText={set("bio")}
+        maxLength={280}
+        multiline
+        placeholder="What do you build? What are you into?"
+        placeholderTextColor={t.muted}
+        accessibilityLabel="Bio"
+        style={{ borderWidth: 1, borderColor: t.line, backgroundColor: t.bg, color: t.ink, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, minHeight: 88, textAlignVertical: "top", fontFamily: fonts.body, fontSize: 16 }}
+      />
+      <Mono>Skills · comma separated</Mono>
+      <TextInput
+        value={form.skills}
+        onChangeText={set("skills")}
+        autoCapitalize="none"
+        placeholder="Next.js, Figma, Supabase"
+        placeholderTextColor={t.muted}
+        accessibilityLabel="Skills"
+        style={{ borderWidth: 1, borderColor: t.line, backgroundColor: t.bg, color: t.ink, borderRadius: 8, paddingHorizontal: 12, minHeight: 44, fontFamily: fonts.body, fontSize: 16 }}
+      />
+      <Button
+        label="Save"
+        kind="ghost"
+        busy={busy}
+        disabled={!draft}
+        onPress={async () => {
+          setBusy(true);
+          const r = await saveAbout(form);
+          setBusy(false);
+          if (!r.ok) return setMessage({ ok: false, text: r.error });
+          setMessage({ ok: true, text: "Saved." });
+          setDraft(null);
+          saved.reload();
+          void refresh();
+        }}
+      />
+      {message ? <Body size={13} style={{ color: message.ok ? t.accent : t.danger }}>{message.text}</Body> : null}
+    </Card>
+  );
+}
+
+// Your private account details: only you see them.
+function AccountCard() {
+  const { session } = useAuth();
+  if (!session) return null;
+  const names: Record<string, string> = { email: "Email", google: "Google", apple: "Apple", github: "GitHub" };
+  const providers = ((session.user.app_metadata?.providers as string[] | undefined) ?? [session.user.app_metadata?.provider ?? "email"])
+    .map((p) => names[p] ?? p)
+    .join(", ");
+  return (
+    <Card style={{ gap: 6 }}>
+      <Body bold>Your account</Body>
+      <Body muted size={13}>
+        Private: only you can see this.
+      </Body>
+      <Mono>Email</Mono>
+      <Body>{session.user.email}</Body>
+      <Mono>Signs in with</Mono>
+      <Body>{providers}</Body>
     </Card>
   );
 }

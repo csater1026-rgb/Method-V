@@ -225,7 +225,7 @@ await run("menu: Profile, no jobs board", desktop, async (page) => {
   await go(page, "/");
   const nav = page.locator("header nav").first();
   const links = (await nav.getByRole("link").allTextContents()).join(",");
-  ok(links === "Home,Drops,Browse,Profile", `top menu: ${links}`);
+  ok(links === "Home,Drops,Browse,Earn,Profile", `top menu: ${links}`);
   ok((await nav.getByRole("link", { name: "Profile" }).getAttribute("href")) === "/login", "Profile asks you to sign in first when signed out");
   await go(page, "/jobs");
   ok(new URL(page.url()).pathname === "/browse", "the old jobs board sends people to Browse");
@@ -736,6 +736,11 @@ await run("back an app + sponsor (desktop)", desktop, async (page) => {
   ok(true, "backing explains demo mode");
 
   const sponsor = page.getByRole("region", { name: "Sponsor", exact: true });
+  const jump = page.getByRole("link", { name: "Sponsor this app" });
+  ok((await jump.getAttribute("href")) === "#sponsor", "a Sponsor this app button sits by Try it");
+  await jump.click();
+  await page.waitForTimeout(300);
+  ok(await sponsor.getByRole("heading").first().isVisible(), "it jumps to the packages");
   const packs = (await sponsor.locator("li button").allTextContents()).join(" | ");
   ok((await sponsor.locator("li button").count()) === 2 && packs.includes("$25") && packs.includes("$80"), `the builder's packages show with their prices (${packs})`);
   await sponsor.getByRole("button", { name: /Video promo/ }).click();

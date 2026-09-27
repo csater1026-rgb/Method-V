@@ -6,6 +6,7 @@ import { getNotificationSettings, getOwnProfile, getViewer } from "@/lib/data";
 import { SignOutButton } from "@/components/SignOutButton";
 import { isSupabaseConfigured, publicFileUrl } from "@/lib/supabase/env";
 
+import { AccountInfo } from "./AccountInfo";
 import { AvatarForm } from "./AvatarForm";
 import { DeleteAccountForm } from "./DeleteAccountForm";
 import { NotificationsForm } from "./NotificationsForm";
@@ -25,6 +26,7 @@ export default async function SettingsPage() {
     <div className="mx-auto w-full max-w-2xl px-4 py-8">
       <h1 className="display rise text-6xl">Edit profile</h1>
       <p className="mt-1 text-muted">Your photo, name, bio and status: how people know who you are and whether to message you.</p>
+      <AccountInfo />
       <AvatarForm
         userId={profile.id}
         username={profile.username}
