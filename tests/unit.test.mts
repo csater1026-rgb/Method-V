@@ -19,6 +19,7 @@ import { bumpInterest, mergeInterests, parseInterests, rankFeed, serializeIntere
 import { setUpFirst, topUpSuggestions } from "../src/lib/suggest.ts";
 import { EMAIL_TEMPLATES } from "../src/lib/email-templates.ts";
 import { agreeUrl, hasAgreedToTerms, isOpenPath, mustAgree, welcomeUrl } from "../src/lib/gate.ts";
+import { confirmMatches } from "../src/lib/account.ts";
 
 let failures = 0;
 const ok = (cond: boolean, msg: string) => {
@@ -236,6 +237,10 @@ ok(JSON.stringify(pushTarget("https://evil.example")) === '{"screen":"/"}' && JS
   ok(!mustAgree({ agreed_to_terms: "September 27, 2026" }, "/"), "once agreed, never asked again");
   ok(agreeUrl("/", "") === "/agree" && agreeUrl("/u/ada", "?x=1") === "/agree?next=%2Fu%2Fada%3Fx%3D1", "after agreeing you land where you were going");
 }
+
+// Delete account: type your username to confirm.
+ok(confirmMatches("ada_builds", "ada_builds") && confirmMatches(" @Ada_Builds ", "ada_builds"), "typing your username (with or without @, any case) confirms");
+ok(!confirmMatches("ada", "ada_builds") && !confirmMatches("", "ada_builds") && !confirmMatches("", ""), "anything else doesn't");
 
 // Vercel never uploads mobile/ (.vercelignore), so nothing the website builds
 // or type checks may import from it.

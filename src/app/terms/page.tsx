@@ -135,7 +135,9 @@ export default function TermsPage() {
 
       <Section title="9. Leaving Method V">
         <p>
-          You can stop using Method V at any time. To delete your account, email <MailLink /> from the email address on your account. See
+          You can stop using Method V at any time. To delete your account, use <strong>Delete account</strong> at the bottom of Edit profile
+          on the website, or on the Me tab in the app. It can&apos;t be done while a sponsorship deal or payout is still in progress, so
+          nobody loses money. Deleting your account also deletes your V Coin and any earnings not yet paid out. See
           the <Link href="/privacy" className="text-accent hover:underline">Privacy Policy</Link> for what happens to your data.
         </p>
         <p>

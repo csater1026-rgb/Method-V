@@ -35,6 +35,7 @@ import {
 import { sitePreview, type SitePreview } from "@/lib/site-preview";
 import { SOCIALS, cleanHandle } from "@/lib/socials";
 import { DEMO_MODE_MESSAGE, DROPS_BUCKET, authProviders, isSupabaseConfigured, type AuthProvider } from "@/lib/supabase/env";
+import { deleteAccount } from "@/lib/delete-account";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import type { ActionResult, Viewer } from "@/lib/types";
 
@@ -165,6 +166,19 @@ export async function agreeToTerms(_prev: { error?: string }, formData: FormData
   await supabase.auth.refreshSession();
   revalidatePath("/", "layout");
   redirect(next);
+}
+
+// Delete account (Edit profile). The same checks as the app's button
+// (src/lib/delete-account.ts); then this browser is signed out.
+export async function deleteMyAccount(typed: string): Promise<ActionResult> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  const result = await deleteAccount(auth.viewer.id, typed);
+  if (!result.ok) return result;
+  const supabase = await createClient();
+  await supabase.auth.signOut().catch(() => {});
+  revalidatePath("/", "layout");
+  redirect("/login?deleted=1");
 }
 
 export async function setPassword(password: string): Promise<ActionResult> {

@@ -99,8 +99,8 @@ export default function PrivacyPage() {
       <Section title="6. How long we keep it">
         <p>
           We keep your information while you have an account. When you delete something, it&apos;s removed from Method V. When you delete
-          your account, we delete your profile and posts within 30 days. We keep payment records for as long as tax and accounting laws
-          require.
+          your account, your profile, posts, files and history are deleted right away (backups roll over within 30 days). Records of past
+          payments are kept by Stripe for as long as tax and accounting laws require.
         </p>
       </Section>
 
@@ -110,7 +110,11 @@ export default function PrivacyPage() {
           <li>To remove an app or a Drop, email us and we&apos;ll take it down.</li>
           <li>Turn notifications on or off in your settings.</li>
           <li>
-            Ask for a copy of your data, or ask us to correct or delete it, by emailing <MailLink /> from the email address on your
+            Delete your account at any time: <strong>Delete account</strong> at the bottom of Edit profile on the website, or on the Me tab
+            in the app.
+          </li>
+          <li>
+            Ask for a copy of your data, or ask us to correct it, by emailing <MailLink /> from the email address on your
             account.
           </li>
         </ul>

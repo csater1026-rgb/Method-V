@@ -1135,5 +1135,30 @@ ok(!!(await fails("anon", null, "insert into public.sponsorships (sponsor_brand,
   ok(failed.length === 0, `the newest migrations can be run again with data in place (${failed.join("; ") || LATE.join(", ")})`);
 }
 
+// Delete account (website Edit profile, app Me tab): deleting the sign-in
+// account removes the profile and everything attached, with nothing in the
+// way, even for the busiest test accounts (apps, Drops, payments, earnings,
+// sponsorships, deals, follows, messages). Everyone else is untouched.
+{
+  const gone = [A, B, H, J];
+  const before = (await db.query("select count(*)::int n from public.profiles")).rows[0].n;
+  // A running sponsorship blocks it (the website refuses first and says to end it on Earn).
+  const running = (await db.query("select count(*)::int n from public.sponsorships where (sponsor_user = any($1::uuid[]) or host_user = any($1::uuid[])) and status in ('offered', 'accepted', 'active')", [gone])).rows[0].n;
+  ok(running > 0 && String(await db.query("delete from auth.users where id = any($1::uuid[])", [gone]).catch((e) => e.message)).includes("End this app"), "a running sponsorship stops the delete (money is attached)");
+  await db.query("update public.sponsorships set status = 'ended' where (sponsor_user = any($1::uuid[]) or host_user = any($1::uuid[])) and status in ('offered', 'accepted', 'active')", [gone]);
+  let error = null;
+  try {
+    await db.query("delete from auth.users where id = any($1::uuid[])", [gone]);
+  } catch (e) {
+    error = e.message;
+  }
+  ok(!error, `deleting an account removes everything attached to it (${error ?? "no errors"})`);
+  const left = (await db.query("select count(*)::int n from public.profiles where id = any($1::uuid[])", [gone])).rows[0].n;
+  const after = (await db.query("select count(*)::int n from public.profiles")).rows[0].n;
+  ok(left === 0 && after === before - gone.length, `only those profiles are gone (${before} → ${after})`);
+  const orphans = (await db.query("select count(*)::int n from public.apps where owner_id = any($1::uuid[])", [gone])).rows[0].n;
+  ok(orphans === 0, "their apps go with them");
+}
+
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");
 process.exit(failures ? 1 : 0);

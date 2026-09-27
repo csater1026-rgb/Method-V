@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Pressable, ScrollView, Switch, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { confirmMatches } from "@shared/account";
 import { ROLES } from "@shared/constants";
 
 import { Avatar, Body, Button, Card, Coin, Display, ErrorText, Handle, Mono, StatusBadge, tap } from "@/components/ui";
@@ -87,6 +88,7 @@ export default function MeScreen() {
       <PasswordCard />
       <Button label="Take the tour again" kind="ghost" onPress={tour.start} />
       <Button label="Sign out" kind="ghost" onPress={() => void signOut()} />
+      <DeleteAccountCard username={viewer.username} />
     </ScrollView>
   );
 }
@@ -289,6 +291,73 @@ function NotificationsCard() {
 
 // Set or change your password (also how "forgot password" ends: sign in
 // with an emailed code, then pick a new one here).
+// Delete account: hidden behind a link, then type your username to confirm.
+// Apple requires this in any app with sign-up. The website does the work
+// (src/lib/delete-account.ts): it refuses while a sponsorship deal or payout
+// is still in progress, so nobody loses money.
+function DeleteAccountCard({ username }: { username: string }) {
+  const t = useTheme();
+  const { deleteAccount } = useAuth();
+  const [open, setOpen] = useState(false);
+  const [typed, setTyped] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const matches = confirmMatches(typed, username);
+
+  if (!open) {
+    return (
+      <Pressable accessibilityRole="button" onPress={() => setOpen(true)} style={{ alignSelf: "center", minHeight: 44, justifyContent: "center" }}>
+        <Body size={14} style={{ color: t.danger }}>
+          Delete account…
+        </Body>
+      </Pressable>
+    );
+  }
+
+  return (
+    <Card style={{ gap: 10, borderColor: t.danger }}>
+      <Body bold>Delete account</Body>
+      <Body size={14}>
+        This can&apos;t be undone. It permanently deletes your profile, apps, Drops, comments, questions and messages, plus your V Coin, Pro,
+        and any earnings not yet paid out.
+      </Body>
+      <Body muted size={13}>
+        Type your username ({username}) to confirm.
+      </Body>
+      <TextInput
+        value={typed}
+        onChangeText={setTyped}
+        autoCapitalize="none"
+        autoCorrect={false}
+        placeholder={username}
+        placeholderTextColor={t.muted}
+        accessibilityLabel="Type your username to confirm"
+        style={{ borderWidth: 1, borderColor: t.line, backgroundColor: t.bg, color: t.ink, borderRadius: 8, paddingHorizontal: 12, minHeight: 44, fontFamily: fonts.body, fontSize: 16 }}
+      />
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Delete my account"
+        aria-disabled={!matches || busy}
+        disabled={!matches || busy}
+        onPress={async () => {
+          setBusy(true);
+          setError(null);
+          const r = await deleteAccount(typed);
+          setBusy(false);
+          if (!r.ok) setError(r.error);
+        }}
+        style={{ backgroundColor: t.danger, opacity: !matches || busy ? 0.5 : 1, borderRadius: 10, minHeight: 48, alignItems: "center", justifyContent: "center" }}
+      >
+        <Body bold style={{ color: "#ffffff" }}>
+          {busy ? "Deleting…" : "Delete my account"}
+        </Body>
+      </Pressable>
+      <ErrorText>{error}</ErrorText>
+      <Button label="Cancel" kind="ghost" onPress={() => (setOpen(false), setTyped(""), setError(null))} />
+    </Card>
+  );
+}
+
 function PasswordCard() {
   const t = useTheme();
   const { setPassword } = useAuth();

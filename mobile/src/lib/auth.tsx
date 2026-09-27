@@ -7,7 +7,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 
 import { LEGAL } from "@shared/constants";
 
-import { DEMO_MESSAGE, MIN_PASSWORD, fileUrl } from "./config";
+import { DEMO_MESSAGE, MIN_PASSWORD, SITE_URL, fileUrl } from "./config";
 import { turnOffPush } from "./push";
 import { fail, friendly, ok, type Result } from "./result";
 import { supabase } from "./supabase";
@@ -38,6 +38,7 @@ type Auth = {
   verifyCode: (email: string, code: string, kind: "email" | "signup") => Promise<Result>;
   setPassword: (password: string) => Promise<Result>;
   agreeToTerms: () => Promise<Result>;
+  deleteAccount: (confirm: string) => Promise<Result>;
   signOut: () => Promise<void>;
   refresh: () => Promise<void>;
 };
@@ -192,6 +193,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { error } = await supabase.auth.updateUser({ data: { agreed_to_terms: LEGAL.updated } });
         if (error) return fail(friendly(error.message, "Couldn't save that. Try again."));
         await supabase.auth.refreshSession();
+        return ok(undefined);
+      },
+
+      // Delete account (Me tab). The website does it (it needs Method V's
+      // secret key); you confirm by typing your username. Then this phone
+      // forgets the session.
+      async deleteAccount(confirm) {
+        if (!supabase || !session) return fail(DEMO_MESSAGE);
+        if (!SITE_URL) return fail("The app is missing EXPO_PUBLIC_SITE_URL, so it can't reach the website.");
+        try {
+          const res = await fetch(`${SITE_URL}/api/mobile/delete-account`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+            body: JSON.stringify({ confirm }),
+          });
+          const json = (await res.json().catch(() => ({}))) as { error?: string };
+          if (!res.ok) return fail(json.error ?? "Couldn't delete your account. Try again.");
+        } catch {
+          return fail("Couldn't reach Method V. Check your connection.");
+        }
+        await supabase.auth.signOut({ scope: "local" }).catch(() => {});
         return ok(undefined);
       },
 

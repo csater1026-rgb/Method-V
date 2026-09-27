@@ -971,7 +971,7 @@ await run("developers + install (phone)", phone, async (page) => {
   ok(pre.status === 204 && pre.headers.get("access-control-allow-methods")?.includes("GET"), "CORS preflight");
   ok((await fetch(BASE + "/go/pixelhost", { redirect: "manual" })).status === 303, "brand links redirect");
   ok((await fetch(BASE + "/go/nope", { redirect: "manual" })).status === 404, "unknown brand is 404");
-  for (const path of ["/api/mobile/apps", "/api/mobile/preview"]) {
+  for (const path of ["/api/mobile/apps", "/api/mobile/preview", "/api/mobile/delete-account"]) {
     const r = await fetch(BASE + path, { method: "POST", headers: { Authorization: "Bearer fake" }, body: "{}" });
     ok(r.status === 503 && /demo mode/.test((await r.json()).error), `${path} explains demo mode`);
   }

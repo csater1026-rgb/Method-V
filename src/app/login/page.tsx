@@ -33,6 +33,9 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
         <p className="eyebrow">Real apps. Real builders. Real feedback.</p>
         <h1 className="display rise mt-1 text-6xl">Log in or create an account</h1>
         <p className="mt-2 text-muted">Method V is for members. Sign in to see the apps, or join free in a minute.</p>
+        {params.deleted === "1" && (
+          <p className="mt-4 rounded-lg border border-accent/40 bg-accent/10 px-3 py-2 text-sm">Your account has been deleted. Thanks for being part of Method V.</p>
+        )}
         {params.error === "link" && (
           <p className="mt-4 rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm">
             That sign-in link didn&apos;t work or has expired. Request a new one.

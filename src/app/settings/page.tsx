@@ -7,6 +7,7 @@ import { SignOutButton } from "@/components/SignOutButton";
 import { isSupabaseConfigured, publicFileUrl } from "@/lib/supabase/env";
 
 import { AvatarForm } from "./AvatarForm";
+import { DeleteAccountForm } from "./DeleteAccountForm";
 import { NotificationsForm } from "./NotificationsForm";
 import { PasswordForm } from "./PasswordForm";
 import { ProfileForm } from "./ProfileForm";
@@ -46,6 +47,7 @@ export default async function SettingsPage() {
         </p>
         <SignOutButton />
       </section>
+      <DeleteAccountForm username={profile.username} />
     </div>
   );
 }
