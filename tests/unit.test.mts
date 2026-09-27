@@ -263,6 +263,24 @@ ok(!confirmMatches("ada", "ada_builds") && !confirmMatches("", "ada_builds") && 
   ok(read.every((c) => granted.has(c)), `every profile column the site reads is readable (${read.filter((c) => !granted.has(c)).join(", ") || "all"})`);
 }
 
+// Tables linked more than one way (questions ↔ answers, apps ↔ profiles…)
+// must name the link when embedded, or the live database refuses the read
+// (the Q&A 404). Every embed of these in the website and app names it.
+{
+  const { readFileSync } = await import("node:fs");
+  const files = ["../src/lib/data.ts", "../mobile/src/lib/data.ts", "../src/app/actions.ts"];
+  const ambiguous = ["answers", "questions", "profiles", "challenges", "challenge_entries", "sponsorships", "package_deals", "swaps"];
+  const unnamed: string[] = [];
+  for (const f of files) {
+    const code = readFileSync(new URL(f, import.meta.url), "utf8");
+    for (const t of ambiguous) {
+      // An embed looks like "answers(" or "alias:answers(" inside a select string, not ".from(" or a function call.
+      for (const m of code.matchAll(new RegExp(`[\\s,(:\`"]${t}\\(`, "g"))) unnamed.push(`${f.replace("../", "")}: ${m[0].trim()}`);
+    }
+  }
+  ok(unnamed.length === 0, `embeds of tables linked more than one way name their link (${unnamed.join("; ") || "all named"})`);
+}
+
 // Vercel never uploads mobile/ (.vercelignore), so nothing the website builds
 // or type checks may import from it.
 {

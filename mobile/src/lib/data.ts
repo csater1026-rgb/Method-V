@@ -438,7 +438,7 @@ async function getLeaderboards(): Promise<{ builders: TopBuilder[]; testers: Top
 
 const QUESTION_SELECT = `id, body, created_at, vote_count, answer_count, best_answer_id, user_id, poll_options, poll_counts,
   user:profiles!questions_user_id_fkey(${SUMMARY}),
-  answers(id, body, created_at, vote_count, parent_id, user:profiles!answers_user_id_fkey(${SUMMARY})),
+  answers!answers_question_id_fkey(id, body, created_at, vote_count, parent_id, user:profiles!answers_user_id_fkey(${SUMMARY})),
   app:apps!inner(id, slug, name, tagline, category, owner_id, link_checked_at)`;
 // (The app's question screens don't show Drop posters, so none are loaded.)
 

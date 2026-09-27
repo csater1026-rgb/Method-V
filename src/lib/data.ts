@@ -1123,10 +1123,13 @@ export async function questionsFeedReady(): Promise<boolean> {
   return qaColumns;
 }
 
+// Questions and answers are linked two ways (an answer's question, and a
+// question's best answer), so the embed has to name which one it means, or
+// the database refuses the whole read.
 const questionSelect = (withApp: boolean) =>
   `id, app_id, body, created_at, vote_count, answer_count, best_answer_id, user_id${qaColumns ? ", poll_options, poll_counts" : ""},
    user:profiles!questions_user_id_fkey(${summaryCols()}),
-   answers(id, body, created_at, vote_count${qaColumns ? ", parent_id" : ""}, user:profiles!answers_user_id_fkey(${summaryCols()}))${
+   answers!answers_question_id_fkey(id, body, created_at, vote_count${qaColumns ? ", parent_id" : ""}, user:profiles!answers_user_id_fkey(${summaryCols()}))${
      withApp ? ", app:apps!inner(id, slug, name, tagline, category, owner_id, link_checked_at)" : ""
    }`;
 
