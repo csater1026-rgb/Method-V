@@ -1,8 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { TAGLINE } from "@/lib/constants";
+import { LEGAL, TAGLINE } from "@/lib/constants";
 
 import { PixelBot } from "./PixelBot";
 import { PixelCoderDetailed } from "./PixelCoder";
@@ -10,7 +11,8 @@ import { Wordmark } from "./Wordmark";
 
 // The bottom of every page (except the full-screen Drops feed): the logo and
 // tagline, then the pixel builder in the bottom-left corner and the pixel AI
-// computer in the bottom-right. The site's other links live on Browse.
+// computer in the bottom-right, with the Terms, Privacy and Contact links.
+// The site's other links live on Browse.
 export function Footer() {
   const pathname = usePathname();
   if (pathname.startsWith("/drops")) return null;
@@ -24,6 +26,17 @@ export function Footer() {
           <Wordmark className="text-3xl" />
         </p>
         <p className="font-mono text-[11px] tracking-widest text-muted uppercase">{TAGLINE}</p>
+        <nav aria-label="Legal" className="mt-1 flex gap-4 text-xs text-muted">
+          <Link href="/terms" className="hover:text-ink">
+            Terms
+          </Link>
+          <Link href="/privacy" className="hover:text-ink">
+            Privacy
+          </Link>
+          <a href={`mailto:${LEGAL.email}`} className="hover:text-ink">
+            Contact
+          </a>
+        </nav>
       </div>
       <div className="flex items-end justify-between px-2">
         <PixelCoderDetailed size={220} title="A pixel builder coding at their desk" className={`block h-auto ${size}`} />

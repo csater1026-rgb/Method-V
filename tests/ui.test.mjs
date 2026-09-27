@@ -453,7 +453,8 @@ await run("pixel coder", phone, async (page) => {
   ok(running === "pc-float", "pixels drift away (animation running)");
   ok((await page.locator("header svg.pc-animated").count()) === 0, "no pixel coder next to the logo at the top");
   ok((await page.getByText(/Then try it/i).count()) === 0, "the old tagline is gone");
-  ok((await footer.locator("a, nav").count()) === 0, "footer has no links");
+  const footerLinks = await footer.locator("a").allTextContents();
+  ok(footerLinks.join(",") === "Terms,Privacy,Contact", `footer only has the Terms, Privacy and Contact links (${footerLinks.join(", ")})`);
   ok(await footer.getByText("Method", { exact: false }).first().isVisible(), "footer shows the Method V logo");
   ok(await footer.getByText("Real apps. Real builders. Real feedback.").isVisible(), "the tagline is under the footer logo");
   {
@@ -576,6 +577,27 @@ await run("login", phone, async (page) => {
   await noSideScroll(page, "login");
   await go(page, "/browse");
   ok(await page.locator("header").getByRole("link", { name: "Sign in" }).isVisible(), "other pages still have Sign in up top");
+});
+
+await run("terms and privacy", phone, async (page) => {
+  await go(page, "/login");
+  const agree = page.getByText("By signing in or creating an account, you agree to our");
+  ok(await agree.getByRole("link", { name: "Terms of Service" }).isVisible(), "sign-in page links the Terms");
+  ok(await agree.getByRole("link", { name: "Privacy Policy" }).isVisible(), "sign-in page links the Privacy Policy");
+  const legal = page.getByRole("navigation", { name: "Legal" });
+  ok((await legal.getByRole("link", { name: "Terms" }).getAttribute("href")) === "/terms", "footer links the Terms");
+  ok((await legal.getByRole("link", { name: "Contact" }).getAttribute("href")) === "mailto:hello@methodv.app", "footer has a contact email");
+
+  await go(page, "/terms");
+  ok(await page.getByRole("heading", { level: 1, name: "Terms of Service" }).isVisible(), "Terms page");
+  for (const s of ["5. V Coin", "7. Tips, sponsorships and payouts"]) ok(await page.getByRole("heading", { name: s }).isVisible(), `Terms covers ${s}`);
+  ok(await page.getByText("12% of sponsorship packages (7% with Pro)").isVisible(), "Terms states the real fees");
+  await noSideScroll(page, "terms");
+
+  await go(page, "/privacy");
+  ok(await page.getByRole("heading", { level: 1, name: "Privacy Policy" }).isVisible(), "Privacy page");
+  ok(await page.getByText("we don't sell your data", { exact: false }).first().isVisible(), "Privacy says we don't sell data");
+  await noSideScroll(page, "privacy");
 });
 
 await run("submit", desktop, async (page) => {

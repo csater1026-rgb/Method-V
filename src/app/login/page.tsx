@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { getViewer } from "@/lib/data";
@@ -39,6 +40,17 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
         )}
         <ProviderButtons next={safeNext} />
         <LoginForm next={safeNext} disabled={!isSupabaseConfigured} />
+        <p className="mt-4 text-xs text-muted">
+          By signing in or creating an account, you agree to our{" "}
+          <Link href="/terms" className="text-accent hover:underline">
+            Terms of Service
+          </Link>{" "}
+          and{" "}
+          <Link href="/privacy" className="text-accent hover:underline">
+            Privacy Policy
+          </Link>
+          .
+        </p>
       </section>
 
       <section aria-label="What's on Method V" className="mt-12 border-t border-line pt-8">

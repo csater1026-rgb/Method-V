@@ -1,11 +1,12 @@
 import * as AppleAuthentication from "expo-apple-authentication";
 import { useRouter } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from "react-native";
 
 import { Body, Button, Display, ErrorText, Mono, Wordmark } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
-import { AUTH_PROVIDERS, DEMO_MESSAGE, MIN_PASSWORD, isLive } from "@/lib/config";
+import { AUTH_PROVIDERS, DEMO_MESSAGE, MIN_PASSWORD, SITE_URL, isLive } from "@/lib/config";
 import { fonts, useColorSchemeName, useTheme } from "@/theme";
 
 type Mode = "signin" | "signup" | "code";
@@ -194,6 +195,20 @@ export default function SignInScreen() {
           {mode === "code" ? "Use a password instead" : "Forgot your password? Email me a code"}
         </Body>
       </Pressable>
+
+      {SITE_URL ? (
+        <Body muted size={12} style={{ textAlign: "center" }}>
+          By signing in or creating an account, you agree to our{" "}
+          <Body size={12} accessibilityRole="link" style={{ color: t.accent }} onPress={() => void WebBrowser.openBrowserAsync(`${SITE_URL}/terms`)}>
+            Terms of Service
+          </Body>{" "}
+          and{" "}
+          <Body size={12} accessibilityRole="link" style={{ color: t.accent }} onPress={() => void WebBrowser.openBrowserAsync(`${SITE_URL}/privacy`)}>
+            Privacy Policy
+          </Body>
+          .
+        </Body>
+      ) : null}
     </Wrap>
   );
 }

@@ -51,6 +51,8 @@ export default function MeScreen() {
     ["V Coin credits", "/credits"],
     ["Inbox", "/inbox"],
     ["Edit profile", "/settings"],
+    ["Terms of Service", "/terms"],
+    ["Privacy Policy", "/privacy"],
   ];
 
   return (
