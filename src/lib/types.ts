@@ -28,6 +28,8 @@ export type Profile = {
   payouts_enabled: boolean;
   // Profile photo in the drops bucket; null means the letter avatar.
   avatar_path?: string | null;
+  // The wide header picture on their profile page (20261010000000_cover_photos).
+  cover_path?: string | null;
 };
 
 export type ProfileSummary = Pick<Profile, "id" | "username" | "display_name" | "roles"> & {

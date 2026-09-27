@@ -39,13 +39,32 @@ export default async function ProfilePage({ params }: PageProps<"/u/[username]">
   ]);
 
   const links = socialLinks(profile);
+  const cover = publicFileUrl(profile.cover_path ?? null);
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8">
-      <section className="flex flex-col gap-6 sm:flex-row sm:items-start">
+      {/* Their header picture, behind their photo: only on this page. */}
+      {cover ? (
+        <div className="aspect-[3/1] max-h-64 w-full overflow-hidden rounded-xl border border-line bg-surface-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={cover} alt="" className="h-full w-full object-cover" />
+        </div>
+      ) : (
+        isSelf && (
+          <Link
+            href="/settings#cover"
+            className="mb-6 flex h-20 w-full items-center justify-center rounded-xl border border-dashed border-line text-sm text-muted transition hover:border-accent hover:text-ink"
+          >
+            + Add a header picture
+          </Link>
+        )
+      )}
+      <section className={`flex flex-col gap-6 sm:flex-row sm:items-start ${cover ? "px-2 sm:px-6" : ""}`}>
         {/* Photo with the status people message about right under it. */}
-        <div className="flex shrink-0 flex-col items-start gap-2 sm:items-center">
-          <Avatar username={profile.username} name={profile.display_name} src={publicFileUrl(profile.avatar_path ?? null)} size={96} />
+        <div className={`flex shrink-0 flex-col items-start gap-2 sm:items-center ${cover ? "relative -mt-12 sm:-mt-14" : ""}`}>
+          <span className={cover ? "rounded-full bg-bg p-1" : ""}>
+            <Avatar username={profile.username} name={profile.display_name} src={publicFileUrl(profile.avatar_path ?? null)} size={96} />
+          </span>
           <StatusBadge roles={profile.roles} />
         </div>
         <div className="flex min-w-0 flex-1 flex-col gap-3">

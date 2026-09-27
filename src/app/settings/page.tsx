@@ -8,6 +8,7 @@ import { isSupabaseConfigured, publicFileUrl } from "@/lib/supabase/env";
 
 import { AccountInfo } from "./AccountInfo";
 import { AvatarForm } from "./AvatarForm";
+import { CoverForm } from "./CoverForm";
 import { DeleteAccountForm } from "./DeleteAccountForm";
 import { NotificationsForm } from "./NotificationsForm";
 import { PasswordForm } from "./PasswordForm";
@@ -33,6 +34,7 @@ export default async function SettingsPage() {
         name={profile.display_name}
         current={publicFileUrl(profile.avatar_path ?? null)}
       />
+      <CoverForm userId={profile.id} current={publicFileUrl(profile.cover_path ?? null)} />
       <ProfileForm profile={profile} />
       <NotificationsForm
         initial={{ follows: notifications.follows, feedback: notifications.feedback, messages: notifications.messages }}

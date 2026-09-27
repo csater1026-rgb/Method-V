@@ -1,7 +1,9 @@
 import Link from "next/link";
 
 import { getInboxCounts, getViewer } from "@/lib/data";
+import { hasAgreedToTerms } from "@/lib/gate";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { createClient } from "@/lib/supabase/server";
 
 import { Avatar } from "./Avatar";
 import { CreditsChip } from "./CreditsChip";
@@ -19,7 +21,10 @@ export async function Nav() {
   const viewer = await getViewer();
   const counts = await getInboxCounts(viewer);
   // Signed out on the live site: only the welcome page is open, so no menu.
-  const gated = isSupabaseConfigured && !viewer;
+  // Same while a new account still has to agree to the Terms (/agree): no
+  // menu, tab bar or tour until they have.
+  const mustAgree = isSupabaseConfigured && Boolean(viewer) && !hasAgreedToTerms((await (await createClient()).auth.getClaims()).data?.claims?.user_metadata);
+  const gated = (isSupabaseConfigured && !viewer) || mustAgree;
 
   return (
     <>
@@ -38,7 +43,7 @@ export async function Nav() {
                 Post a Drop
               </Link>
             )}
-            {viewer ? (
+            {viewer && !mustAgree ? (
               <>
                 <CreditsChip credits={viewer.credits} />
                 <InboxIcon count={counts.notifications + counts.messages + counts.requests} />
@@ -49,7 +54,7 @@ export async function Nav() {
                   <SignOutButton className="text-sm text-muted hover:text-ink" />
                 </span>
               </>
-            ) : (
+            ) : mustAgree ? null : (
               <SignInLink />
             )}
           </div>

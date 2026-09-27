@@ -360,6 +360,29 @@ export async function setAvatar(path: string | null): Promise<ActionResult> {
   return { ok: true };
 }
 
+// Saves (or with null, removes) the header picture on your profile page, which
+// the browser just uploaded to drops/<your id>/cover-<time>.jpg, and deletes
+// the one it replaces.
+export async function setCover(path: string | null): Promise<ActionResult> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  const id = auth.viewer.id;
+  if (path !== null && !new RegExp(`^${id}/cover-[0-9]+\\.jpg$`).test(path)) {
+    return { ok: false, error: "That picture didn't upload properly. Try again." };
+  }
+  const supabase = await createClient();
+  const { data: before, error: readError } = await supabase.from("profiles").select("cover_path").eq("id", id).maybeSingle();
+  if (readError) {
+    return { ok: false, error: "Header pictures need the latest database update. Open /api/health to see what to run." };
+  }
+  const { error } = await supabase.from("profiles").update({ cover_path: path }).eq("id", id);
+  if (error) return { ok: false, error: "Couldn't save your header picture." };
+  const old = before?.cover_path as string | null | undefined;
+  if (old && old !== path) await supabase.storage.from(DROPS_BUCKET).remove([old]);
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
 // ---------------------------------------------------------------------------
 // Push notifications: which kinds, and this browser on or off
 // ---------------------------------------------------------------------------

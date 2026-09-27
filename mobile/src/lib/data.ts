@@ -738,23 +738,39 @@ export async function setRoles(roles: string[]): Promise<Result> {
   return error ? fail("Couldn't save your status.") : ok(undefined);
 }
 
-// A new profile photo: squared and shrunk on the phone to a small JPEG,
-// uploaded into your own folder, then set on your profile. The old one is
-// deleted. Pass null to go back to the letter avatar.
-export async function setPhoto(imageUri: string | null): Promise<Result<string | null>> {
+// A new profile photo (a square) or header picture (a wide 3:1 strip, shown
+// only on your profile page): cropped and shrunk on the phone to a small
+// JPEG, uploaded into your own folder, then set on your profile. The old one
+// is deleted. Pass null to remove it.
+export const setPhoto = (imageUri: string | null) => setProfileImage("avatar", imageUri);
+export const setCover = (imageUri: string | null) => setProfileImage("cover", imageUri);
+
+// Your current header picture (null if none, or before the website's
+// database has the column).
+export async function getMyCover(): Promise<string | null> {
+  const auth = await signedIn();
+  if (!auth.ok) return null;
+  const { data } = await supabase!.from("profiles").select("cover_path").eq("id", auth.data.id).maybeSingle();
+  return fileUrl((data as { cover_path?: string | null } | null)?.cover_path ?? null);
+}
+
+async function setProfileImage(kind: "avatar" | "cover", imageUri: string | null): Promise<Result<string | null>> {
   const auth = await signedIn();
   if (!auth.ok) return auth;
   const id = auth.data.id;
-  const { data: before } = await supabase!.from("profiles").select("avatar_path").eq("id", id).maybeSingle();
+  const column = kind === "avatar" ? "avatar_path" : "cover_path";
+  const noun = kind === "avatar" ? "photo" : "header picture";
+  const { data: before, error: readError } = await supabase!.from("profiles").select(column).eq("id", id).maybeSingle();
+  if (readError) return fail(`Couldn't save your ${noun}. The website may need its latest database update.`);
   let path: string | null = null;
   if (imageUri) {
-    path = `${id}/avatar-${Date.now()}.jpg`;
+    path = `${id}/${kind}-${Date.now()}.jpg`;
     try {
-      const jpeg = await squarePhoto(imageUri);
+      const jpeg = kind === "avatar" ? await cropPhoto(imageUri, 320, 320) : await cropPhoto(imageUri, 1500, 500);
       if (Platform.OS === "web") {
         const blob = await (await fetch(jpeg)).blob();
         const { error } = await supabase!.storage.from(DROPS_BUCKET).upload(path, blob, { contentType: "image/jpeg", upsert: false });
-        if (error) return fail("Your photo didn't upload. Try again.");
+        if (error) return fail(`Your ${noun} didn't upload. Try again.`);
       } else {
         const upload = await new File(jpeg).upload(`${SUPABASE_URL}/storage/v1/object/${DROPS_BUCKET}/${path}`, {
           httpMethod: "POST",
@@ -762,29 +778,32 @@ export async function setPhoto(imageUri: string | null): Promise<Result<string |
           mimeType: "image/jpeg",
           headers: { Authorization: `Bearer ${auth.data.token}`, apikey: SUPABASE_KEY, "Content-Type": "image/jpeg", "x-upsert": "false" },
         });
-        if (upload.status >= 300) return fail("Your photo didn't upload. Try again.");
+        if (upload.status >= 300) return fail(`Your ${noun} didn't upload. Try again.`);
       }
     } catch {
-      return fail("Couldn't use that photo. Try another one.");
+      return fail(`Couldn't use that ${noun}. Try another one.`);
     }
   }
-  const { error } = await supabase!.from("profiles").update({ avatar_path: path }).eq("id", id);
+  const { error } = await supabase!.from("profiles").update({ [column]: path }).eq("id", id);
   if (error) {
     if (path) await supabase!.storage.from(DROPS_BUCKET).remove([path]);
-    return fail("Couldn't save your photo.");
+    return fail(`Couldn't save your ${noun}.`);
   }
-  const old = (before as { avatar_path?: string | null } | null)?.avatar_path;
+  const old = (before as Record<string, string | null> | null)?.[column];
   if (old && old !== path) await supabase!.storage.from(DROPS_BUCKET).remove([old]);
   return ok(fileUrl(path));
 }
 
-// Centered square, 320px, JPEG: small enough to upload quickly anywhere.
-async function squarePhoto(uri: string): Promise<string> {
+// Centered crop to the target shape, shrunk, JPEG: small enough to upload
+// quickly anywhere.
+async function cropPhoto(uri: string, width: number, height: number): Promise<string> {
   const first = await ImageManipulator.manipulate(uri).renderAsync();
-  const side = Math.min(first.width, first.height);
+  const scale = Math.min(first.width / width, first.height / height);
+  const w = width * scale;
+  const h = height * scale;
   const context = ImageManipulator.manipulate(uri)
-    .crop({ originX: (first.width - side) / 2, originY: (first.height - side) / 2, width: side, height: side })
-    .resize({ width: 320, height: 320 });
+    .crop({ originX: (first.width - w) / 2, originY: (first.height - h) / 2, width: w, height: h })
+    .resize({ width, height });
   const image = await context.renderAsync();
   const saved = await image.saveAsync({ format: SaveFormat.JPEG, compress: 0.86 });
   return saved.uri;

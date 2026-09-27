@@ -1,3 +1,4 @@
+import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
@@ -12,7 +13,7 @@ import { Avatar, Body, Button, Card, Coin, Display, ErrorText, Handle, Mono, Sta
 import { useTour } from "@/components/Tour";
 import { useAuth } from "@/lib/auth";
 import { DEMO_MESSAGE, MIN_PASSWORD, SITE_URL, isLive } from "@/lib/config";
-import { getMyAbout, saveAbout, setPhoto, setRoles, type About } from "@/lib/data";
+import { getMyAbout, getMyCover, saveAbout, setCover, setPhoto, setRoles, type About } from "@/lib/data";
 import { getPushKinds, pushIsOn, pushSupported, savePushKinds, turnOffPush, turnOnPush, type PushKinds } from "@/lib/push";
 import { useLoad } from "@/lib/useLoad";
 import { fonts, useTheme } from "@/theme";
@@ -71,6 +72,7 @@ export default function MeScreen() {
         </View>
       </View>
       <PhotoCard />
+      <CoverCard />
       <AboutCard />
       <StatusCard />
       <NotificationsCard />
@@ -131,6 +133,48 @@ function PhotoCard() {
       <View style={{ flexDirection: "row", gap: 8 }}>
         <Button label={viewer.avatar_url ? "Change photo" : "Add a photo"} busy={busy} onPress={() => void pick()} />
         {viewer.avatar_url && <Button label="Remove" kind="ghost" disabled={busy} onPress={() => void remove()} />}
+      </View>
+      <ErrorText>{error}</ErrorText>
+    </Card>
+  );
+}
+
+// The wide header picture behind your photo, only on your profile page.
+function CoverCard() {
+  const t = useTheme();
+  const cover = useLoad(getMyCover, []);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const current = cover.data;
+
+  async function change(uri: string | null) {
+    setBusy(true);
+    setError(null);
+    const r = await setCover(uri);
+    if (r.ok) await cover.reload();
+    else setError(r.error);
+    setBusy(false);
+  }
+
+  async function pick() {
+    setError(null);
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], allowsEditing: true, aspect: [3, 1], quality: 1 });
+    if (result.canceled || !result.assets[0]) return;
+    await change(result.assets[0].uri);
+  }
+
+  return (
+    <Card style={{ gap: 10 }}>
+      <Body bold>Header picture</Body>
+      <Body muted size={13}>
+        A wide picture behind your photo, only on your profile page.
+      </Body>
+      {current ? (
+        <Image source={{ uri: current }} style={{ width: "100%", aspectRatio: 3, borderRadius: 10, backgroundColor: t.surface }} contentFit="cover" />
+      ) : null}
+      <View style={{ flexDirection: "row", gap: 8 }}>
+        <Button label={current ? "Change" : "Add a header picture"} busy={busy} onPress={() => void pick()} />
+        {current ? <Button label="Remove" kind="ghost" disabled={busy} onPress={() => void change(null)} /> : null}
       </View>
       <ErrorText>{error}</ErrorText>
     </Card>

@@ -91,7 +91,10 @@ export function Tour({ userId }: { userId: string | null }) {
       // Private browsing: show it, just don't remember.
     }
     if (!replay && (!userId || done)) return;
-    const t = setTimeout(() => setStep(0), 500);
+    // Only on Home itself (never on the one-time Terms screen or mid-redirect).
+    const t = setTimeout(() => {
+      if (window.location.pathname === "/") setStep(0);
+    }, 500);
     return () => clearTimeout(t);
   }, [pathname, userId]);
 

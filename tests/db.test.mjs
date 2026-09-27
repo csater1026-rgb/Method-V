@@ -71,7 +71,7 @@ async function runAgain(files) {
 {
   const newest = readdirSync(migrationsDir).filter((f) => f >= "20261001000000" && f.endsWith(".sql") && !LATE.includes(f)).sort();
   const failed = await runAgain(newest);
-  ok(failed.length === 0 && newest.length === 7, `the newest migrations are safe to run twice (${failed.join("; ") || newest.join(", ")})`);
+  ok(failed.length === 0 && newest.length === 8, `the newest migrations are safe to run twice (${failed.join("; ") || newest.join(", ")})`);
 }
 
 async function as(role, uid, sql, params) {
@@ -812,6 +812,20 @@ ok(!!(await fails("anon", null, "insert into public.sponsorships (sponsor_brand,
   ok((await db.query("select avatar_path from public.profiles where id = $1", [B])).rows[0].avatar_path === before, "you can't change someone else's photo");
   await as("authenticated", A, setPhoto, [null, A]);
   ok((await db.query("select avatar_path from public.profiles where id = $1", [A])).rows[0].avatar_path === null, "you can remove your photo");
+}
+
+// --- Profile header pictures ---
+{
+  const setCover = "update public.profiles set cover_path = $1 where id = $2";
+  await as("authenticated", A, setCover, [`${A}/cover-1727000000000.jpg`, A]);
+  ok((await db.query("select cover_path from public.profiles where id = $1", [A])).rows[0].cover_path === `${A}/cover-1727000000000.jpg`, "you can set your own header picture");
+  ok(!!(await fails("authenticated", A, setCover, [`${B}/cover-1.jpg`, A])), "your header picture must be in your own folder");
+  ok(!!(await fails("authenticated", A, setCover, [`${A}/avatar-1.jpg`, A])), "header picture paths are only cover-<time>.jpg");
+  const before = (await db.query("select cover_path from public.profiles where id = $1", [B])).rows[0].cover_path;
+  await as("authenticated", A, setCover, [`${B}/cover-2.jpg`, B]);
+  ok((await db.query("select cover_path from public.profiles where id = $1", [B])).rows[0].cover_path === before, "you can't change someone else's header picture");
+  await as("authenticated", A, setCover, [null, A]);
+  ok((await db.query("select cover_path from public.profiles where id = $1", [A])).rows[0].cover_path === null, "you can remove your header picture");
 }
 
 // --- Social handles ---

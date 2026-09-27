@@ -1,3 +1,4 @@
+import { Image } from "expo-image";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { Linking, Pressable, RefreshControl, ScrollView, View } from "react-native";
@@ -58,6 +59,8 @@ export default function ProfileScreen() {
     }
   }
 
+  const cover = fileUrl(profile.cover_path ?? null);
+
   return (
     <ScrollView
       style={{ backgroundColor: t.bg }}
@@ -65,9 +68,20 @@ export default function ProfileScreen() {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={reload} tintColor={t.muted} />}
     >
       <Stack.Screen options={{ title: `@${profile.username}` }} />
+      {/* Their header picture, behind their photo: only on their profile. */}
+      {cover ? (
+        <Image
+          source={{ uri: cover }}
+          accessibilityIgnoresInvertColors
+          style={{ width: "100%", aspectRatio: 3, borderRadius: 12, backgroundColor: t.surface }}
+          contentFit="cover"
+        />
+      ) : null}
       {/* Photo with the status people message about right next to it. */}
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-        <Avatar username={profile.username} name={profile.display_name} src={fileUrl(profile.avatar_path)} size={84} />
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: cover ? -48 : 0, paddingHorizontal: cover ? 12 : 0 }}>
+        <View style={cover ? { borderRadius: 999, padding: 3, backgroundColor: t.bg } : undefined}>
+          <Avatar username={profile.username} name={profile.display_name} src={fileUrl(profile.avatar_path)} size={84} />
+        </View>
         <View>
           <StatusBadge roles={profile.roles} />
         </View>
