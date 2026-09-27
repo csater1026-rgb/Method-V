@@ -46,7 +46,7 @@ export function GrowPanel({ app, status, credits, spotlightCost, nextSpotlight, 
   const spotlightStarts = status.spotlightStarts;
 
   return (
-    <section aria-label="Grow" className="rounded-xl border border-line bg-surface p-4 sm:p-5">
+    <section id="grow" aria-label="Grow" className="scroll-mt-20 rounded-xl border border-line bg-surface p-4 sm:p-5">
       <p className="font-mono text-[10.5px] tracking-widest text-muted uppercase">
         {preview ? "Builder tools · preview in demo mode" : "Only you see this"}
       </p>

@@ -98,7 +98,7 @@ export default function SignInScreen() {
       <Wordmark size={26} />
       <Display size={42}>{mode === "signup" ? "Join Method V" : "Log in or create an account"}</Display>
       {isLive ? (
-        <Body muted>Method V is for members. Sign in to see the apps, or join free in a minute.</Body>
+        <Body muted>Show off what you built, get honest feedback from real people, and get traction. Sign in, or join free in a minute.</Body>
       ) : (
         <Body muted>{DEMO_MESSAGE}</Body>
       )}

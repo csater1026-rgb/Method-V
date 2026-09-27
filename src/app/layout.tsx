@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     template: "%s · Method V",
   },
   description:
-    "Where builders show off what they've made, get real users, earn from their apps and find people to work with.",
+    "Method V is where builders and vibe coders show off the apps they've made, get honest feedback from real people, and get traction: testers, followers, featured spots and sponsors.",
   applicationName: "Method V",
   // Opens full screen when added to an iPhone home screen.
   appleWebApp: { capable: true, title: "Method V", statusBarStyle: "default" },

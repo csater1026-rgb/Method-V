@@ -16,7 +16,10 @@ export default async function SubmitPage() {
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-8">
       <h1 className="display rise text-6xl sm:text-7xl">Post a Drop</h1>
-      <p className="mt-1 text-muted">60 seconds. Then they try it. Show the problem, the wow moment and where to click.</p>
+      <p className="mt-1 text-muted">
+        Show off what you built in 60 seconds: the problem, the wow moment and where to click. Then real people try it and tell you what
+        they think.
+      </p>
       <p className="mt-1 text-sm">
         <Link href="/ask" className="font-semibold text-accent hover:underline">
           Or ask a question about your app →

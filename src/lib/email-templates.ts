@@ -69,7 +69,7 @@ function layout({ heading, intro, button, code, footer }: { heading: string; int
       </table>
     </td></tr>
   </table>
-  <p style="font-family:${FONT};font-size:12px;color:${MUTED};margin:16px 0 0;">Method V · Real apps. Real builders. Real feedback.</p>
+  <p style="font-family:${FONT};font-size:12px;color:${MUTED};margin:16px 0 0;">Method V · Show off your app. Get real feedback. Get traction.</p>
 </td></tr>
 </table>
 </body>

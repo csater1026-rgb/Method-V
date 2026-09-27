@@ -67,7 +67,9 @@ await run("home (phone)", phone, async (page) => {
   ok((await justPosted.locator("article").first().getAttribute("class")).includes("snap-start"), "Just posted swipes sideways too");
   ok((await justPosted.locator("article .tag-accent").count()) === 0, "Just posted cards have no Featured-style labels");
   const order = await page.locator("main section[aria-label]").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
-  ok(order.join(" > ") === "Challenge > Featured apps > Builders like you > Just posted > Top builders > Top testers", `Home order: ${order.join(" > ")}`);
+  ok(order.join(" > ") === "Challenge > Show off your app > Featured apps > Builders like you > Just posted > Top builders > Top testers", `Home order: ${order.join(" > ")}`);
+  const pitch = page.getByRole("region", { name: "Show off your app" });
+  ok((await pitch.getByRole("link", { name: "Post your app →" }).getAttribute("href")) === "/submit", "Home invites you to show off your app");
   const builders = await page.getByRole("region", { name: "Top builders" }).locator("li a").allTextContents();
   ok(builders[0]?.includes("June Okafor"), `top builder this month leads (${builders.join(", ")})`);
   ok((await justPosted.getByRole("link", { name: "See all →" }).getAttribute("href")) === "/browse", "Just posted links to Browse");
@@ -457,13 +459,13 @@ await run("pixel coder", phone, async (page) => {
   const footerLinks = await footer.locator("a").allTextContents();
   ok(footerLinks.join(",") === "Terms,Privacy,Contact", `footer only has the Terms, Privacy and Contact links (${footerLinks.join(", ")})`);
   ok(await footer.getByText("Method", { exact: false }).first().isVisible(), "footer shows the Method V logo");
-  ok(await footer.getByText("Real apps. Real builders. Real feedback.").isVisible(), "the tagline is under the footer logo");
+  ok(await footer.getByText("Show off your app. Get real feedback. Get traction.").isVisible(), "the tagline is under the footer logo");
   {
     const logo = await footer.locator(".wordmark-v").first().boundingBox();
-    const tag = await footer.getByText("Real apps. Real builders. Real feedback.").boundingBox();
+    const tag = await footer.getByText("Show off your app. Get real feedback. Get traction.").boundingBox();
     ok(tag.y > logo.y + logo.height - 2, "tagline sits right under the logo");
   }
-  ok((await page.title()).includes("Real apps. Real builders. Real feedback."), "and in the browser tab title");
+  ok((await page.title()).includes("Show off your app. Get real feedback. Get traction."), "and in the browser tab title");
   const coder = await footer.getByRole("img", { name: "A pixel builder coding at their desk" }).boundingBox();
   const pageHeight = await page.evaluate(() => document.documentElement.scrollHeight - parseFloat(getComputedStyle(document.body).paddingBottom));
   ok(coder.x < 16 && Math.abs(coder.y + coder.height - pageHeight) < 2, `pixel coder sits in the bottom-left corner (x ${Math.round(coder.x)})`);

@@ -4,22 +4,25 @@ import { ChallengeBanner } from "@/components/ChallengeBanner";
 import { FeaturedCard } from "@/components/FeaturedCard";
 import { TopBuilders, TopTesters } from "@/components/Passport";
 import { Suggestions } from "@/components/Suggestions";
-import { getApps, getFeatured, getRunningChallenge, getSuggestions, getTopBuilders, getTopTesters, getViewer } from "@/lib/data";
+import { getApps, getFeatured, getMyApps, getRunningChallenge, getSuggestions, getTopBuilders, getTopTesters, getViewer } from "@/lib/data";
 
-// Home: a running challenge (only while one is on), Featured, builders to
-// follow, the newest projects, then this month's top builders and top
-// testers. Everything else lives on Browse.
+// Home: a running challenge (only while one is on), a nudge to show off your
+// app (or to get more eyes on it), Featured, builders to follow, the newest
+// projects, then this month's top builders and top testers. Everything else
+// lives on Browse.
 
 export default async function HomePage() {
   const viewer = await getViewer();
-  const [challenge, featured, suggestions, newest, topBuilders, topTesters] = await Promise.all([
+  const [challenge, featured, suggestions, newest, topBuilders, topTesters, myApps] = await Promise.all([
     getRunningChallenge(),
     getFeatured(),
     getSuggestions(viewer),
     getApps({}, 10),
     getTopBuilders(),
     getTopTesters(),
+    getMyApps(viewer),
   ]);
+  const latestApp = myApps[0];
 
   return (
     <div className="mx-auto w-full max-w-6xl py-6">
@@ -28,6 +31,31 @@ export default async function HomePage() {
           <ChallengeBanner challenge={challenge} />
         </div>
       )}
+      {/* What Method V is for: show off your app, get feedback, get traction. */}
+      <section aria-label="Show off your app" className="mx-4 mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-accent/40 bg-accent/10 p-4">
+        {latestApp ? (
+          <>
+            <div className="min-w-0">
+              <p className="font-semibold">Get more eyes on {latestApp.name}</p>
+              <p className="text-sm text-muted">Ask for testers, book the Spotlight, or ask people a question about it.</p>
+            </div>
+            <Link href={`/apps/${latestApp.slug}#grow`} className="btn-accent shrink-0">
+              Grow your app →
+            </Link>
+          </>
+        ) : (
+          <>
+            <div className="min-w-0">
+              <p className="font-semibold">Built something? Show it off.</p>
+              <p className="text-sm text-muted">Post a 60-second Drop, get honest feedback from real people, and get traction.</p>
+            </div>
+            <Link href="/submit" className="btn-accent shrink-0">
+              Post your app →
+            </Link>
+          </>
+        )}
+      </section>
+
       <header className="flex items-center justify-between gap-3 px-4">
         <h1 className="display text-3xl">{featured.curated ? "Featured" : "Hot right now"}</h1>
         <Link href="/browse" className="btn-ghost shrink-0 px-3" aria-label="Search apps">

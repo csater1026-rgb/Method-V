@@ -191,7 +191,7 @@ export const MIN_PASSWORD = 8;
 export const LEGAL = { updated: "September 27, 2026", email: "team@methodv.app" } as const;
 
 // The Method V tagline: browser tab title, footer, install description.
-export const TAGLINE = "Real apps. Real builders. Real feedback.";
+export const TAGLINE = "Show off your app. Get real feedback. Get traction.";
 
 // Method V's own account. Its handle is drawn with the logo's pixel V in
 // place of the last letter (see Handle on the website and in the app). The

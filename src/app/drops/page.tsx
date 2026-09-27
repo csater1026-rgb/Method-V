@@ -36,8 +36,14 @@ export default async function DropsPage({ searchParams }: PageProps<"/drops">) {
 
   return (
     <div className="relative">
-      <div className="media-dark pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-col items-center gap-2 p-3">
-        <nav aria-label="Feed" className="pointer-events-auto flex gap-3 drop-shadow-[0_1px_6px_rgb(0_0_0/0.7)] sm:gap-4">
+      {/* Over videos the tabs stay dark (with a shadow to read on any frame);
+          Questions is reading, so it follows light or dark like the rest of the site. */}
+      <div
+        className={`pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-col items-center gap-2 p-3 ${
+          tab === "questions" ? "border-b border-line bg-bg/90 backdrop-blur" : "media-dark"
+        }`}
+      >
+        <nav aria-label="Feed" className={`pointer-events-auto flex gap-3 sm:gap-4 ${tab === "questions" ? "" : "drop-shadow-[0_1px_6px_rgb(0_0_0/0.7)]"}`}>
           {TABS.map((t) => (
             <Link
               key={t.slug}

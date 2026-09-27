@@ -12,12 +12,12 @@ import { CategoryChip } from "./Tags";
 import { Handle } from "./Handle";
 
 // The Questions tab in Drops: one question per screen, swipe for the next.
-// Polls answer with one tap; everything else opens the thread. Always dark,
-// like the video feed, so the tabs over it stay readable.
+// Polls answer with one tap; everything else opens the thread. Follows the
+// site's light or dark theme (only the video feed is always dark).
 export function QuestionFeed({ items, signedIn }: { items: QuestionCard[]; signedIn: boolean }) {
   return (
     <div
-      className="media-dark no-scrollbar h-[calc(100dvh-var(--chrome)-var(--tabbar))] snap-y snap-mandatory overflow-y-scroll bg-bg text-ink"
+      className="no-scrollbar h-[calc(100dvh-var(--chrome)-var(--tabbar))] snap-y snap-mandatory overflow-y-scroll bg-bg text-ink"
       data-testid="question-feed"
     >
       {items.map((q) => (

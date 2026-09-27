@@ -17,7 +17,7 @@ import { Body, Button, Display, Eyebrow } from "./ui";
 type Step = { title: string; body: string; route?: "/" | "/drops" | "/browse" | "/me"; tab?: number };
 
 const STEPS: Step[] = [
-  { title: "Welcome to Method V", body: "Real apps, real builders, real feedback. Here's a quick look around. It takes about 30 seconds.", route: "/" },
+  { title: "Welcome to Method V", body: "The place to show off what you've built, get honest feedback from real people, and get traction. Here's a quick look around. It takes about 30 seconds.", route: "/" },
   { title: "Featured", body: "Hand-picked apps, launches and Spotlight apps sit up top on Home. Tap any card to open the app, try it and leave feedback.", route: "/", tab: 0 },
   { title: "Drops", body: "Swipe through 60-second demos. For you learns what you like, and Questions is where builders ask the community.", route: "/drops", tab: 1 },
   { title: "Post your app", body: "Tap + to share what you built with a 60-second Drop and get honest feedback from real testers.", tab: 2 },

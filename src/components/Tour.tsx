@@ -14,7 +14,7 @@ type Step = { title: string; body: string; target?: string[] };
 const STEPS: Step[] = [
   {
     title: "Welcome to Method V",
-    body: "Real apps, real builders, real feedback. Here's a quick look around. It takes about 30 seconds.",
+    body: "The place to show off what you've built, get honest feedback from real people, and get traction. Here's a quick look around. It takes about 30 seconds.",
   },
   {
     title: "Featured",
