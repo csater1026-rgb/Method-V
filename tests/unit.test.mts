@@ -57,7 +57,7 @@ ok(guessCategory("Chat with an AI agent") === "ai", "ai");
 ok(guessCategory("Something else entirely") === null, "no match → no guess");
 
 // --- Link safety ---
-for (const a of ["127.0.0.1", "10.1.2.3", "192.168.1.1", "169.254.169.254", "::1", "fd00::1", "::ffff:127.0.0.1", "100.64.0.1"]) {
+for (const a of ["127.0.0.1", "10.1.2.3", "192.168.1.1", "169.254.169.254", "::1", "fd00::1", "::ffff:127.0.0.1", "::ffff:7f00:1", "2002:7f00:1::", "100.64.0.1"]) {
   ok(!isPublicAddress(a), `private ${a}`);
 }
 for (const a of ["8.8.8.8", "2606:4700:4700::1111"]) ok(isPublicAddress(a), `public ${a}`);
@@ -241,6 +241,27 @@ ok(JSON.stringify(pushTarget("https://evil.example")) === '{"screen":"/"}' && JS
 // Delete account: type your username to confirm.
 ok(confirmMatches("ada_builds", "ada_builds") && confirmMatches(" @Ada_Builds ", "ada_builds"), "typing your username (with or without @, any case) confirms");
 ok(!confirmMatches("ada", "ada_builds") && !confirmMatches("", "ada_builds") && !confirmMatches("", ""), "anything else doesn't");
+
+// Security: browser notifications only go to real push services.
+{
+  const { isPushServiceEndpoint } = await import("../src/lib/push-core.ts");
+  const good = ["https://fcm.googleapis.com/fcm/send/abc", "https://updates.push.services.mozilla.com/wpush/v2/x", "https://web.push.apple.com/QK", "https://wns2-bl2p.notify.windows.com/w/?token=x"];
+  const bad = ["http://fcm.googleapis.com/x", "https://169.254.169.254/latest", "https://fcm.googleapis.com.evil.com/x", "https://evil.com/fcm.googleapis.com", "https://user@fcm.googleapis.com/x", "https://fcm.googleapis.com:8443/x", "javascript:alert(1)", 42];
+  ok(good.every(isPushServiceEndpoint), "Chrome, Firefox, Safari and Edge push addresses are accepted");
+  ok(!bad.some(isPushServiceEndpoint), `anything else is refused (${bad.filter(isPushServiceEndpoint).join(", ") || "none got through"})`);
+}
+
+// Security: V Coin balances are private, so the profile columns the site
+// reads must match what the database lets anyone read (and never credits).
+{
+  const { PROFILE_COLUMNS } = await import("../src/lib/types.ts");
+  const { readFileSync } = await import("node:fs");
+  const sql = readFileSync(new URL("../supabase/migrations/20261011000000_security_hardening.sql", import.meta.url), "utf8");
+  const granted = new Set(sql.match(/grant select \(([^)]*)\)/)![1].split(",").map((c) => c.trim()));
+  const read = PROFILE_COLUMNS.split(",").map((c) => c.trim());
+  ok(!granted.has("credits") && !read.includes("credits"), "nobody reads V Coin balances off profiles");
+  ok(read.every((c) => granted.has(c)), `every profile column the site reads is readable (${read.filter((c) => !granted.has(c)).join(", ") || "all"})`);
+}
 
 // Vercel never uploads mobile/ (.vercelignore), so nothing the website builds
 // or type checks may import from it.

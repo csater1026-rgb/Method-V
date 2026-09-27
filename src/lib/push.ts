@@ -2,7 +2,7 @@ import "server-only";
 
 import webpush from "web-push";
 
-import { deadExpoTokens, isExpoToken, type PushMessage } from "./push-core";
+import { deadExpoTokens, isExpoToken, isPushServiceEndpoint, type PushMessage } from "./push-core";
 
 // Sending push notifications. Phones get them through Expo's push service;
 // browsers through Web Push (VAPID keys). Each part is off until its keys
@@ -64,6 +64,11 @@ export async function sendToBrowsers(subs: Subscription[], message: PushMessage)
   let sent = 0;
   await Promise.all(
     subs.map(async (s) => {
+      // Never send anywhere but a real push service (the database checks too).
+      if (!isPushServiceEndpoint(s.endpoint)) {
+        dead.push(s.endpoint);
+        return;
+      }
       try {
         await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payload, { TTL: 60 * 60 * 24 });
         sent++;

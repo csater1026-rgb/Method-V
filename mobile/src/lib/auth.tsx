@@ -58,23 +58,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loadViewer = useCallback(async (s: Session | null) => {
     if (!supabase || !s) return setViewer(null);
-    let { data, error } = await supabase
-      .from("profiles")
-      .select("id, username, display_name, credits, roles, avatar_path")
-      .eq("id", s.user.id)
-      .maybeSingle();
-    // A database without profile photos yet (migration 20261001000000):
-    // stay signed in, with letter avatars.
-    if (error) {
-      ({ data, error } = await supabase.from("profiles").select("id, username, display_name, credits, roles").eq("id", s.user.id).maybeSingle());
+    const [{ data, error }, balance] = await Promise.all([
+      supabase.from("profiles").select("id, username, display_name, roles, avatar_path").eq("id", s.user.id).maybeSingle(),
+      // V Coin balances are private: my_credits() reads only your own. Before
+      // the website's 20261011000000_security_hardening.sql, read the column.
+      supabase.rpc("my_credits"),
+    ]);
+    let credits = Number(balance.data ?? 0);
+    if (balance.error) {
+      const { data: row } = await supabase.from("profiles").select("credits").eq("id", s.user.id).maybeSingle();
+      credits = Number(row?.credits ?? 0);
     }
+    if (error) console.warn("Couldn't load your profile", error.message);
     setViewer(
       data
         ? {
             id: data.id,
             username: data.username,
             display_name: data.display_name ?? "",
-            credits: data.credits ?? 0,
+            credits,
             roles: data.roles ?? [],
             avatar_url: fileUrl(data.avatar_path),
           }

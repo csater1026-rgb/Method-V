@@ -21,6 +21,23 @@ export function toMessage(row: PushRow): PushMessage {
   return { title: row.title, body: row.body, url, kind: row.kind };
 }
 
+// Browser notifications are sent to the address the browser gave when it
+// subscribed. Only accept the real push services (Google, Mozilla, Apple,
+// Microsoft), so the server can never be pointed anywhere else. Same rule as
+// public.is_push_service() in the database.
+const PUSH_HOSTS = [/^fcm\.googleapis\.com$/, /^updates\.push\.services\.mozilla\.com$/, /^web\.push\.apple\.com$/, /^[a-z0-9-]+\.notify\.windows\.com$/];
+
+export function isPushServiceEndpoint(endpoint: unknown): boolean {
+  if (typeof endpoint !== "string" || endpoint.length > 1000) return false;
+  let url: URL;
+  try {
+    url = new URL(endpoint);
+  } catch {
+    return false;
+  }
+  return url.protocol === "https:" && url.port === "" && !url.username && !url.password && PUSH_HOSTS.some((h) => h.test(url.hostname));
+}
+
 // The Supabase Database Webhook sends the shared secret in a header. Constant
 // time, and nothing matches when the secret isn't set.
 export function secretMatches(given: string | null | undefined, secret: string | undefined): boolean {

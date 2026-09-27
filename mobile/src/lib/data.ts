@@ -36,6 +36,7 @@ import type {
   TopBuilder,
   TopTester,
 } from "@shared/types";
+import { PROFILE_COLUMNS } from "@shared/types";
 
 import { SIGNALS, bumpInterest, mergeInterests, rankFeed, rankQuestions, type Interests } from "@shared/interests";
 import { SUGGESTION_LIMIT, setUpFirst, topUpSuggestions } from "@shared/suggest";
@@ -356,7 +357,7 @@ export async function getProfileBundle(
     if (!profile) return null;
     return { profile, apps: demoCards().filter((a) => a.owner_id === profile.id), following: false };
   }
-  const { data: profile } = await supabase.from("profiles").select("*").eq("username", username).maybeSingle();
+  const { data: profile } = await supabase.from("profiles").select(PROFILE_COLUMNS).eq("username", username).maybeSingle();
   if (!profile) return null;
   const [apps, follow] = await Promise.all([
     supabase.from("apps").select(CARD_SELECT).eq("owner_id", profile.id).not("link_checked_at", "is", null).order("created_at", { ascending: false }),

@@ -67,6 +67,7 @@ import type {
   Update,
   Viewer,
 } from "./types";
+import { PROFILE_COLUMNS } from "./types";
 
 // All reads go through here. Each function returns sample data in demo mode.
 
@@ -180,6 +181,15 @@ function toFeedback(row: any): Feedback {
 
 const demoProfile = (id: string) => demoProfiles.find((p) => p.id === id)!;
 
+// Your V Coin balance. Balances are private (my_credits() reads only your
+// own); before 20261011000000_security_hardening.sql, read the column.
+async function myCredits(supabase: Awaited<ReturnType<typeof createClient>>, id: string): Promise<number> {
+  const { data, error } = await supabase.rpc("my_credits");
+  if (!error) return Number(data ?? 0);
+  const { data: row } = await supabase.from("profiles").select("credits").eq("id", id).maybeSingle<{ credits: number | null }>();
+  return row?.credits ?? 0;
+}
+
 export const getViewer = cache(async (): Promise<Viewer | null> => {
   if (!isSupabaseConfigured) return null;
   const supabase = await createClient();
@@ -187,14 +197,15 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
   const id = data?.claims?.sub;
   if (!id) return null;
   await checkAvatarColumn();
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select(avatarColumn ? "username, credits, avatar_path" : "username, credits")
-    .eq("id", id)
-    .maybeSingle<{ username: string; credits: number | null; avatar_path?: string | null }>();
-  return profile
-    ? { id, username: profile.username, credits: profile.credits ?? 0, avatar_url: publicFileUrl(profile.avatar_path ?? null) }
-    : null;
+  const [{ data: profile }, credits] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select(avatarColumn ? "username, avatar_path" : "username")
+      .eq("id", id)
+      .maybeSingle<{ username: string; avatar_path?: string | null }>(),
+    myCredits(supabase, id),
+  ]);
+  return profile ? { id, username: profile.username, credits, avatar_url: publicFileUrl(profile.avatar_path ?? null) } : null;
 });
 
 async function likedDropIds(viewer: Viewer | null, dropIds: string[]): Promise<Set<string>> {
@@ -444,7 +455,7 @@ export async function getProfile(
   }
 
   const supabase = await createClient();
-  const { data: profile } = await supabase.from("profiles").select("*").eq("username", username).maybeSingle();
+  const { data: profile } = await supabase.from("profiles").select(PROFILE_COLUMNS).eq("username", username).maybeSingle<Profile>();
   if (!profile) return null;
 
   const [{ data: appRows }, viewer] = await Promise.all([
@@ -491,7 +502,7 @@ export async function getOwnProfile(): Promise<Profile | null> {
   const viewer = await getViewer();
   if (!viewer) return null;
   const supabase = await createClient();
-  const { data } = await supabase.from("profiles").select("*").eq("id", viewer.id).maybeSingle();
+  const { data } = await supabase.from("profiles").select(PROFILE_COLUMNS).eq("id", viewer.id).maybeSingle();
   return (data as Profile | null) ?? null;
 }
 

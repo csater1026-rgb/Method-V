@@ -976,6 +976,17 @@ await run("developers + install (phone)", phone, async (page) => {
   ok(pre.status === 204 && pre.headers.get("access-control-allow-methods")?.includes("GET"), "CORS preflight");
   ok((await fetch(BASE + "/go/pixelhost", { redirect: "manual" })).status === 303, "brand links redirect");
   ok((await fetch(BASE + "/go/nope", { redirect: "manual" })).status === 404, "unknown brand is 404");
+  {
+    // Security headers on every page; the embeddable card keeps its own.
+    const page0 = await fetch(BASE + "/login");
+    const csp = page0.headers.get("content-security-policy") ?? "";
+    ok(csp.includes("default-src 'self'") && csp.includes("frame-ancestors 'none'") && csp.includes("object-src 'none'"), "pages send a Content-Security-Policy");
+    ok((page0.headers.get("strict-transport-security") ?? "").includes("max-age=63072000"), "pages send HSTS");
+    ok((page0.headers.get("permissions-policy") ?? "").includes("geolocation=()"), "pages send a Permissions-Policy");
+    ok(page0.headers.get("x-frame-options") === "DENY", "pages can't be framed");
+    const embed = await fetch(BASE + "/embed/noteflow");
+    ok((embed.headers.get("content-security-policy") ?? "").includes("frame-ancestors *") && !embed.headers.get("x-frame-options"), "the embed card can still be framed");
+  }
   for (const path of ["/api/mobile/apps", "/api/mobile/preview", "/api/mobile/delete-account"]) {
     const r = await fetch(BASE + path, { method: "POST", headers: { Authorization: "Bearer fake" }, body: "{}" });
     ok(r.status === 503 && /demo mode/.test((await r.json()).error), `${path} explains demo mode`);

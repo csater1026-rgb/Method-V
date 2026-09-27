@@ -32,6 +32,13 @@ export type Profile = {
   cover_path?: string | null;
 };
 
+// The profile columns anyone may read. Everything except credits (a V Coin
+// balance is private: read your own with the my_credits() function). Must
+// match the grant in supabase/migrations/20261011000000_security_hardening.sql
+// (the unit tests check).
+export const PROFILE_COLUMNS =
+  "id, username, display_name, bio, roles, skills, website_url, x_handle, github_handle, linkedin_url, instagram_handle, tiktok_handle, youtube_handle, threads_handle, follower_count, following_count, feedback_given_count, feedback_helpful_count, connection_count, reputation, pro_until, pinned_app_id, payouts_enabled, avatar_path, cover_path, created_at";
+
 export type ProfileSummary = Pick<Profile, "id" | "username" | "display_name" | "roles"> & {
   avatar_url?: string | null;
 };

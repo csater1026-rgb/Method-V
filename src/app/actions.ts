@@ -36,6 +36,7 @@ import { sitePreview, type SitePreview } from "@/lib/site-preview";
 import { SOCIALS, cleanHandle } from "@/lib/socials";
 import { DEMO_MODE_MESSAGE, DROPS_BUCKET, authProviders, isSupabaseConfigured, type AuthProvider } from "@/lib/supabase/env";
 import { deleteAccount } from "@/lib/delete-account";
+import { isPushServiceEndpoint } from "@/lib/push-core";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import type { ActionResult, Viewer } from "@/lib/types";
 
@@ -405,7 +406,7 @@ export async function saveNotificationSettings(settings: { follows: boolean; fee
 export async function registerWebPush(sub: { endpoint: string; keys: { p256dh: string; auth: string } }): Promise<ActionResult> {
   const auth = await requireViewer();
   if ("error" in auth) return { ok: false, error: auth.error };
-  if (typeof sub?.endpoint !== "string" || !sub.endpoint.startsWith("https://") || typeof sub.keys?.p256dh !== "string" || typeof sub.keys?.auth !== "string") {
+  if (!isPushServiceEndpoint(sub?.endpoint) || typeof sub.keys?.p256dh !== "string" || typeof sub.keys?.auth !== "string") {
     return { ok: false, error: "This browser didn't give a usable subscription." };
   }
   const supabase = await createClient();

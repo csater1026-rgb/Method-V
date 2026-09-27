@@ -71,7 +71,7 @@ async function runAgain(files) {
 {
   const newest = readdirSync(migrationsDir).filter((f) => f >= "20261001000000" && f.endsWith(".sql") && !LATE.includes(f)).sort();
   const failed = await runAgain(newest);
-  ok(failed.length === 0 && newest.length === 8, `the newest migrations are safe to run twice (${failed.join("; ") || newest.join(", ")})`);
+  ok(failed.length === 0 && newest.length === 9, `the newest migrations are safe to run twice (${failed.join("; ") || newest.join(", ")})`);
 }
 
 async function as(role, uid, sql, params) {
@@ -1147,6 +1147,44 @@ ok(!!(await fails("anon", null, "insert into public.sponsorships (sponsor_brand,
 {
   const failed = await runAgain(LATE);
   ok(failed.length === 0, `the newest migrations can be run again with data in place (${failed.join("; ") || LATE.join(", ")})`);
+}
+
+// Security hardening (20261011000000_security_hardening.sql).
+{
+  // V Coin balances are private: nobody can read someone's credits, you read
+  // your own through my_credits(), and the rest of a profile stays public.
+  ok(!!(await fails("anon", null, "select credits from public.profiles limit 1")), "visitors can't read V Coin balances");
+  ok(!!(await fails("authenticated", C, "select credits from public.profiles where id = $1", [D])), "people can't read each other's V Coin balance");
+  ok(!!(await fails("authenticated", C, "select * from public.profiles limit 1")), "select * can't sneak the balance out either");
+  const mine = (await as("authenticated", C, "select public.my_credits() as n")).rows[0].n;
+  const real = (await db.query("select credits from public.profiles where id = $1", [C])).rows[0].credits;
+  ok(mine === real, `you can read your own balance (${mine})`);
+  ok(!!(await fails("anon", null, "select public.my_credits()")), "signed out, my_credits() isn't callable");
+  const pub = (await as("anon", null, "select username, bio, reputation, avatar_path, cover_path from public.profiles where id = $1", [D])).rows.length;
+  ok(pub === 1, "the rest of a profile stays public");
+
+  // Spam limits: 30 comments in 10 minutes, then a friendly error.
+  const spamDrop = (await db.query("select id from public.drops limit 1")).rows[0].id;
+  let stopped = null;
+  for (let i = 0; i < 31 && !stopped; i++) {
+    const err = await fails("authenticated", E, "insert into public.comments (drop_id, user_id, body) values ($1, $2, $3)", [spamDrop, E, `nice ${i}`]);
+    if (err) stopped = { i, err: String(err) };
+  }
+  ok(stopped?.i === 30 && stopped.err.includes("too fast"), `the 31st comment in 10 minutes is refused (${stopped ? `#${stopped.i + 1}: ${stopped.err}` : "never stopped"})`);
+  await db.exec("select set_config('request.jwt.claim.sub', '', false)");
+  await db.query("insert into public.comments (drop_id, user_id, body) values ($1, $2, 'from the server')", [spamDrop, E]);
+  ok(true, "Method V's own server isn't rate limited");
+  await db.query("delete from public.comments where user_id = $1", [E]);
+
+  // Browser notifications only go to real push services.
+  ok(String(await fails("authenticated", C, "select public.register_web_push($1, 'k', 'a')", ["https://169.254.169.254/latest"])).includes("isn't supported"), "a push address that isn't a push service is refused");
+  const chrome = await fails("authenticated", C, "select public.register_web_push($1, $2, $3)", ["https://fcm.googleapis.com/fcm/send/abc", "B".repeat(87), "a".repeat(22)]);
+  ok(!chrome, `Chrome's push service is fine (${chrome || "saved"})`);
+  ok(!!(await fails("anon", null, "insert into public.web_push_subscriptions (endpoint, user_id, p256dh, auth) values ('http://10.0.0.1/', $1, 'k', 'a')", [C])), "nothing else can be stored either");
+  await db.query("delete from public.web_push_subscriptions where user_id = $1", [C]);
+
+  const truncate = await db.query("select has_table_privilege('anon', 'public.payments', 'truncate') a, has_table_privilege('authenticated', 'public.apps', 'truncate') b");
+  ok(!truncate.rows[0].a && !truncate.rows[0].b, "the public roles can't empty tables");
 }
 
 // Delete account (website Edit profile, app Me tab): deleting the sign-in
