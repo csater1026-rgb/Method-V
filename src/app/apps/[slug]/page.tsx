@@ -8,7 +8,6 @@ import { BackButton } from "@/components/Earn";
 import { AppCoverEditor } from "@/components/AppCover";
 import { PackageEditor, SponsorPackages } from "@/components/Packages";
 import { SponsoredBy } from "@/components/Sponsored";
-import { Comments } from "@/components/Comments";
 import { Countdown } from "@/components/Countdown";
 import { DropPlaceholder } from "@/components/DropVideo";
 import { FeedbackPanel } from "@/components/FeedbackPanel";
@@ -26,7 +25,6 @@ import {
   getApp,
   getBackers,
   getMyBrands,
-  getComments,
   getFeedbackPanel,
   getMyApps,
   getOwnProfile,
@@ -53,12 +51,12 @@ export async function generateMetadata({ params }: PageProps<"/apps/[slug]">): P
 export default async function AppPage({ params, searchParams }: PageProps<"/apps/[slug]">) {
   const { slug } = await params;
   const { posted, tab: tabParam } = await searchParams;
-  const tab = tabParam === "qa" || tabParam === "updates" ? tabParam : "comments";
+  // Talking about an app happens in its Q&A (and feedback in Test & earn).
+  const tab = tabParam === "updates" ? "updates" : "qa";
   const [app, viewer] = await Promise.all([getApp(slug), getViewer()]);
   if (!app) notFound();
 
-  const [comments, following, feedbackPanel, updates, partners, myApps, questions, backers, myBrands] = await Promise.all([
-    app.drop ? getComments(app.drop.id) : [],
+  const [following, feedbackPanel, updates, partners, myApps, questions, backers, myBrands] = await Promise.all([
     isFollowing(viewer, app.owner_id),
     getFeedbackPanel(app, viewer),
     getUpdates({ appId: app.id, limit: 10 }),
@@ -290,14 +288,13 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
           <nav aria-label="Discussion" className="flex gap-5 border-b border-line">
             {(
               [
-                ["comments", "Comments", comments.length],
                 ["qa", "Q&A", questions.length],
                 ["updates", "Updates", updates.length],
               ] as const
             ).map(([slug, label, count]) => (
               <Link
                 key={slug}
-                href={`/apps/${app.slug}${slug === "comments" ? "" : `?tab=${slug}`}#discuss`}
+                href={`/apps/${app.slug}${slug === "qa" ? "" : `?tab=${slug}`}#discuss`}
                 scroll={false}
                 aria-current={tab === slug ? "page" : undefined}
                 className={`display pb-2 text-3xl ${
@@ -309,14 +306,15 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
             ))}
           </nav>
           <div className="mt-4">
-            {tab === "comments" &&
-              (app.drop ? (
-                <Comments dropId={app.drop.id} appSlug={app.slug} comments={comments} viewerId={viewer?.id ?? null} bare />
-              ) : (
-                <p className="text-sm text-muted">Comments open once there&apos;s a Drop.</p>
-              ))}
             {tab === "qa" && (
               <div id="qa" className="scroll-mt-20">
+                <p className="mb-3 text-sm text-muted">
+                  Ask {app.owner.display_name || "the builder"} anything, or answer other people&apos;s questions. Tried it?{" "}
+                  <a href="#feedback" className="text-accent hover:underline">
+                    Leave feedback in Test &amp; earn
+                  </a>
+                  .
+                </p>
                 <QandA
                   app={{ id: app.id, slug: app.slug, name: app.name, owner_id: app.owner_id }}
                   questions={questions}

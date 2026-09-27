@@ -323,8 +323,9 @@ await run("browse (phone)", phone, async (page) => {
 await run("app page", desktop, async (page) => {
   await go(page, "/apps/noteflow");
   ok(await page.getByRole("heading", { name: "NoteFlow", exact: true }).isVisible(), "app heading");
-  ok((await page.locator("#comments li").count()) === 2, "sample comments listed");
-  ok(await page.getByText("Sign in to comment").isVisible() || (await page.getByRole("link", { name: "Sign in" }).count()) > 0, "comment asks to sign in");
+  ok((await page.locator("#discuss").getByRole("link", { name: /^Comments/ }).count()) === 0, "no comments tab: talking about an app happens in Q&A");
+  ok(await page.locator("#qa").isVisible(), "Q&A is the first tab");
+  ok((await page.locator("#qa").getByRole("link", { name: "Leave feedback in Test & earn" }).getAttribute("href")) === "#feedback", "Q&A points to the feedback area");
   ok(await page.getByRole("link", { name: "Next.js" }).isVisible(), "tech stack chips link to browse");
   await page.screenshot({ path: OUT + "app-desktop.png", fullPage: true });
 });
@@ -521,9 +522,7 @@ await run("connect + inbox", desktop, async (page) => {
 await run("q&a", desktop, async (page) => {
   await go(page, "/apps/noteflow");
   const discussion = page.getByRole("region", { name: "Discussion" });
-  ok((await discussion.getByRole("link", { name: /Comments/ }).getAttribute("aria-current")) === "page", "Comments is the default tab");
-  await discussion.getByRole("link", { name: /Q&A/ }).click();
-  await page.waitForURL(/tab=qa/);
+  ok((await discussion.getByRole("link", { name: /Q&A/ }).getAttribute("aria-current")) === "page", "Q&A is the default tab");
   await page.locator("#qa").waitFor();
   ok((await page.locator("#qa > div > ul > li").count()) === 2 || (await page.locator("#qa li[id^='q-']").count()) === 2, "Q&A tab lists the app's questions");
   ok(await page.locator("#qa").getByText("✓ Best answer").isVisible(), "best answer is marked");
@@ -782,6 +781,22 @@ await run("back an app + sponsor (desktop)", desktop, async (page) => {
 
   await go(page, "/apps/noteflow");
   ok((await page.getByRole("complementary", { name: "Sponsored" }).count()) === 0, "unsponsored apps show no card");
+});
+
+await run("drops feed buttons (phone)", phone, async (page) => {
+  await go(page, "/drops");
+  // The like and Q&A buttons sit above the caption's shading: nothing covers or blocks them.
+  const covered = await page.evaluate(() =>
+    ["Like", "Q&A"].map((label) => {
+      const el = document.querySelector(`[aria-label="${label}"]`);
+      if (!el) return `${label}: missing`;
+      const b = el.getBoundingClientRect();
+      const points = [[0.5, 0.5], [0.5, 0.9], [0.5, 0.1]].map(([x, y]) => document.elementFromPoint(b.left + b.width * x, b.top + b.height * y));
+      return points.every((p) => p && (p === el || el.contains(p))) ? null : `${label}: covered`;
+    }).filter(Boolean),
+  );
+  ok(covered.length === 0, `like and Q&A buttons are on top (${covered.join(", ") || "yes"})`);
+  ok((await page.getByRole("link", { name: "Q&A" }).first().getAttribute("href"))?.endsWith("?tab=qa#discuss"), "the Q&A button opens the app's Q&A");
 });
 
 await run("drops feed sponsor (phone)", phone, async (page) => {

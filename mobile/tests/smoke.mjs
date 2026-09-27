@@ -157,7 +157,7 @@ ok((await page.getByText("QuizPop").count()) > 0 && (await page.getByText("NoteF
 await visit("/apps/quizpop", "app");
 ok(await page.getByText("Sponsored · Boost Exchange").isVisible(), "app page shows its sponsor, labeled");
 ok(await page.getByText("Turn any lesson into a 5-question quiz in seconds").first().isVisible(), "app page shows the tagline");
-ok(await page.getByText("Comments").first().isVisible(), "app page has comments");
+ok(await page.getByText(/^Q&A/).first().isVisible() && (await page.getByText("Comments").count()) === 0, "app page has Q&A (no comments)");
 
 await visit("/u/ada_builds", "profile");
 ok(await page.getByText("Pro", { exact: true }).isVisible(), "Pro badge on a Pro profile");

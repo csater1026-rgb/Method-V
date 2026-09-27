@@ -156,7 +156,8 @@ function DropSlide({ item, first, signedIn, muted, onToggleSound }: SlideProps) 
           {formatDuration(item.duration_seconds)}
         </span>
 
-        <div className="absolute right-2.5 bottom-32 flex flex-col items-center gap-5">
+        {/* Above the caption's shading, so it never covers (or blocks) these. */}
+        <div className="absolute right-2.5 bottom-32 z-10 flex flex-col items-center gap-5">
           <LikeButton
             dropId={item.id}
             initialLiked={item.liked}
@@ -164,16 +165,19 @@ function DropSlide({ item, first, signedIn, muted, onToggleSound }: SlideProps) 
             signedIn={signedIn}
             onLiked={() => learn(category, SIGNALS.liked)}
           />
+          {/* Talk about the app in its Q&A (questions, answers, polls). */}
           <Link
-            href={`/apps/${app.slug}#comments`}
-            aria-label="Comments"
+            href={`/apps/${app.slug}?tab=qa#discuss`}
+            aria-label="Q&A"
             onClick={() => learn(category, SIGNALS.comments)}
             className="flex flex-col items-center gap-1 font-mono text-[11px] font-semibold drop-shadow"
           >
             <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
               <path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z" strokeLinejoin="round" />
+              <path d="M10 9.5a2 2 0 1 1 2.8 1.8c-.5.2-.8.7-.8 1.2v.5" strokeLinecap="round" />
+              <circle cx="12" cy="15.6" r=".6" fill="currentColor" />
             </svg>
-            <span>{formatCount(item.comment_count)}</span>
+            <span>Q&amp;A</span>
           </Link>
           <ShareButton path={`/apps/${app.slug}`} title={`${app.name} on Method V`} />
         </div>

@@ -244,12 +244,27 @@ function DropPage({
         )}
       </View>
 
-      <View style={{ position: "absolute", right: 10, bottom: 150, alignItems: "center", gap: 18 }}>
+      {/* zIndex keeps these above the caption's shading, so it never covers or blocks them. */}
+      <View style={{ position: "absolute", right: 10, bottom: 150, alignItems: "center", gap: 18, zIndex: 2, elevation: 2 }}>
         <Pressable accessibilityRole="button" accessibilityLabel={liked ? "Unlike" : "Like"} accessibilityState={{ selected: liked }} onPress={like} style={{ alignItems: "center", minWidth: 44, minHeight: 44 }}>
           <Body size={30} style={{ color: liked ? media.heart : media.ink }}>
             {liked ? "♥" : "♡"}
           </Body>
           <Mono style={{ color: media.ink }}>{formatCount(likes)}</Mono>
+        </Pressable>
+        <Pressable
+          accessibilityRole="link"
+          accessibilityLabel="Q&A"
+          onPress={() => {
+            learn(category, "comments");
+            router.push(`/apps/${item.app.slug}`);
+          }}
+          style={{ alignItems: "center", minWidth: 44, minHeight: 44 }}
+        >
+          <Body size={26} style={{ color: media.ink }}>
+            ?
+          </Body>
+          <Mono style={{ color: media.ink }}>Q&amp;A</Mono>
         </Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="Share" onPress={share} style={{ alignItems: "center", minWidth: 44, minHeight: 44 }}>
           <Body size={26} style={{ color: media.ink }}>

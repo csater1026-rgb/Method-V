@@ -11,7 +11,6 @@ import {
   demoDay,
   demoSponsors,
   demoCommentDate,
-  demoComments,
   demoDrops,
   demoFeaturedIds,
   demoProfiles,
@@ -39,7 +38,6 @@ import type {
   PackageDeal,
   SponsorPackage,
   AppDetail,
-  Comment,
   Conversation,
   ConnectionRequest,
   ConnectionState,
@@ -410,31 +408,6 @@ export async function getApp(slug: string): Promise<AppDetail | null> {
   ]);
 
   return { ...toApp(row), owner: toSummary(row.owner), drop, liked, sponsor: sponsors.get(row.id) ?? null };
-}
-
-export async function getComments(dropId: string): Promise<Comment[]> {
-  if (!isSupabaseConfigured) {
-    return (demoComments[dropId] ?? []).map((c, i) => ({
-      id: `${dropId}-${i}`,
-      body: c.body,
-      created_at: demoCommentDate(c.days),
-      user: toSummary(demoProfile(c.user)),
-    }));
-  }
-
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("comments")
-    .select(`id, body, created_at, user:profiles!comments_user_id_fkey(${summaryCols()})`)
-    .eq("drop_id", dropId)
-    .order("created_at", { ascending: true })
-    .limit(200);
-  return (data ?? []).map((row) => ({
-    id: row.id,
-    body: row.body,
-    created_at: row.created_at,
-    user: toSummary(row.user),
-  }));
 }
 
 export async function isFollowing(viewer: Viewer | null, profileId: string): Promise<boolean> {
@@ -1151,7 +1124,7 @@ export async function questionsFeedReady(): Promise<boolean> {
 }
 
 const questionSelect = (withApp: boolean) =>
-  `id, body, created_at, vote_count, answer_count, best_answer_id, user_id${qaColumns ? ", poll_options, poll_counts" : ""},
+  `id, app_id, body, created_at, vote_count, answer_count, best_answer_id, user_id${qaColumns ? ", poll_options, poll_counts" : ""},
    user:profiles!questions_user_id_fkey(${summaryCols()}),
    answers(id, body, created_at, vote_count${qaColumns ? ", parent_id" : ""}, user:profiles!answers_user_id_fkey(${summaryCols()}))${
      withApp ? ", app:apps!inner(id, slug, name, tagline, category, owner_id, link_checked_at)" : ""
@@ -1318,9 +1291,25 @@ export const getQuestion = cache(async (id: string, viewer: Viewer | null): Prom
   if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
   await checkQaColumns();
   const supabase = await createClient();
-  const { data } = await supabase.from("questions").select(questionSelect(true)).eq("id", id).not("app.link_checked_at", "is", null).maybeSingle();
-  if (!data) return null;
-  const [state, posters] = await Promise.all([viewerQaState(viewer, [data]), latestPosters([(data as any).app.id])]);
+  const joined = await supabase.from("questions").select(questionSelect(true)).eq("id", id).not("app.link_checked_at", "is", null).maybeSingle();
+  if (joined.error) console.error("getQuestion: joined read failed", id, joined.error.code, joined.error.message);
+  let data = joined.data as any;
+  if (!data) {
+    // Fall back to reading the question and its app separately, so a problem
+    // with the combined read never turns a real question into a 404.
+    const { data: q, error } = await supabase.from("questions").select(questionSelect(false)).eq("id", id).maybeSingle();
+    if (error) console.error("getQuestion: question read failed", id, error.code, error.message);
+    if (!q) return null;
+    const { data: app, error: appError } = await supabase
+      .from("apps")
+      .select("id, slug, name, tagline, category, owner_id, link_checked_at")
+      .eq("id", (q as any).app_id ?? "")
+      .maybeSingle();
+    if (appError) console.error("getQuestion: app read failed", id, appError.code, appError.message);
+    if (!app?.link_checked_at) return null;
+    data = { ...(q as any), app };
+  }
+  const [state, posters] = await Promise.all([viewerQaState(viewer, [data]), latestPosters([data.app.id])]);
   return toQuestionCard(data, state, posters);
 });
 

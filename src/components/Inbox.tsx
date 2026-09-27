@@ -44,7 +44,7 @@ function describe(n: Notification): { text: string; href: string } {
     case "like":
       return { text: `liked your Drop for ${app}`, href: appHref };
     case "comment":
-      return { text: `commented on ${app}`, href: `${appHref}#comments` };
+      return { text: `commented on ${app}`, href: `${appHref}#discuss` };
     case "feedback":
       return { text: `left feedback on ${app}`, href: `${appHref}#feedback` };
     case "helpful":

@@ -234,32 +234,6 @@ export async function setLike(dropId: string, liked: boolean): Promise<ActionRes
   return { ok: true };
 }
 
-export async function addComment(dropId: string, appSlug: string, body: string): Promise<ActionResult> {
-  const auth = await requireViewer();
-  if ("error" in auth) return { ok: false, error: auth.error };
-  if (!UUID.test(dropId)) return { ok: false, error: "Unknown Drop." };
-  const trimmed = body.trim();
-  if (!trimmed) return { ok: false, error: "Write something first." };
-  if (trimmed.length > 500) return { ok: false, error: "Comments can be up to 500 characters." };
-
-  const supabase = await createClient();
-  const { error } = await supabase.from("comments").insert({ drop_id: dropId, user_id: auth.viewer.id, body: trimmed });
-  if (error) return { ok: false, error: "Couldn't post your comment." };
-  revalidatePath(`/apps/${appSlug}`);
-  return { ok: true };
-}
-
-export async function deleteComment(commentId: string, appSlug: string): Promise<ActionResult> {
-  const auth = await requireViewer();
-  if ("error" in auth) return { ok: false, error: auth.error };
-  if (!UUID.test(commentId)) return { ok: false, error: "Unknown comment." };
-  const supabase = await createClient();
-  const { error } = await supabase.from("comments").delete().eq("id", commentId).eq("user_id", auth.viewer.id);
-  if (error) return { ok: false, error: "Couldn't delete that comment." };
-  revalidatePath(`/apps/${appSlug}`);
-  return { ok: true };
-}
-
 export async function setFollow(profileId: string, follow: boolean): Promise<ActionResult> {
   const auth = await requireViewer();
   if ("error" in auth) return { ok: false, error: auth.error };

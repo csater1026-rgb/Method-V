@@ -1,7 +1,6 @@
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { useState } from "react";
-import { Pressable, RefreshControl, ScrollView, Share, TextInput, View } from "react-native";
+import { Pressable, RefreshControl, ScrollView, Share, View } from "react-native";
 
 import { CATEGORIES, PRICING, STAGES, labelFor } from "@shared/constants";
 import { formatCount, timeAgo } from "@shared/format";
@@ -12,7 +11,7 @@ import { Sponsored } from "@/components/Sponsored";
 import { Avatar, Body, Button, Card, Display, ErrorText, Handle, Mono, StatusBadge, Tag, tap } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import { SITE_URL } from "@/lib/config";
-import { addComment, getAppDetail, getAppQuestions, setLike } from "@/lib/data";
+import { getAppDetail, getAppQuestions, setLike } from "@/lib/data";
 import { tryApp } from "@/lib/tryApp";
 import { useLoad } from "@/lib/useLoad";
 import { fonts, media, useTheme } from "@/theme";
@@ -32,9 +31,6 @@ export default function AppScreen() {
     async () => (data?.app ? getAppQuestions(data.app.id, viewer?.id ?? null) : null),
     [data?.app?.id, viewer?.id],
   );
-  const [comment, setComment] = useState("");
-  const [commentError, setCommentError] = useState<string | null>(null);
-  const [sending, setSending] = useState(false);
 
   if (data === null && !error) return <Loading />;
   if (!data) {
@@ -45,7 +41,7 @@ export default function AppScreen() {
       </View>
     );
   }
-  const { app, comments } = data;
+  const { app } = data;
   const wouldUse = app.feedback_count ? Math.round((app.would_use_yes_count / app.feedback_count) * 100) : null;
   const rating = app.feedback_count ? (app.rating_sum / app.feedback_count).toFixed(1) : null;
 
@@ -56,18 +52,6 @@ export default function AppScreen() {
     const next = !app.liked;
     const r = await setLike(app.drop.id, next);
     if (r.ok) setData({ ...data!, app: { ...app, liked: next, drop: { ...app.drop, like_count: app.drop.like_count + (next ? 1 : -1) } } });
-  }
-
-  async function send() {
-    if (!app.drop) return;
-    if (!viewer) return router.push("/sign-in");
-    setSending(true);
-    setCommentError(null);
-    const r = await addComment(app.drop.id, comment);
-    setSending(false);
-    if (!r.ok) return setCommentError(r.error);
-    setComment("");
-    void reload();
   }
 
   return (
@@ -155,7 +139,7 @@ export default function AppScreen() {
 
       <View style={{ gap: 10 }}>
         <Display size={32}>
-          Questions <Mono>{questions.data?.length ?? 0}</Mono>
+          Q&amp;A <Mono>{questions.data?.length ?? 0}</Mono>
         </Display>
         {(questions.data ?? []).length === 0 && <Body muted>No questions yet. Curious how it works, or what&apos;s next? Ask.</Body>}
         {(questions.data ?? []).slice(0, 5).map((q) => (
@@ -176,40 +160,6 @@ export default function AppScreen() {
         />
       </View>
 
-      <View style={{ gap: 10 }}>
-        <Display size={32}>
-          Comments <Mono>{comments.length}</Mono>
-        </Display>
-        {comments.map((c) => (
-          <View key={c.id} style={{ flexDirection: "row", gap: 10 }}>
-            <Avatar username={c.user.username} name={c.user.display_name} src={c.user.avatar_url} size={30} />
-            <View style={{ flex: 1 }}>
-              <Body size={13} bold>
-                {c.user.display_name || <Handle username={c.user.username} size={13} />} <Mono>{timeAgo(c.created_at)}</Mono>
-              </Body>
-              <Body size={14}>{c.body}</Body>
-            </View>
-          </View>
-        ))}
-        {comments.length === 0 && <Body muted size={13}>No comments yet.</Body>}
-        {app.drop && (
-          <View style={{ gap: 8 }}>
-            <TextInput
-              value={comment}
-              onChangeText={setComment}
-              placeholder={viewer ? "Add a comment" : "Sign in to comment"}
-              placeholderTextColor={t.muted}
-              maxLength={500}
-              multiline
-              accessibilityLabel="Comment"
-              onFocus={() => !viewer && router.push("/sign-in")}
-              style={{ borderWidth: 1, borderColor: t.line, backgroundColor: t.surface, color: t.ink, borderRadius: 8, padding: 12, minHeight: 44, fontFamily: fonts.body, fontSize: 15 }}
-            />
-            <ErrorText>{commentError}</ErrorText>
-            {comment.trim().length > 0 && <Button label="Post comment" onPress={() => void send()} busy={sending} />}
-          </View>
-        )}
-      </View>
     </ScrollView>
   );
 }
