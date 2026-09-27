@@ -152,6 +152,21 @@ export async function passwordAuth(_prev: SignInState, formData: FormData): Prom
   redirect(next);
 }
 
+// The one-time "agree to continue" step (/agree) for people who signed up
+// with Google, Apple or GitHub, or before the sign-up box existed.
+export async function agreeToTerms(_prev: { error?: string }, formData: FormData): Promise<{ error?: string }> {
+  const next = safeNext(text(formData, "next"));
+  if (formData.get("agree") !== "on") return { error: "Tick the box to agree to the Terms of Service and Privacy Policy." };
+  if (!isSupabaseConfigured) return { error: DEMO_MODE_MESSAGE };
+  const supabase = await createClient();
+  const { error } = await supabase.auth.updateUser({ data: { agreed_to_terms: LEGAL.updated } });
+  if (error) return { error: rpcError(error.message, "Couldn't save that. Try again.") };
+  // A fresh session token carries the new agreement, so the sign-in gate lets them through.
+  await supabase.auth.refreshSession();
+  revalidatePath("/", "layout");
+  redirect(next);
+}
+
 export async function setPassword(password: string): Promise<ActionResult> {
   const auth = await requireViewer();
   if ("error" in auth) return { ok: false, error: auth.error };

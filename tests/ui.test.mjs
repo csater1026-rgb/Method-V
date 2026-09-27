@@ -594,6 +594,16 @@ await run("terms and privacy", phone, async (page) => {
   ok((await legal.getByRole("link", { name: "Terms" }).getAttribute("href")) === "/terms", "footer links the Terms");
   ok((await legal.getByRole("link", { name: "Contact" }).getAttribute("href")) === "mailto:team@methodv.app", "footer has a contact email");
 
+  // The one-time agree screen for Google/Apple/GitHub sign-ups (the gate itself is unit tested).
+  await go(page, "/agree");
+  ok(await page.getByRole("heading", { level: 1, name: "One more step" }).isVisible(), "agree screen");
+  const agreeBtn = page.getByRole("button", { name: "Agree and continue" });
+  ok(await agreeBtn.isDisabled(), "Agree and continue waits for the box");
+  await page.getByRole("checkbox", { name: /agree to the Terms of Service and Privacy Policy/ }).check();
+  ok(await agreeBtn.isEnabled(), "ticking the box turns on Agree and continue");
+  ok((await page.getByRole("link", { name: "Terms of Service" }).first().getAttribute("href")) === "/terms", "agree screen links the Terms");
+  await noSideScroll(page, "agree");
+
   await go(page, "/terms");
   ok(await page.getByRole("heading", { level: 1, name: "Terms of Service" }).isVisible(), "Terms page");
   for (const s of ["5. V Coin", "7. Tips, sponsorships and payouts"]) ok(await page.getByRole("heading", { name: s }).isVisible(), `Terms covers ${s}`);

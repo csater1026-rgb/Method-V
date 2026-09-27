@@ -18,7 +18,7 @@ import { pushTarget } from "../src/lib/push-route.ts";
 import { bumpInterest, mergeInterests, parseInterests, rankFeed, serializeInterests } from "../src/lib/interests.ts";
 import { setUpFirst, topUpSuggestions } from "../src/lib/suggest.ts";
 import { EMAIL_TEMPLATES } from "../src/lib/email-templates.ts";
-import { isOpenPath, welcomeUrl } from "../src/lib/gate.ts";
+import { agreeUrl, hasAgreedToTerms, isOpenPath, mustAgree, welcomeUrl } from "../src/lib/gate.ts";
 
 let failures = 0;
 const ok = (cond: boolean, msg: string) => {
@@ -228,6 +228,13 @@ ok(JSON.stringify(pushTarget("https://evil.example")) === '{"screen":"/"}' && JS
   ok(gated.every((p) => !isOpenPath(p)), `the site itself needs an account (${gated.filter(isOpenPath).join(", ") || "all gated"})`);
   ok(open.every(isOpenPath), `sign-in, webhooks, embeds and icons still work signed out (${open.filter((p) => !isOpenPath(p)).join(", ") || "all open"})`);
   ok(welcomeUrl("/", "") === "/login" && welcomeUrl("/apps/noteflow", "?tab=qa") === "/login?next=%2Fapps%2Fnoteflow%3Ftab%3Dqa", "after signing in you land where you were going");
+  // Agreeing to the Terms once: Google/Apple/GitHub sign-ups (and older accounts) go to /agree first.
+  ok(!hasAgreedToTerms({}) && !hasAgreedToTerms(null) && !hasAgreedToTerms({ agreed_to_terms: "" }), "no agreement saved means not agreed");
+  ok(hasAgreedToTerms({ agreed_to_terms: "September 27, 2026" }), "a saved agreement date counts");
+  ok(mustAgree({}, "/") && mustAgree({ full_name: "Ada" }, "/apps/noteflow"), "signed in without agreeing: sent to /agree");
+  ok(!mustAgree({}, "/agree") && !mustAgree({}, "/terms") && !mustAgree({}, "/privacy") && !mustAgree({}, "/api/stripe/webhook") && !mustAgree({}, "/auth/callback"), "/agree, the Terms, Privacy, webhooks and sign-in still work before agreeing");
+  ok(!mustAgree({ agreed_to_terms: "September 27, 2026" }, "/"), "once agreed, never asked again");
+  ok(agreeUrl("/", "") === "/agree" && agreeUrl("/u/ada", "?x=1") === "/agree?next=%2Fu%2Fada%3Fx%3D1", "after agreeing you land where you were going");
 }
 
 // Vercel never uploads mobile/ (.vercelignore), so nothing the website builds

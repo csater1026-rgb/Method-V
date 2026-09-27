@@ -6,6 +6,7 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View 
 
 import { Body, Button, Display, ErrorText, Mono, Wordmark } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
+import { hasAgreedToTerms } from "@shared/gate";
 import { AUTH_PROVIDERS, DEMO_MESSAGE, MIN_PASSWORD, SITE_URL, isLive } from "@/lib/config";
 import { fonts, useColorSchemeName, useTheme } from "@/theme";
 
@@ -39,7 +40,7 @@ export default function SignInScreen() {
   // Signed in from the first screen: Home only opens up once the session is
   // set (the rest of the app is protected until then), so go there now.
   useEffect(() => {
-    if (isLive && auth.session && !router.canGoBack()) router.replace("/");
+    if (isLive && auth.session && !router.canGoBack()) router.replace(hasAgreedToTerms(auth.session.user.user_metadata) ? "/" : "/agree");
   }, [auth.session, router]);
 
   const input = { borderWidth: 1, borderColor: t.line, backgroundColor: t.surface, color: t.ink, borderRadius: 8, paddingHorizontal: 12, minHeight: 48, fontFamily: fonts.body, fontSize: 17 } as const;

@@ -37,6 +37,7 @@ type Auth = {
   sendCode: (email: string) => Promise<Result>;
   verifyCode: (email: string, code: string, kind: "email" | "signup") => Promise<Result>;
   setPassword: (password: string) => Promise<Result>;
+  agreeToTerms: () => Promise<Result>;
   signOut: () => Promise<void>;
   refresh: () => Promise<void>;
 };
@@ -182,6 +183,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (password.length < MIN_PASSWORD) return fail(`Use at least ${MIN_PASSWORD} characters.`);
         const { error } = await supabase.auth.updateUser({ password });
         return error ? fail(friendly(error.message, "Couldn't save your password.")) : ok(undefined);
+      },
+
+      // The one-time "agree to continue" screen (Google/Apple sign-ups, and
+      // accounts from before the sign-up box). The new session carries it.
+      async agreeToTerms() {
+        if (!supabase) return fail(DEMO_MESSAGE);
+        const { error } = await supabase.auth.updateUser({ data: { agreed_to_terms: LEGAL.updated } });
+        if (error) return fail(friendly(error.message, "Couldn't save that. Try again."));
+        await supabase.auth.refreshSession();
+        return ok(undefined);
       },
 
       async signOut() {
