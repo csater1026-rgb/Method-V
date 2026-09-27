@@ -1352,6 +1352,43 @@ export async function getQuestionFeed(viewer: Viewer | null, interests: Interest
 // Builders like you
 // ---------------------------------------------------------------------------
 
+// Who follows someone, or who they follow (newest first), plus which of those
+// people the viewer follows, for the Follow buttons.
+export type FollowList = { owner: ProfileSummary; people: ProfileSummary[]; viewerFollows: Set<string>; total: number };
+export const FOLLOW_LIST_MAX = 200;
+
+export async function getFollowList(username: string, kind: "followers" | "following"): Promise<FollowList | null> {
+  if (!isSupabaseConfigured) {
+    const owner = demoProfiles.find((p) => p.username === username);
+    if (!owner) return null;
+    const people = demoProfiles.filter((p) => p.id !== owner.id).map(toSummary);
+    return { owner: toSummary(owner), people, viewerFollows: new Set(), total: people.length };
+  }
+  const supabase = await createClient();
+  await checkAvatarColumn();
+  const { data: owner } = await supabase.from("profiles").select(summaryCols()).eq("username", username).maybeSingle();
+  if (!owner) return null;
+  const [mine, theirs] = kind === "followers" ? (["following_id", "follower_id"] as const) : (["follower_id", "following_id"] as const);
+  const { data: rows, count } = await supabase
+    .from("follows")
+    .select(`created_at, person:profiles!follows_${theirs}_fkey(${summaryCols()})`, { count: "exact" })
+    .eq(mine, (owner as { id: string }).id)
+    .order("created_at", { ascending: false })
+    .limit(FOLLOW_LIST_MAX);
+  const people = ((rows ?? []) as any[]).map((r) => r.person).filter(Boolean).map(toSummary);
+  const viewer = await getViewer();
+  const viewerFollows = new Set<string>();
+  if (viewer && people.length > 0) {
+    const { data: mineRows } = await supabase
+      .from("follows")
+      .select("following_id")
+      .eq("follower_id", viewer.id)
+      .in("following_id", people.map((p) => p.id));
+    for (const r of mineRows ?? []) viewerFollows.add(r.following_id as string);
+  }
+  return { owner: toSummary(owner), people, viewerFollows, total: count ?? people.length };
+}
+
 export async function getSuggestions(viewer: Viewer | null): Promise<Suggestion[]> {
   if (!isSupabaseConfigured) {
     return [

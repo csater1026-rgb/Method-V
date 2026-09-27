@@ -585,6 +585,21 @@ await run("login", phone, async (page) => {
   ok(await page.locator("header").getByRole("link", { name: "Sign in" }).isVisible(), "other pages still have Sign in up top");
 });
 
+await run("followers and following", phone, async (page) => {
+  await go(page, "/u/ada_builds");
+  await page.getByRole("link", { name: /followers$/ }).first().click();
+  await page.waitForURL(/\/u\/ada_builds\/followers$/);
+  ok(await page.getByRole("heading", { level: 1, name: /followers/ }).isVisible(), "the followers count opens the list");
+  const rows = page.locator("main ul li, ul.divide-y li");
+  ok((await rows.count()) > 0, `people are listed (${await rows.count()})`);
+  ok((await page.getByRole("button", { name: /Follow/ }).count()) > 0, "each person has a Follow button");
+  await page.getByRole("link", { name: "Following", exact: true }).click();
+  await page.waitForURL(/\/following$/);
+  ok(await page.getByRole("heading", { level: 1, name: /follows/ }).isVisible(), "switches to who they follow");
+  await noSideScroll(page, "following");
+  ok((await fetch(BASE + "/u/nobody_here_123/followers")).status === 404, "an unknown person's list is a 404");
+});
+
 await run("terms and privacy", phone, async (page) => {
   await go(page, "/login");
   const agree = page.getByText("By signing in or creating an account, you agree to our");

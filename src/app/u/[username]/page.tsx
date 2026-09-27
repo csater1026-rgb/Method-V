@@ -139,12 +139,12 @@ export default async function ProfilePage({ params }: PageProps<"/u/[username]">
           {profile.bio && <p className="max-w-2xl whitespace-pre-line text-ink/90">{profile.bio}</p>}
 
           <p className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted">
-            <span>
+            <Link href={`/u/${profile.username}/followers`} className="hover:text-ink hover:underline">
               <strong className="text-ink">{formatCount(profile.follower_count)}</strong> followers
-            </span>
-            <span>
+            </Link>
+            <Link href={`/u/${profile.username}/following`} className="hover:text-ink hover:underline">
               <strong className="text-ink">{formatCount(profile.following_count)}</strong> following
-            </span>
+            </Link>
             <span>
               <strong className="text-ink">{formatCount(profile.connection_count)}</strong>{" "}
               {profile.connection_count === 1 ? "connection" : "connections"}

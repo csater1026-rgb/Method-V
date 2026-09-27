@@ -131,7 +131,12 @@ export default function ProfileScreen() {
       )}
       {profile.bio ? <Body>{profile.bio}</Body> : null}
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 14 }}>
-        <Mono>{formatCount(profile.follower_count)} followers</Mono>
+        <Pressable accessibilityRole="link" hitSlop={8} onPress={() => router.push({ pathname: "/follows", params: { username: profile.username, kind: "followers" } })}>
+          <Mono muted={false}>{formatCount(profile.follower_count)} followers</Mono>
+        </Pressable>
+        <Pressable accessibilityRole="link" hitSlop={8} onPress={() => router.push({ pathname: "/follows", params: { username: profile.username, kind: "following" } })}>
+          <Mono muted={false}>{formatCount(profile.following_count)} following</Mono>
+        </Pressable>
         <Mono>{formatCount(profile.connection_count)} connections</Mono>
         <Mono>{formatCount(profile.reputation)} reputation</Mono>
       </View>

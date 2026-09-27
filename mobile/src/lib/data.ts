@@ -636,13 +636,42 @@ export async function addComment(dropId: string, body: string): Promise<Result> 
   return error ? fail("Couldn't post your comment.") : ok(undefined);
 }
 
+// Who follows someone, or who they follow (newest first), with which of
+// those people you follow. Same as the website's /u/<name>/followers.
+export type FollowList = { owner: ProfileSummary; people: ProfileSummary[]; youFollow: Set<string>; total: number };
+
+export async function getFollowList(username: string, kind: "followers" | "following", viewerId: string | null): Promise<FollowList | null> {
+  if (!supabase) {
+    const owner = demoProfiles.find((p) => p.username === username);
+    if (!owner) return null;
+    const people = demoProfiles.filter((p) => p.id !== owner.id).map(toSummary);
+    return { owner: toSummary(owner), people, youFollow: new Set(), total: people.length };
+  }
+  const { data: owner } = await supabase.from("profiles").select(SUMMARY).eq("username", username).maybeSingle();
+  if (!owner) return null;
+  const [mine, theirs] = kind === "followers" ? (["following_id", "follower_id"] as const) : (["follower_id", "following_id"] as const);
+  const { data: rows, count } = await supabase
+    .from("follows")
+    .select(`created_at, person:profiles!follows_${theirs}_fkey(${SUMMARY})`, { count: "exact" })
+    .eq(mine, (owner as { id: string }).id)
+    .order("created_at", { ascending: false })
+    .limit(200);
+  const people = ((rows ?? []) as any[]).map((r) => r.person).filter(Boolean).map(toSummary);
+  const youFollow = new Set<string>();
+  if (viewerId && people.length > 0) {
+    const { data: mineRows } = await supabase.from("follows").select("following_id").eq("follower_id", viewerId).in("following_id", people.map((p) => p.id));
+    for (const r of mineRows ?? []) youFollow.add(r.following_id as string);
+  }
+  return { owner: toSummary(owner), people, youFollow, total: count ?? people.length };
+}
+
 export async function setFollow(profileId: string, follow: boolean): Promise<Result> {
   const auth = await signedIn();
   if (!auth.ok) return auth;
   const { error } = follow
     ? await supabase!.from("follows").insert({ follower_id: auth.data.id, following_id: profileId })
     : await supabase!.from("follows").delete().eq("follower_id", auth.data.id).eq("following_id", profileId);
-  return error && error.code !== "23505" ? fail("Couldn't update that.") : ok(undefined);
+  return error && error.code !== "23505" ? fail(friendly(error.message, "Couldn't update that.")) : ok(undefined);
 }
 
 // The asker or the app's builder picks the best answer (a top-level one,
