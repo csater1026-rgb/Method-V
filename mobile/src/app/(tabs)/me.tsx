@@ -81,6 +81,16 @@ export default function MeScreen() {
         <Mono muted={false}>{viewer.credits} V Coin</Mono>
       </View>
       <Button label="View your profile" onPress={() => router.push(`/u/${viewer.username}`)} />
+      {/* Money is set up on the website (payouts go through Stripe there). */}
+      {SITE_URL ? (
+        <Card style={{ gap: 10 }}>
+          <Body bold>Earnings and sponsorships</Body>
+          <Body muted size={13}>
+            Head to the website to set up payouts, price your sponsorship packages and manage your deals and tips.
+          </Body>
+          <Button label="Set up on the website ↗" onPress={() => web("/earn")} />
+        </Card>
+      ) : null}
       {SITE_URL ? (
         <Card style={{ gap: 4 }}>
           {links.map(([label, path]) => (
