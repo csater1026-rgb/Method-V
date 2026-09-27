@@ -181,6 +181,7 @@ ok((await page.getByText(/^(Hiring|Looking for work|Open to collab|Freelancer)$/
 await visit("/post", "post");
 ok(await page.getByRole("button", { name: "Record" }).isVisible(), "Post offers Record");
 ok(await page.getByText(/Still need: a video/).isVisible(), "Post says what's missing");
+ok(await page.getByText("Quick safety check").isVisible() && (await page.getByText(/the safety check\.$/).isVisible()), "Post has the safety check, and waits for it");
 
 await visit("/sign-in", "sign-in");
 ok(await page.getByLabel("Email").isVisible() && (await page.getByLabel("Password", { exact: true }).isVisible()), "sign-in has email and password");

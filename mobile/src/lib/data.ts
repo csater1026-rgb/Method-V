@@ -901,6 +901,8 @@ export type NewDrop = {
   tagline: string;
   category: string;
   caption: string;
+  // The builder ticked the safety box on the Post screen.
+  safetyChecked: boolean;
 };
 
 // Uploads the video straight to storage (into your own folder, streamed from
@@ -930,6 +932,7 @@ export async function postDrop(input: NewDrop, onProgress?: (fraction: number) =
     tagline: input.tagline,
     category: input.category,
     caption: input.caption,
+    safetyChecked: input.safetyChecked,
   });
   if (!r.ok) {
     // Don't leave an orphaned video behind.

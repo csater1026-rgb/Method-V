@@ -10,6 +10,8 @@ import {
   MAX_DROP_BYTES,
   MAX_DROP_SECONDS,
   PRICING,
+  SAFETY_AGREEMENT,
+  SAFETY_CHECKLIST,
   STAGES,
   type Category,
 } from "@/lib/constants";
@@ -41,6 +43,7 @@ export function SubmitForm({ userId }: { userId: string | null }) {
   const [stage, setStage] = useState("launched");
   const [techStack, setTechStack] = useState("");
   const [caption, setCaption] = useState("");
+  const [safe, setSafe] = useState(false);
   // Once someone types in a field, auto-fill leaves it alone.
   const touched = useRef({ name: false, tagline: false, description: false, category: false });
   const lastPreviewed = useRef("");
@@ -122,6 +125,7 @@ export function SubmitForm({ userId }: { userId: string | null }) {
     !name.trim() && "a name",
     !tagline.trim() && "a tagline",
     !category && "a category",
+    !safe && "the safety check",
   ].filter(Boolean) as string[];
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -172,6 +176,7 @@ export function SubmitForm({ userId }: { userId: string | null }) {
       videoPath,
       posterPath: uploaded.includes(posterPath ?? "") ? posterPath : null,
       durationSeconds: video.duration,
+      safetyChecked: safe,
     });
     if (result && !result.ok) {
       await bucket.remove(uploaded);
@@ -367,6 +372,38 @@ export function SubmitForm({ userId }: { userId: string | null }) {
               </Field>
             </div>
           </details>
+        </section>
+
+        {/* Before posting: the app is the builder's, and so is its security. */}
+        <section aria-label="Safety check" className="rounded-xl border border-line bg-surface p-4">
+          <h2 className="display text-3xl">Quick safety check</h2>
+          <p className="mt-1 text-sm text-muted">
+            People will try your app from here, so make sure it keeps them safe. The basics most vibe-coded apps miss:
+          </p>
+          {/^http:\/\//i.test(url.trim()) && (
+            <p className="mt-3 rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm">
+              Your link starts with http://, not https://. Browsers will warn testers that it isn&apos;t secure.
+            </p>
+          )}
+          <ul className="mt-3 flex flex-col gap-2.5">
+            {SAFETY_CHECKLIST.map((item) => (
+              <li key={item.title} className="flex gap-2.5 text-sm">
+                <span aria-hidden className="mt-1.5 h-2 w-2 shrink-0 rotate-45 bg-accent" />
+                <span>
+                  <strong>{item.title}.</strong> <span className="text-muted">{item.body}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+          <label className="mt-4 flex items-start gap-2.5 text-sm font-medium">
+            <input
+              type="checkbox"
+              checked={safe}
+              onChange={(e) => setSafe(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--color-accent)]"
+            />
+            <span>{SAFETY_AGREEMENT}</span>
+          </label>
         </section>
 
         {error && <p className="rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm">{error}</p>}

@@ -42,7 +42,7 @@ export default function TermsPage() {
           already shared or that we must keep by law.
         </p>
         <p>
-          Only post things you have the right to post. If you link an app, you&apos;re responsible for that app and what it does.
+          Only post things you have the right to post. If you link an app, you&apos;re responsible for that app and what it does, including keeping the people who try it, and their data, safe.
         </p>
       </Section>
 

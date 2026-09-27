@@ -2,6 +2,18 @@
 // constraints (supabase/migrations), so change both together.
 
 export const MAX_DROP_SECONDS = 60;
+
+// Before posting (website and app): a quick safety check for the app being
+// shared, and a box the builder ticks. The app is theirs, so its security is
+// too (Terms, section 2).
+export const SAFETY_CHECKLIST = [
+  { title: "It uses https", body: "The padlock in the address bar. Most hosts (Vercel, Netlify, Replit) do this for you." },
+  { title: "No secret keys in your app's code", body: "API keys, database passwords and service keys belong on the server, never in the page or the app people download." },
+  { title: "Your database is locked down", body: "People can only read and change their own data (in Supabase, turn on row level security for every table)." },
+  { title: "Logins and payments use trusted services", body: "Like Supabase Auth, Clerk or Stripe. Don't collect passwords or card numbers yourself." },
+  { title: "You say what data you collect", body: "If you store emails or anything personal, add a short privacy note to your app." },
+] as const;
+export const SAFETY_AGREEMENT = "This app is mine to share, and I've taken basic steps to keep the people who try it safe.";
 export const MAX_DROP_BYTES = 100 * 1024 * 1024;
 export const DROP_VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
 

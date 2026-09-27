@@ -5,7 +5,7 @@ import { useState } from "react";
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { CATEGORIES, DROP_VIDEO_TYPES, MAX_DROP_BYTES, MAX_DROP_SECONDS } from "@shared/constants";
+import { CATEGORIES, DROP_VIDEO_TYPES, MAX_DROP_BYTES, MAX_DROP_SECONDS, SAFETY_AGREEMENT, SAFETY_CHECKLIST } from "@shared/constants";
 
 import { Body, Button, Card, Display, ErrorText, Mono, tap } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
@@ -27,6 +27,7 @@ export default function PostScreen() {
   const [tagline, setTagline] = useState("");
   const [category, setCategory] = useState("");
   const [caption, setCaption] = useState("");
+  const [safe, setSafe] = useState(false);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [reading, setReading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -77,14 +78,21 @@ export default function PostScreen() {
     if (!touched.category && r.data.category) setCategory(r.data.category);
   }
 
-  const missing = [!video && "a video", !url.trim() && "your link", !name.trim() && "a name", !tagline.trim() && "a tagline", !category && "a category"].filter(Boolean);
+  const missing = [
+    !video && "a video",
+    !url.trim() && "your link",
+    !name.trim() && "a name",
+    !tagline.trim() && "a tagline",
+    !category && "a category",
+    !safe && "the safety check",
+  ].filter(Boolean);
 
   async function post() {
     if (!video || missing.length) return;
     setError(null);
     setProgress(0);
     const r = await postDrop(
-      { videoUri: video.uri, mimeType: video.mimeType, durationSeconds: video.seconds, url: url.trim(), name, tagline, category, caption },
+      { videoUri: video.uri, mimeType: video.mimeType, durationSeconds: video.seconds, url: url.trim(), name, tagline, category, caption, safetyChecked: safe },
       setProgress,
     );
     setProgress(null);
@@ -95,6 +103,7 @@ export default function PostScreen() {
     setTagline("");
     setCategory("");
     setCaption("");
+    setSafe(false);
     setTouched({});
     router.push(`/apps/${r.data.slug}`);
   }
@@ -176,6 +185,58 @@ export default function PostScreen() {
           </View>
           <Field t={t} label="Caption (optional)" value={caption} maxLength={300} onChangeText={setCaption} multiline />
         </View>
+
+        {/* Before posting: the app is the builder's, and so is its security. */}
+        <Card style={{ gap: 10 }}>
+          <Body bold>Quick safety check</Body>
+          <Body muted size={13}>
+            People will try your app from here, so make sure it keeps them safe. The basics most vibe-coded apps miss:
+          </Body>
+          {/^http:\/\//i.test(url.trim()) ? (
+            <Body size={13} style={{ color: t.danger }}>
+              Your link starts with http://, not https://. Browsers will warn testers that it isn&apos;t secure.
+            </Body>
+          ) : null}
+          {SAFETY_CHECKLIST.map((item) => (
+            <Body key={item.title} size={13}>
+              <Body bold size={13}>
+                {item.title}.
+              </Body>{" "}
+              <Body muted size={13}>
+                {item.body}
+              </Body>
+            </Body>
+          ))}
+          <Pressable
+            accessibilityRole="checkbox"
+            aria-checked={safe}
+            accessibilityLabel={SAFETY_AGREEMENT}
+            onPress={() => setSafe((s) => !s)}
+            style={{ flexDirection: "row", alignItems: "flex-start", gap: 10, paddingVertical: 4 }}
+          >
+            <View
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: 5,
+                borderWidth: 2,
+                borderColor: safe ? t.accent : t.line,
+                backgroundColor: safe ? t.accent : "transparent",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {safe ? (
+                <Body bold size={14} style={{ color: t.accentInk, lineHeight: 16 }}>
+                  ✓
+                </Body>
+              ) : null}
+            </View>
+            <Body size={14} style={{ flex: 1 }}>
+              {SAFETY_AGREEMENT}
+            </Body>
+          </Pressable>
+        </Card>
 
         {missing.length > 0 && <Body muted size={13}>Still need: {missing.join(", ")}.</Body>}
         <ErrorText>{error}</ErrorText>

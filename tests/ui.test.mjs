@@ -640,7 +640,7 @@ await run("submit", desktop, async (page) => {
   await input.setInputFiles(CLIPS + "clip-20s.webm");
   await page.getByText(/^0:20 ·/).waitFor({ timeout: 15000 });
   ok(true, "20-second video is accepted and shows 0:20");
-  ok(await page.getByText("Still need: your link, a name, a tagline, a category.").isVisible(), "tells you what's still needed");
+  ok(await page.getByText("Still need: your link, a name, a tagline, a category, the safety check.").isVisible(), "tells you what's still needed");
   const link = page.getByRole("textbox", { name: /Link to your live app/ });
   await link.fill("https://example.com");
   await link.blur();
@@ -652,6 +652,10 @@ await run("submit", desktop, async (page) => {
   ok(!(await page.getByRole("textbox", { name: /Built with/ }).isVisible()), "extra details are tucked away");
   await page.getByText("More details").click();
   ok(await page.getByRole("textbox", { name: /Built with/ }).isVisible(), "…and open with one tap");
+  const safety = page.getByRole("region", { name: "Safety check" });
+  ok((await safety.locator("li").count()) === 5 && (await safety.getByText("Your database is locked down").isVisible()), "a quick safety checklist before posting");
+  ok(await page.getByText("Still need: the safety check.").isVisible(), "posting waits for the safety box");
+  await safety.getByRole("checkbox", { name: /mine to share/ }).check();
   ok(!(await page.getByText(/^Still need/).count()), "nothing missing once the basics are in");
   await page.getByRole("button", { name: "Post Drop" }).click();
   ok(await page.locator("form p.rounded-lg", { hasText: "Method V is running in demo mode" }).isVisible(), "posting explains demo mode");

@@ -25,6 +25,8 @@ export type NewApp = {
   videoPath: string;
   posterPath: string | null;
   durationSeconds: number;
+  // The builder ticked the safety box on the Post screen.
+  safetyChecked: boolean;
 };
 
 export async function publishApp(
@@ -32,6 +34,7 @@ export async function publishApp(
   viewerId: string,
   input: NewApp,
 ): Promise<{ ok: true; slug: string } | { ok: false; error: string }> {
+  if (input.safetyChecked !== true) return { ok: false, error: "Tick the box to confirm your app is safe to share." };
   const name = input.name.trim();
   const tagline = input.tagline.trim();
   if (!name || name.length > 60) return { ok: false, error: "App name is required (up to 60 characters)." };

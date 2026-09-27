@@ -29,6 +29,7 @@ export async function POST(request: Request) {
     videoPath: str(body.videoPath, 300),
     posterPath: str(body.posterPath, 300) || null,
     durationSeconds: Number(body.durationSeconds),
+    safetyChecked: body.safetyChecked === true,
   });
   return result.ok
     ? NextResponse.json({ slug: result.slug })
