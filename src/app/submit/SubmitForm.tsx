@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { createApp, previewLink } from "@/app/actions";
+import { uploadAppCover } from "@/components/AppCover";
 import { LoadingCoder } from "@/components/LoadingCoder";
+import { imageProblem } from "@/lib/crop-image";
 import {
   CATEGORIES,
   DROP_VIDEO_TYPES,
@@ -44,6 +46,9 @@ export function SubmitForm({ userId }: { userId: string | null }) {
   const [techStack, setTechStack] = useState("");
   const [caption, setCaption] = useState("");
   const [safe, setSafe] = useState(false);
+  // Optional cover image for the app's card (else the Drop's frame).
+  const [cover, setCover] = useState<{ file: File; preview: string } | null>(null);
+  const [coverError, setCoverError] = useState<string | null>(null);
   // Once someone types in a field, auto-fill leaves it alone.
   const touched = useRef({ name: false, tagline: false, description: false, category: false });
   const lastPreviewed = useRef("");
@@ -161,6 +166,19 @@ export function SubmitForm({ userId }: { userId: string | null }) {
       if (!pup.error) uploaded.push(posterPath);
     }
 
+    let coverPath: string | null = null;
+    if (cover) {
+      const up = await uploadAppCover(userId, cover.file);
+      if ("error" in up) {
+        await bucket.remove(uploaded);
+        setStep("idle");
+        setError(`Cover image: ${up.error}`);
+        return;
+      }
+      coverPath = up.path;
+      uploaded.push(up.path);
+    }
+
     setStep("saving");
     // On success this redirects to the new app page.
     const result = await createApp({
@@ -177,6 +195,7 @@ export function SubmitForm({ userId }: { userId: string | null }) {
       posterPath: uploaded.includes(posterPath ?? "") ? posterPath : null,
       durationSeconds: video.duration,
       safetyChecked: safe,
+      coverPath,
     });
     if (result && !result.ok) {
       await bucket.remove(uploaded);
@@ -310,6 +329,56 @@ export function SubmitForm({ userId }: { userId: string | null }) {
               ))}
             </div>
           </fieldset>
+
+          {/* The picture on the app's card (Browse, Featured). Optional: without one, cards use the Drop's frame. */}
+          <div className="flex flex-col gap-2">
+            <p className="text-sm font-medium">
+              Cover image <span className="font-normal text-muted">· Optional. Shows on Browse and Featured; otherwise we use a frame from your Drop.</span>
+            </p>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="aspect-video w-40 shrink-0 overflow-hidden rounded-lg border border-line bg-surface-2">
+                {cover ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={cover.preview} alt="Your cover image" className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-xs text-muted">16:9</div>
+                )}
+              </div>
+              <label className="btn-ghost cursor-pointer">
+                {cover ? "Change cover" : "Add a cover image"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  aria-label="Cover image"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = "";
+                    if (!file) return;
+                    const problem = imageProblem(file);
+                    setCoverError(problem);
+                    if (!problem) {
+                      if (cover) URL.revokeObjectURL(cover.preview);
+                      setCover({ file, preview: URL.createObjectURL(file) });
+                    }
+                  }}
+                />
+              </label>
+              {cover && (
+                <button
+                  type="button"
+                  className="text-sm text-muted hover:text-ink"
+                  onClick={() => {
+                    URL.revokeObjectURL(cover.preview);
+                    setCover(null);
+                  }}
+                >
+                  Remove
+                </button>
+              )}
+            </div>
+            {coverError && <p className="text-sm text-danger">{coverError}</p>}
+          </div>
 
           <details className="group rounded-xl border border-line bg-surface">
             <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-semibold">

@@ -652,6 +652,12 @@ await run("submit", desktop, async (page) => {
   ok(!(await page.getByRole("textbox", { name: /Built with/ }).isVisible()), "extra details are tucked away");
   await page.getByText("More details").click();
   ok(await page.getByRole("textbox", { name: /Built with/ }).isVisible(), "…and open with one tap");
+  // Optional cover image for the app's card.
+  const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+  await page.getByLabel("Cover image").setInputFiles({ name: "cover.png", mimeType: "image/png", buffer: png });
+  ok(await page.getByRole("img", { name: "Your cover image" }).isVisible(), "an optional cover image previews before posting");
+  await page.getByRole("button", { name: "Remove", exact: true }).click();
+  ok((await page.getByRole("img", { name: "Your cover image" }).count()) === 0, "…and can be removed");
   const safety = page.getByRole("region", { name: "Safety check" });
   ok((await safety.locator("li").count()) === 5 && (await safety.getByText("Your database is locked down").isVisible()), "a quick safety checklist before posting");
   ok(await page.getByText("Still need: the safety check.").isVisible(), "posting waits for the safety box");

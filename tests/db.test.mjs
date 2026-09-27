@@ -71,7 +71,7 @@ async function runAgain(files) {
 {
   const newest = readdirSync(migrationsDir).filter((f) => f >= "20261001000000" && f.endsWith(".sql") && !LATE.includes(f)).sort();
   const failed = await runAgain(newest);
-  ok(failed.length === 0 && newest.length === 9, `the newest migrations are safe to run twice (${failed.join("; ") || newest.join(", ")})`);
+  ok(failed.length === 0 && newest.length === 10, `the newest migrations are safe to run twice (${failed.join("; ") || newest.join(", ")})`);
 }
 
 async function as(role, uid, sql, params) {
@@ -826,6 +826,22 @@ ok(!!(await fails("anon", null, "insert into public.sponsorships (sponsor_brand,
   ok((await db.query("select cover_path from public.profiles where id = $1", [B])).rows[0].cover_path === before, "you can't change someone else's header picture");
   await as("authenticated", A, setCover, [null, A]);
   ok((await db.query("select cover_path from public.profiles where id = $1", [A])).rows[0].cover_path === null, "you can remove your header picture");
+}
+
+// --- App cover images ---
+{
+  const mine = (await db.query("select id from public.apps where owner_id = $1 limit 1", [A])).rows[0].id;
+  const theirs = (await db.query("select id from public.apps where owner_id <> $1 limit 1", [A])).rows[0].id;
+  const setCover = "update public.apps set cover_path = $1 where id = $2";
+  await as("authenticated", A, setCover, [`${A}/appcover-1727000000000.jpg`, mine]);
+  ok((await db.query("select cover_path from public.apps where id = $1", [mine])).rows[0].cover_path === `${A}/appcover-1727000000000.jpg`, "builders can set their app's cover image");
+  ok(!!(await fails("authenticated", A, setCover, [`${B}/appcover-1.jpg`, mine])), "the cover must be in the builder's own folder");
+  ok(!!(await fails("authenticated", A, setCover, [`${A}/avatar-1.jpg`, mine])), "cover paths are only appcover-<time>.jpg");
+  const before = (await db.query("select cover_path from public.apps where id = $1", [theirs])).rows[0].cover_path;
+  await as("authenticated", A, setCover, [`${A}/appcover-2.jpg`, theirs]).catch(() => {});
+  ok((await db.query("select cover_path from public.apps where id = $1", [theirs])).rows[0].cover_path === before, "nobody can change someone else's cover");
+  await as("authenticated", A, setCover, [null, mine]);
+  ok((await db.query("select cover_path from public.apps where id = $1", [mine])).rows[0].cover_path === null, "a cover can be removed (back to the Drop's frame)");
 }
 
 // --- Social handles ---

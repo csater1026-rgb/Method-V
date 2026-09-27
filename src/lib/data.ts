@@ -111,6 +111,12 @@ const FOR_YOU_POOL = 200;
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- rows come back untyped without generated types */
 
+// The picture on an app's card: the builder's cover image, or else the frame
+// from their latest Drop.
+function cardImage(app: any, dropPoster: string | null | undefined): string | null {
+  return publicFileUrl(app?.cover_path ?? dropPoster ?? null);
+}
+
 function toSummary(row: any): ProfileSummary {
   return {
     id: row.id,
@@ -158,6 +164,7 @@ function toApp(row: any): App {
     boosted_until: row.boosted_until ?? null,
     boosted_from: row.boosted_from ?? null,
     backer_count: row.backer_count ?? 0,
+    cover_path: row.cover_path ?? null,
     created_at: row.created_at,
   };
 }
@@ -363,7 +370,7 @@ export async function getApps(filters: BrowseFilters, max = 60): Promise<AppCard
   return (data ?? []).map((row) => ({
     ...toApp(row),
     owner: toSummary(row.owner),
-    poster_url: publicFileUrl(row.drops?.[0]?.poster_path ?? null),
+    poster_url: cardImage(row, row.drops?.[0]?.poster_path),
   }));
 }
 
@@ -476,7 +483,7 @@ export async function getProfile(
   const apps = (appRows ?? []).map((row) => ({
     ...toApp(row),
     owner,
-    poster_url: publicFileUrl(row.drops?.[0]?.poster_path ?? null),
+    poster_url: cardImage(row, row.drops?.[0]?.poster_path),
   }));
   return { profile: profile as Profile, apps, isFollowing: following };
 }
@@ -593,7 +600,7 @@ export async function getTestQueue(viewer: Viewer | null): Promise<QueueItem[]> 
       return {
         ...toApp(app),
         owner: toSummary(app.owner),
-        poster_url: publicFileUrl(latest?.poster_path ?? null),
+        poster_url: cardImage(app, latest?.poster_path),
         spots_left: row.slots_total - row.slots_filled,
       };
     })
@@ -629,7 +636,7 @@ const CARD_SELECT = () => `*, owner:profiles!apps_owner_id_fkey(${summaryCols()}
 /* eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped rows */
 function toCard(row: any): AppCard {
   const latest = [...(row.drops ?? [])].sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
-  return { ...toApp(row), owner: toSummary(row.owner), poster_url: publicFileUrl(latest?.poster_path ?? null) };
+  return { ...toApp(row), owner: toSummary(row.owner), poster_url: cardImage(row, latest?.poster_path) };
 }
 
 function demoCards(): AppCard[] {
@@ -1219,11 +1226,12 @@ async function latestPosters(appIds: string[]): Promise<Map<string, string | nul
   const supabase = await createClient();
   const { data } = await supabase
     .from("apps")
-    .select("id, drops(poster_path, created_at)")
+    // "*" rather than naming cover_path, so this works before 20261012000000_app_covers.
+    .select("*, drops(poster_path, created_at)")
     .in("id", ids)
     .order("created_at", { referencedTable: "drops", ascending: false })
     .limit(1, { referencedTable: "drops" });
-  for (const a of (data ?? []) as any[]) out.set(a.id, publicFileUrl(a.drops?.[0]?.poster_path ?? null));
+  for (const a of (data ?? []) as any[]) out.set(a.id, cardImage(a, a.drops?.[0]?.poster_path));
   return out;
 }
 

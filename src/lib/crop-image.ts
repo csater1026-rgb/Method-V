@@ -1,0 +1,28 @@
+// In the browser: crop a picked image to a centered width×height rectangle
+// and shrink it to a JPEG, so only a small file is uploaded. Used for profile
+// header pictures and app cover images.
+export const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
+
+export async function cropToJpeg(file: File, width: number, height: number, quality = 0.85): Promise<Blob> {
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(bitmap.width / width, bitmap.height / height);
+  const w = width * scale;
+  const h = height * scale;
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("no canvas");
+  ctx.drawImage(bitmap, (bitmap.width - w) / 2, (bitmap.height - h) / 2, w, h, 0, 0, width, height);
+  bitmap.close();
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", quality));
+  if (!blob) throw new Error("no blob");
+  return blob;
+}
+
+// A friendly problem with the picked file, or null if it's fine.
+export function imageProblem(file: File): string | null {
+  if (!file.type.startsWith("image/")) return "Pick an image file (JPG, PNG, HEIC or WebP).";
+  if (file.size > MAX_IMAGE_BYTES) return "That image is over 15 MB. Pick a smaller one.";
+  return null;
+}

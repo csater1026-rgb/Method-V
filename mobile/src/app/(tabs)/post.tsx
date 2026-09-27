@@ -1,3 +1,4 @@
+import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
@@ -28,6 +29,8 @@ export default function PostScreen() {
   const [category, setCategory] = useState("");
   const [caption, setCaption] = useState("");
   const [safe, setSafe] = useState(false);
+  // Optional cover image for the app's card (else the Drop's frame).
+  const [cover, setCover] = useState<string | null>(null);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [reading, setReading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -92,7 +95,7 @@ export default function PostScreen() {
     setError(null);
     setProgress(0);
     const r = await postDrop(
-      { videoUri: video.uri, mimeType: video.mimeType, durationSeconds: video.seconds, url: url.trim(), name, tagline, category, caption, safetyChecked: safe },
+      { videoUri: video.uri, mimeType: video.mimeType, durationSeconds: video.seconds, url: url.trim(), name, tagline, category, caption, safetyChecked: safe, coverUri: cover },
       setProgress,
     );
     setProgress(null);
@@ -104,6 +107,7 @@ export default function PostScreen() {
     setCategory("");
     setCaption("");
     setSafe(false);
+    setCover(null);
     setTouched({});
     router.push(`/apps/${r.data.slug}`);
   }
@@ -184,6 +188,27 @@ export default function PostScreen() {
             })}
           </View>
           <Field t={t} label="Caption (optional)" value={caption} maxLength={300} onChangeText={setCaption} multiline />
+        </View>
+
+        {/* The picture on the app's card. Optional: without one, cards use the Drop's frame. */}
+        <View style={{ gap: 8 }}>
+          <Body bold size={14}>
+            Cover image <Body muted size={13}>· Optional. Shows on Browse and Featured.</Body>
+          </Body>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <View style={{ width: 128, aspectRatio: 16 / 9, borderRadius: 8, overflow: "hidden", borderWidth: 1, borderColor: t.line, backgroundColor: t.surface, alignItems: "center", justifyContent: "center" }}>
+              {cover ? <Image source={{ uri: cover }} style={{ width: "100%", height: "100%" }} contentFit="cover" /> : <Mono>16:9</Mono>}
+            </View>
+            <Button
+              label={cover ? "Change" : "Add a cover"}
+              kind="ghost"
+              onPress={async () => {
+                const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], allowsEditing: true, aspect: [16, 9], quality: 1 });
+                if (!r.canceled && r.assets[0]) setCover(r.assets[0].uri);
+              }}
+            />
+            {cover ? <Button label="Remove" kind="ghost" onPress={() => setCover(null)} /> : null}
+          </View>
         </View>
 
         {/* Before posting: the app is the builder's, and so is its security. */}

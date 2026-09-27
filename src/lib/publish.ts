@@ -27,6 +27,8 @@ export type NewApp = {
   durationSeconds: number;
   // The builder ticked the safety box on the Post screen.
   safetyChecked: boolean;
+  // Optional cover image (drops/<id>/appcover-<time>.jpg) for the app's card.
+  coverPath?: string | null;
 };
 
 export async function publishApp(
@@ -49,6 +51,10 @@ export async function publishApp(
     return { ok: false, error: `Drops can be up to ${MAX_DROP_SECONDS} seconds.` };
   }
   const ownFile = (p: string) => p.startsWith(`${viewerId}/`) && !p.includes("..") && p.length < 200;
+  const coverPath = input.coverPath || null;
+  if (coverPath && !new RegExp(`^${viewerId}/appcover-[0-9]+\\.jpg$`).test(coverPath)) {
+    return { ok: false, error: "Upload the cover image again." };
+  }
   if (!ownFile(input.videoPath) || (input.posterPath && !ownFile(input.posterPath))) {
     return { ok: false, error: "Upload the video again." };
   }
@@ -78,6 +84,7 @@ export async function publishApp(
         tech_stack: parseList(input.techStack, 12),
         pricing: input.pricing,
         stage: input.stage,
+        ...(coverPath ? { cover_path: coverPath } : {}),
       })
       .select("id, slug")
       .single();

@@ -6,30 +6,10 @@ import { useRef, useState } from "react";
 import { setCover } from "@/app/actions";
 import { DROPS_BUCKET } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/client";
+import { cropToJpeg, imageProblem } from "@/lib/crop-image";
 
 const WIDTH = 1500;
 const HEIGHT = 500;
-const MAX_BYTES = 15 * 1024 * 1024;
-
-// The header picture is cropped to a centered 3:1 strip and shrunk to
-// 1500×500 in the browser, so only a small JPEG is uploaded, into the
-// person's own folder.
-async function wideJpeg(file: File): Promise<Blob> {
-  const bitmap = await createImageBitmap(file);
-  const scale = Math.min(bitmap.width / WIDTH, bitmap.height / HEIGHT);
-  const w = WIDTH * scale;
-  const h = HEIGHT * scale;
-  const canvas = document.createElement("canvas");
-  canvas.width = WIDTH;
-  canvas.height = HEIGHT;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("no canvas");
-  ctx.drawImage(bitmap, (bitmap.width - w) / 2, (bitmap.height - h) / 2, w, h, 0, 0, WIDTH, HEIGHT);
-  bitmap.close();
-  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.85));
-  if (!blob) throw new Error("no blob");
-  return blob;
-}
 
 export function CoverForm({ userId, current }: { userId: string; current: string | null }) {
   const router = useRouter();
@@ -40,13 +20,13 @@ export function CoverForm({ userId, current }: { userId: string; current: string
 
   async function upload(file: File) {
     setError(null);
-    if (!file.type.startsWith("image/")) return setError("Pick an image file (JPG, PNG, HEIC or WebP).");
-    if (file.size > MAX_BYTES) return setError("That image is over 15 MB. Pick a smaller one.");
+    const problem = imageProblem(file);
+    if (problem) return setError(problem);
     setBusy(true);
     try {
       let picture: Blob;
       try {
-        picture = await wideJpeg(file);
+        picture = await cropToJpeg(file, WIDTH, HEIGHT);
       } catch {
         setError("Couldn't read that image. Try a JPG or PNG.");
         return;

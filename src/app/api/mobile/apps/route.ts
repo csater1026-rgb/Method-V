@@ -30,6 +30,7 @@ export async function POST(request: Request) {
     posterPath: str(body.posterPath, 300) || null,
     durationSeconds: Number(body.durationSeconds),
     safetyChecked: body.safetyChecked === true,
+    coverPath: str(body.coverPath, 300) || null,
   });
   return result.ok
     ? NextResponse.json({ slug: result.slug })

@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { Avatar } from "@/components/Avatar";
 import { Backers } from "@/components/Backers";
 import { BackButton } from "@/components/Earn";
+import { AppCoverEditor } from "@/components/AppCover";
 import { PackageEditor, SponsorPackages } from "@/components/Packages";
 import { SponsoredBy } from "@/components/Sponsored";
 import { Comments } from "@/components/Comments";
@@ -41,7 +42,7 @@ import {
 } from "@/lib/data";
 import { formatCount, formatDuration, timeAgo } from "@/lib/format";
 import { SPOTLIGHT } from "@/lib/constants";
-import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { isSupabaseConfigured, publicFileUrl } from "@/lib/supabase/env";
 import { Handle } from "@/components/Handle";
 
 export async function generateMetadata({ params }: PageProps<"/apps/[slug]">): Promise<Metadata> {
@@ -230,6 +231,14 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
               <span className="text-muted">Tries per day and where they come from.</span>
             </p>
           </GrowPanel>
+        )}
+        {isOwner && viewer && (
+          <AppCoverEditor
+            appId={app.id}
+            userId={viewer.id}
+            current={publicFileUrl(app.cover_path ?? null)}
+            dropFrame={app.drop?.poster_url ?? null}
+          />
         )}
         {((isOwner && viewer) || !isSupabaseConfigured) && (
           <PackageEditor app={{ id: app.id, slug: app.slug, name: app.name }} packages={packages} />

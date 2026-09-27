@@ -82,13 +82,15 @@ function toApp(row: any): App {
     launch_at: row.launch_at ?? null,
     boosted_until: row.boosted_until ?? null,
     backer_count: row.backer_count ?? 0,
+    cover_path: row.cover_path ?? null,
     created_at: row.created_at,
   };
 }
 
 function toCard(row: any): AppCard {
   const latest = [...(row.drops ?? [])].sort((a: any, b: any) => b.created_at.localeCompare(a.created_at))[0];
-  return { ...toApp(row), owner: toSummary(row.owner), poster_url: fileUrl(latest?.poster_path) };
+  // The builder's cover image, or else the frame from their latest Drop.
+  return { ...toApp(row), owner: toSummary(row.owner), poster_url: fileUrl(row.cover_path ?? latest?.poster_path) };
 }
 
 function toDrop(row: any): Drop {
@@ -795,24 +797,8 @@ async function setProfileImage(kind: "avatar" | "cover", imageUri: string | null
   let path: string | null = null;
   if (imageUri) {
     path = `${id}/${kind}-${Date.now()}.jpg`;
-    try {
-      const jpeg = kind === "avatar" ? await cropPhoto(imageUri, 320, 320) : await cropPhoto(imageUri, 1500, 500);
-      if (Platform.OS === "web") {
-        const blob = await (await fetch(jpeg)).blob();
-        const { error } = await supabase!.storage.from(DROPS_BUCKET).upload(path, blob, { contentType: "image/jpeg", upsert: false });
-        if (error) return fail(`Your ${noun} didn't upload. Try again.`);
-      } else {
-        const upload = await new File(jpeg).upload(`${SUPABASE_URL}/storage/v1/object/${DROPS_BUCKET}/${path}`, {
-          httpMethod: "POST",
-          uploadType: UploadType.BINARY_CONTENT,
-          mimeType: "image/jpeg",
-          headers: { Authorization: `Bearer ${auth.data.token}`, apikey: SUPABASE_KEY, "Content-Type": "image/jpeg", "x-upsert": "false" },
-        });
-        if (upload.status >= 300) return fail(`Your ${noun} didn't upload. Try again.`);
-      }
-    } catch {
-      return fail(`Couldn't use that ${noun}. Try another one.`);
-    }
+    const up = await uploadImage(imageUri, path, kind === "avatar" ? [320, 320] : [1500, 500], auth.data.token);
+    if (up !== "ok") return fail(up === "read" ? `Couldn't use that ${noun}. Try another one.` : `Your ${noun} didn't upload. Try again.`);
   }
   const { error } = await supabase!.from("profiles").update({ [column]: path }).eq("id", id);
   if (error) {
@@ -822,6 +808,32 @@ async function setProfileImage(kind: "avatar" | "cover", imageUri: string | null
   const old = (before as Record<string, string | null> | null)?.[column];
   if (old && old !== path) await supabase!.storage.from(DROPS_BUCKET).remove([old]);
   return ok(fileUrl(path));
+}
+
+// Crops and shrinks a picked picture, then uploads it to your folder.
+async function uploadImage(uri: string, path: string, [width, height]: [number, number], token: string): Promise<"ok" | "read" | "upload"> {
+  let jpeg: string;
+  try {
+    jpeg = await cropPhoto(uri, width, height);
+  } catch {
+    return "read";
+  }
+  try {
+    if (Platform.OS === "web") {
+      const blob = await (await fetch(jpeg)).blob();
+      const { error } = await supabase!.storage.from(DROPS_BUCKET).upload(path, blob, { contentType: "image/jpeg", upsert: false });
+      return error ? "upload" : "ok";
+    }
+    const upload = await new File(jpeg).upload(`${SUPABASE_URL}/storage/v1/object/${DROPS_BUCKET}/${path}`, {
+      httpMethod: "POST",
+      uploadType: UploadType.BINARY_CONTENT,
+      mimeType: "image/jpeg",
+      headers: { Authorization: `Bearer ${token}`, apikey: SUPABASE_KEY, "Content-Type": "image/jpeg", "x-upsert": "false" },
+    });
+    return upload.status >= 300 ? "upload" : "ok";
+  } catch {
+    return "upload";
+  }
 }
 
 // Centered crop to the target shape, shrunk, JPEG: small enough to upload
@@ -903,6 +915,8 @@ export type NewDrop = {
   caption: string;
   // The builder ticked the safety box on the Post screen.
   safetyChecked: boolean;
+  // Optional cover image for the app's card (Browse, Featured).
+  coverUri?: string | null;
 };
 
 // Uploads the video straight to storage (into your own folder, streamed from
@@ -924,6 +938,16 @@ export async function postDrop(input: NewDrop, onProgress?: (fraction: number) =
   } catch {
     return fail("The video didn't upload. Check your connection and try again.");
   }
+  // The optional cover image, cropped to 16:9.
+  let coverPath: string | null = null;
+  if (input.coverUri) {
+    coverPath = `${auth.data.id}/appcover-${Date.now()}.jpg`;
+    const up = await uploadImage(input.coverUri, coverPath, [1280, 720], auth.data.token);
+    if (up !== "ok") {
+      await supabase!.storage.from(DROPS_BUCKET).remove([path]);
+      return fail(up === "read" ? "Couldn't use that cover image. Try another one." : "The cover image didn't upload. Try again.");
+    }
+  }
   const r = await callSite<{ slug: string }>("/api/mobile/apps", auth.data.token, {
     videoPath: path,
     durationSeconds: input.durationSeconds,
@@ -933,10 +957,11 @@ export async function postDrop(input: NewDrop, onProgress?: (fraction: number) =
     category: input.category,
     caption: input.caption,
     safetyChecked: input.safetyChecked,
+    coverPath,
   });
   if (!r.ok) {
-    // Don't leave an orphaned video behind.
-    await supabase!.storage.from(DROPS_BUCKET).remove([path]);
+    // Don't leave an orphaned video (or cover) behind.
+    await supabase!.storage.from(DROPS_BUCKET).remove(coverPath ? [path, coverPath] : [path]);
     return fail(friendly(r.error, "Couldn't post your Drop."));
   }
   return ok({ slug: r.data.slug });

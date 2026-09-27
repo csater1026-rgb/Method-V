@@ -66,6 +66,9 @@ export type App = {
   boosted_until: string | null;
   boosted_from?: string | null;
   backer_count: number;
+  // The builder's own card picture (20261012000000_app_covers); cards fall
+  // back to the frame from their latest Drop.
+  cover_path?: string | null;
   created_at: string;
 };
 
