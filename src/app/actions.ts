@@ -9,6 +9,7 @@ import {
   CREDIT_PACKS,
   PACKAGE_RULES,
   EARN,
+  LEGAL,
   MIN_PASSWORD,
   OFFICIAL_HANDLE,
   ROLES,
@@ -128,10 +129,15 @@ export async function passwordAuth(_prev: SignInState, formData: FormData): Prom
   } else {
     if (password.length < MIN_PASSWORD) return { status: "error", error: `Use at least ${MIN_PASSWORD} characters for your password.` };
     if (password.length > 72) return { status: "error", error: "Keep your password under 72 characters." };
+    if (formData.get("agree") !== "on") return { status: "error", error: "Tick the box to agree to the Terms of Service and Privacy Policy." };
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: `${await siteOrigin()}/auth/callback?next=${encodeURIComponent(next)}` },
+      options: {
+        emailRedirectTo: `${await siteOrigin()}/auth/callback?next=${encodeURIComponent(next)}`,
+        // Which Terms and Privacy Policy they agreed to (the "Last updated" date).
+        data: { agreed_to_terms: LEGAL.updated },
+      },
     });
     if (error) {
       if (/sending|smtp|rate limit/i.test(error.message)) {

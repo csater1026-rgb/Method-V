@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useState } from "react";
 
 import { passwordAuth, signIn, type SignInState } from "@/app/actions";
@@ -14,6 +15,8 @@ export function LoginForm({ next, disabled }: { next: string; disabled: boolean 
   const [passwordState, passwordAction, passwordPending] = useActionState<SignInState, FormData>(passwordAuth, { status: "idle" });
   const [linkState, linkAction, linkPending] = useActionState<SignInState, FormData>(signIn, { status: "idle" });
   const [showPassword, setShowPassword] = useState(false);
+  // New accounts tick a box agreeing to the Terms and Privacy Policy.
+  const [agreed, setAgreed] = useState(false);
   const state = mode === "link" ? linkState : passwordState;
   const pending = mode === "link" ? linkPending : passwordPending;
 
@@ -80,7 +83,30 @@ export function LoginForm({ next, disabled }: { next: string; disabled: boolean 
             </div>
           </>
         )}
-        <button className="btn-accent py-2.5" disabled={pending || disabled}>
+        {mode === "signup" && (
+          <label className="flex items-start gap-2.5 text-sm">
+            <input
+              type="checkbox"
+              name="agree"
+              required
+              checked={agreed}
+              onChange={(e) => setAgreed(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--color-accent)]"
+            />
+            <span>
+              I&apos;m at least 13 and I agree to the{" "}
+              <Link href="/terms" target="_blank" className="text-accent hover:underline">
+                Terms of Service
+              </Link>{" "}
+              and{" "}
+              <Link href="/privacy" target="_blank" className="text-accent hover:underline">
+                Privacy Policy
+              </Link>
+              .
+            </span>
+          </label>
+        )}
+        <button className="btn-accent py-2.5" disabled={pending || disabled || (mode === "signup" && !agreed)}>
           {pending
             ? "One moment…"
             : mode === "signin"

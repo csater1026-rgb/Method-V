@@ -571,6 +571,12 @@ await run("login", phone, async (page) => {
   ok((await page.getByRole("tab", { name: "Create account" }).getAttribute("aria-selected")) === "true", "switch to Create account");
   ok((await page.getByLabel("Password", { exact: true }).getAttribute("autocomplete")) === "new-password", "new accounts get a new-password field");
   ok(await page.getByRole("button", { name: "Create account", exact: true }).isVisible(), "Create account button");
+  const agree = page.getByRole("checkbox", { name: /I'm at least 13 and I agree to the Terms of Service and Privacy Policy/ });
+  ok((await agree.isVisible()) && (await agree.getAttribute("required")) !== null, "new accounts must tick the Terms box");
+  ok(!(await agree.isChecked()), "the Terms box starts unticked");
+  await page.getByRole("tab", { name: "Sign in" }).click();
+  ok((await page.getByRole("checkbox").count()) === 0, "signing in doesn't ask again");
+  await page.getByRole("tab", { name: "Create account" }).click();
   await page.getByRole("button", { name: "Forgot your password? Email me a sign-in link" }).click();
   ok(await page.getByRole("button", { name: "Email me a sign-in link" }).isDisabled(), "emailed link is still there as the fallback");
   ok((await page.getByLabel("Password", { exact: true }).count()) === 0, "the link option needs no password");
@@ -586,7 +592,7 @@ await run("terms and privacy", phone, async (page) => {
   ok(await agree.getByRole("link", { name: "Privacy Policy" }).isVisible(), "sign-in page links the Privacy Policy");
   const legal = page.getByRole("navigation", { name: "Legal" });
   ok((await legal.getByRole("link", { name: "Terms" }).getAttribute("href")) === "/terms", "footer links the Terms");
-  ok((await legal.getByRole("link", { name: "Contact" }).getAttribute("href")) === "mailto:hello@methodv.app", "footer has a contact email");
+  ok((await legal.getByRole("link", { name: "Contact" }).getAttribute("href")) === "mailto:team@methodv.app", "footer has a contact email");
 
   await go(page, "/terms");
   ok(await page.getByRole("heading", { level: 1, name: "Terms of Service" }).isVisible(), "Terms page");

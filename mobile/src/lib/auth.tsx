@@ -5,6 +5,8 @@ import * as Crypto from "expo-crypto";
 import * as WebBrowser from "expo-web-browser";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
+import { LEGAL } from "@shared/constants";
+
 import { DEMO_MESSAGE, MIN_PASSWORD, fileUrl } from "./config";
 import { turnOffPush } from "./push";
 import { fail, friendly, ok, type Result } from "./result";
@@ -112,7 +114,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!supabase) return fail(DEMO_MESSAGE);
         if (!EMAIL.test(cleanEmail(email))) return fail("Enter a valid email address.");
         if (password.length < MIN_PASSWORD) return fail(`Use at least ${MIN_PASSWORD} characters for your password.`);
-        const { data, error } = await supabase.auth.signUp({ email: cleanEmail(email), password });
+        // The screen only allows this once they've ticked the Terms box; record
+        // which version (its "Last updated" date) they agreed to.
+        const { data, error } = await supabase.auth.signUp({ email: cleanEmail(email), password, options: { data: { agreed_to_terms: LEGAL.updated } } });
         if (error) return fail(friendly(error.message, "Couldn't create your account. Try again."));
         // With email confirmation on (the Supabase default) there's no session yet.
         return ok(data.session ? "signed-in" : "check-email");

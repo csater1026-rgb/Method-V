@@ -23,6 +23,8 @@ export default function SignInScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  // New accounts tick a box agreeing to the Terms and Privacy Policy.
+  const [agreed, setAgreed] = useState(false);
   // After "Email me a code" or creating an account: waiting for the code.
   const [awaiting, setAwaiting] = useState<null | "email" | "signup">(null);
   const [code, setCode] = useState("");
@@ -178,11 +180,47 @@ export default function SignInScreen() {
         </View>
       )}
 
+      {mode === "signup" && (
+        <Pressable
+          accessibilityRole="checkbox"
+          aria-checked={agreed}
+          accessibilityLabel="I'm at least 13 and I agree to the Terms of Service and Privacy Policy"
+          onPress={() => setAgreed((a) => !a)}
+          style={{ flexDirection: "row", alignItems: "flex-start", gap: 10, paddingVertical: 4 }}
+        >
+          <View
+            style={{
+              width: 22,
+              height: 22,
+              borderRadius: 5,
+              borderWidth: 2,
+              borderColor: agreed ? t.accent : t.line,
+              backgroundColor: agreed ? t.accent : "transparent",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            {agreed ? <Body bold size={14} style={{ color: t.accentInk, lineHeight: 16 }}>✓</Body> : null}
+          </View>
+          <Body size={13} style={{ flex: 1 }}>
+            I&apos;m at least 13 and I agree to the{" "}
+            {SITE_URL ? <Body size={13} accessibilityRole="link" style={{ color: t.accent }} onPress={() => void WebBrowser.openBrowserAsync(`${SITE_URL}/terms`)}>
+              Terms of Service
+            </Body> : "Terms of Service"}{" "}
+            and{" "}
+            {SITE_URL ? <Body size={13} accessibilityRole="link" style={{ color: t.accent }} onPress={() => void WebBrowser.openBrowserAsync(`${SITE_URL}/privacy`)}>
+              Privacy Policy
+            </Body> : "Privacy Policy"}
+            .
+          </Body>
+        </Pressable>
+      )}
+
       <Button
         label={primary.label}
         onPress={() => void run("primary", primary.action)}
         busy={busy === "primary"}
-        disabled={!email.trim() || (mode !== "code" && !password)}
+        disabled={!email.trim() || (mode !== "code" && !password) || (mode === "signup" && !agreed)}
       />
       <ErrorText>{error}</ErrorText>
 

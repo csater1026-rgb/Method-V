@@ -176,7 +176,7 @@ export const MIN_PASSWORD = 8;
 
 // The Terms and Privacy Policy (/terms, /privacy): when they last changed
 // and where people write to us. Bump `updated` whenever either page changes.
-export const LEGAL = { updated: "September 27, 2026", email: "hello@methodv.app" } as const;
+export const LEGAL = { updated: "September 27, 2026", email: "team@methodv.app" } as const;
 
 // The Method V tagline: browser tab title, footer, install description.
 export const TAGLINE = "Real apps. Real builders. Real feedback.";
