@@ -154,6 +154,18 @@ else {
   if (res.status !== 200 || !res.headers.get("content-type")?.startsWith("image/")) bad(`the share picture ${u.pathname} answered ${res.status}`);
 }
 
+// A shared app link's preview card (what texts, X and Slack get for
+// /apps/<name>): the app's name and a picture.
+const firstApp = [...seen].find((p) => /^\/apps\/[a-z0-9-]+$/.test(p));
+if (firstApp) {
+  const res = await fetch(`${BASE}/preview${firstApp}`);
+  const card = await res.text();
+  const title = card.match(/<meta property="og:title" content="([^"]+)"/)?.[1];
+  const image = card.match(/<meta property="og:image" content="([^"]+)"/)?.[1];
+  if (res.status !== 200 || !title?.endsWith("on Method V") || !image) bad(`the preview card for ${firstApp} is missing its title or picture (${res.status})`);
+  if (res.headers.get("cache-control") !== "private, no-store") bad("the preview card could be cached for people too");
+} else bad("no app pages found to check the preview card");
+
 await browser.close();
 
 console.log(`visited ${visited} pages (phone and laptop), ${others.size} redirects and files, ${checkedAnchors.size} links to spots on pages`);

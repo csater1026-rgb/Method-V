@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-import { agreeUrl, isOpenPath, mustAgree, welcomeUrl } from "@/lib/gate";
+import { agreeUrl, isOpenPath, mustAgree, previewFor, welcomeUrl } from "@/lib/gate";
 import { isSupabaseConfigured, supabasePublishableKey, supabaseUrl } from "@/lib/supabase/env";
 
 // Refreshes the Supabase session cookie before each page renders, sends
@@ -28,6 +28,9 @@ export async function proxy(request: NextRequest) {
   const { data } = await supabase.auth.getClaims();
   const { pathname, search } = request.nextUrl;
   const claims = data?.claims;
+  // A link-preview bot asking for an app's page gets the app's preview card.
+  const preview = claims ? null : previewFor(pathname, request.headers.get("user-agent"));
+  if (preview) return NextResponse.rewrite(new URL(preview, request.url));
   const target = !claims
     ? isOpenPath(pathname)
       ? null

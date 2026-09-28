@@ -33,6 +33,25 @@ export function safeNextPath(value: string | null | undefined): string {
   return /[\\\s\p{Cc}]/u.test(value) ? "/" : value;
 }
 
+// Link previews: when someone shares an app's link in a text, on X, Slack,
+// Discord and so on, the app that draws the preview card asks for the page
+// without an account. Instead of the welcome page, those preview bots get a
+// small page with just the app's name, tagline and cover picture (all public
+// anyway: embeds and the API show the same). People still sign in first.
+const PREVIEW_BOTS =
+  /facebookexternalhit|facebot|twitterbot|slackbot|slack-imgproxy|discordbot|linkedinbot|whatsapp|telegrambot|skypeuripreview|applebot|redditbot|pinterest|embedly|mastodon|bluesky|cardyb|iframely|snapchat|vkshare|zoominfobot|google-pagerenderer/i;
+
+export function isPreviewBot(userAgent: string | null | undefined): boolean {
+  return typeof userAgent === "string" && PREVIEW_BOTS.test(userAgent);
+}
+
+// The preview page for a signed-out preview bot asking for `pathname`, or null.
+export function previewFor(pathname: string, userAgent: string | null | undefined): string | null {
+  if (!isPreviewBot(userAgent)) return null;
+  const app = /^\/apps\/([a-z0-9-]{1,60})\/?$/.exec(pathname);
+  return app ? `/preview/apps/${app[1]}` : null;
+}
+
 // Where to send a signed-out visitor: the welcome page, then back here.
 export function welcomeUrl(pathname: string, search: string): string {
   const back = pathname + search;

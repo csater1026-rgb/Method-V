@@ -4,14 +4,12 @@ import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 
 import { setAppCover } from "@/app/actions";
+import { COVER_HEIGHT, COVER_WIDTH } from "@/lib/cover-size";
 import { cropToJpeg, imageProblem } from "@/lib/crop-image";
 import { DROPS_BUCKET } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/client";
 
-// Cover images are 16:9: they fill Featured's wide cards and are trimmed at
-// the sides on Browse's 4:3 cards.
-export const COVER_WIDTH = 1280;
-export const COVER_HEIGHT = 720;
+export { COVER_HEIGHT, COVER_WIDTH };
 
 // Crops and uploads a picked cover into the builder's own folder; returns its
 // storage path, or an error.

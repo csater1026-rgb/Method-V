@@ -809,7 +809,7 @@ for (const sf of sources) {
 
 // Signed out: the open routes, and every function they call (followed through
 // the code). getViewer() only reads anything once someone is signed in.
-const OPEN_ROUTES = /^src\/app\/(embed|badge|try|go)\/|^src\/app\/api\/v1\//;
+const OPEN_ROUTES = /^src\/app\/(embed|badge|try|go|preview)\/|^src\/app\/api\/v1\//;
 const SIGNED_IN_ONLY = new Set(["getViewer"]);
 // A function that starts with "if (!viewer ...) return" does nothing signed out.
 const needsViewer = (fn) => {

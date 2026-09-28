@@ -18,7 +18,7 @@ import { pushTarget } from "../src/lib/push-route.ts";
 import { bumpInterest, mergeInterests, parseInterests, rankFeed, serializeInterests } from "../src/lib/interests.ts";
 import { setUpFirst, topUpSuggestions } from "../src/lib/suggest.ts";
 import { EMAIL_TEMPLATES } from "../src/lib/email-templates.ts";
-import { agreeUrl, hasAgreedToTerms, isOpenPath, mustAgree, safeNextPath, welcomeUrl } from "../src/lib/gate.ts";
+import { agreeUrl, hasAgreedToTerms, isOpenPath, isPreviewBot, mustAgree, previewFor, safeNextPath, welcomeUrl } from "../src/lib/gate.ts";
 import { confirmMatches } from "../src/lib/account.ts";
 import { describeDatabaseError, loggingFetch } from "../src/lib/supabase/log.ts";
 import { dbMessage, withVCoin } from "../src/lib/db-errors.ts";
@@ -238,6 +238,29 @@ ok(JSON.stringify(pushTarget("https://evil.example")) === '{"screen":"/"}' && JS
   ok(!mustAgree({}, "/agree") && !mustAgree({}, "/terms") && !mustAgree({}, "/privacy") && !mustAgree({}, "/api/stripe/webhook") && !mustAgree({}, "/auth/callback"), "/agree, the Terms, Privacy, webhooks and sign-in still work before agreeing");
   ok(!mustAgree({ agreed_to_terms: "September 27, 2026" }, "/"), "once agreed, never asked again");
   ok(agreeUrl("/", "") === "/agree" && agreeUrl("/u/ada", "?x=1") === "/agree?next=%2Fu%2Fada%3Fx%3D1", "after agreeing you land where you were going");
+  // Shared app links: preview bots get the app's card, people still sign in.
+  const bots = [
+    "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_1) AppleWebKit/601.2.4 (KHTML, like Gecko) Version/9.0.1 Safari/601.2.4 facebookexternalhit/1.1 Facebot Twitterbot/1.0",
+    "Twitterbot/1.0",
+    "Slackbot-LinkExpanding 1.0 (+https://api.slack.com/robots)",
+    "Mozilla/5.0 (compatible; Discordbot/2.0; +https://discordapp.com)",
+    "LinkedInBot/1.0 (compatible; Mozilla/5.0; Apache-HttpClient +http://www.linkedin.com)",
+    "WhatsApp/2.23.20.0",
+    "TelegramBot (like TwitterBot)",
+  ];
+  ok(bots.every(isPreviewBot), "texts, X, Slack, Discord, LinkedIn, WhatsApp and Telegram previews are recognized");
+  const people = [
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+    "",
+    null,
+  ];
+  ok(people.every((ua) => !isPreviewBot(ua)), "people's browsers aren't treated as preview bots");
+  ok(previewFor("/apps/noteflow", bots[0]) === "/preview/apps/noteflow" && previewFor("/apps/noteflow/", bots[3]) === "/preview/apps/noteflow", "a shared app link gets the app's preview card");
+  ok(previewFor("/apps/noteflow", people[0]) === null, "a person opening an app link still signs in first");
+  ok(["/", "/u/ada", "/apps", "/apps/noteflow/edit", "/apps/Note_Flow", "/q/abc", "/inbox"].every((p) => previewFor(p, bots[0]) === null), "only app pages have preview cards");
+
   // After signing in, only ever back to a page on this site.
   ok(safeNextPath("/apps/noteflow?tab=qa#discuss") === "/apps/noteflow?tab=qa#discuss" && safeNextPath("/") === "/", "a page on this site is kept");
   for (const evil of ["//evil.example", "/\\evil.example", "/\t/evil.example", "/\n/evil.example", "/\r//evil.example", "https://evil.example", "evil.example", "/x\\y", " /x", "/a b", "", null, undefined]) {
