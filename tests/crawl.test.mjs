@@ -24,7 +24,7 @@ const MAX_PAGES = 400;
 const SEEDS = [
   "/", "/login", "/terms", "/privacy", "/offline", "/app", "/agree", "/drops", "/drops?tab=questions", "/browse", "/test",
   "/earn", "/pro", "/credits", "/challenges", "/swaps", "/brands", "/brands/new", "/submit", "/ask", "/settings", "/inbox",
-  "/dashboard", "/developers", "/setup/emails", "/setup/push-keys",
+  "/dashboard", "/developers", "/setup/emails", "/setup/push-keys", "/stats",
 ];
 // Routes that answer with a redirect or a file rather than a page.
 const NOT_PAGES = /^\/(try|go)\/|^\/(api|auth)\/|^\/dashboard\/export|^\/(embed|badge)\//;

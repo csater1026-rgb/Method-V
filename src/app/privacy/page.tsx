@@ -78,7 +78,7 @@ export default function PrivacyPage() {
         <p>We don&apos;t sell your data. We share it only with the services that run Method V for us, and only what each one needs:</p>
         <ul>
           <li><strong>Supabase:</strong> our database, file storage and sign-in.</li>
-          <li><strong>Vercel:</strong> hosts the website.</li>
+          <li><strong>Vercel:</strong> hosts the website and counts visits (without cookies).</li>
           <li><strong>Stripe:</strong> payments and payouts.</li>
           <li><strong>Resend:</strong> sends our emails.</li>
           <li>
@@ -93,6 +93,10 @@ export default function PrivacyPage() {
         <p>
           We use cookies to keep you signed in, and your browser&apos;s storage to remember small things like light or dark mode and whether
           you&apos;ve seen the tour. We don&apos;t use advertising or tracking cookies.
+        </p>
+        <p>
+          We count visits with Vercel Web Analytics, which tells us things like how many people opened a page and from what kind of device.
+          It doesn&apos;t use cookies and doesn&apos;t identify you.
         </p>
       </Section>
 

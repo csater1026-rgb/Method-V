@@ -227,7 +227,7 @@ ok(JSON.stringify(pushTarget("https://evil.example")) === '{"screen":"/"}' && JS
 // an account stays open.
 {
   const gated = ["/", "/drops", "/browse", "/apps/noteflow", "/u/methodv", "/q/abc", "/credits", "/challenges", "/settings", "/loginx", "/api", "/termsx"];
-  const open = ["/login", "/auth/callback", "/api/push/send", "/api/stripe/webhook", "/api/health", "/embed/noteflow", "/badge/noteflow", "/try/noteflow", "/go/noteflow", "/sw.js", "/manifest.webmanifest", "/app-icon/192", "/setup/emails", "/offline", "/terms", "/privacy", "/opengraph-image"];
+  const open = ["/login", "/auth/callback", "/api/push/send", "/api/stripe/webhook", "/api/health", "/embed/noteflow", "/badge/noteflow", "/try/noteflow", "/go/noteflow", "/sw.js", "/manifest.webmanifest", "/app-icon/192", "/setup/emails", "/offline", "/terms", "/privacy", "/opengraph-image", "/_vercel/insights/view", "/_vercel/insights/script.js"];
   ok(gated.every((p) => !isOpenPath(p)), `the site itself needs an account (${gated.filter(isOpenPath).join(", ") || "all gated"})`);
   ok(open.every(isOpenPath), `sign-in, webhooks, embeds and icons still work signed out (${open.filter((p) => !isOpenPath(p)).join(", ") || "all open"})`);
   ok(welcomeUrl("/", "") === "/login" && welcomeUrl("/apps/noteflow", "?tab=qa") === "/login?next=%2Fapps%2Fnoteflow%3Ftab%3Dqa", "after signing in you land where you were going");

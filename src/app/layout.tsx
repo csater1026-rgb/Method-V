@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/next";
 import type { Metadata, Viewport } from "next";
 import { Big_Shoulders, Martian_Mono, Schibsted_Grotesk, Sora } from "next/font/google";
 import { cookies } from "next/headers";
@@ -81,6 +82,8 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           <Footer />
         </SignInProvider>
         <ServiceWorker />
+        {/* Visit counts in Vercel → Analytics: no cookies, nobody identified. Only on Vercel itself. */}
+        {process.env.VERCEL && <Analytics />}
       </body>
     </html>
   );

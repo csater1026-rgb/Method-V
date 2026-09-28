@@ -7,6 +7,7 @@
 
 // Everything inside these folders...
 const OPEN_PREFIXES = [
+  "/_vercel/",
   "/auth/",
   "/api/",
   "/embed/",
