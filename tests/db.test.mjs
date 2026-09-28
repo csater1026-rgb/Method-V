@@ -962,6 +962,17 @@ ok(!!(await fails("anon", null, "insert into public.sponsorships (sponsor_brand,
   ok((await queue(A)).length === n, "turning off followers stops those");
   ok(!!(await fails("authenticated", B, "update public.notification_settings set follows = true where user_id = $1 returning user_id", [A])) || (await db.query("select follows from public.notification_settings where user_id = $1", [A])).rows[0].follows === false, "nobody else can change your settings");
   ok((await as("authenticated", B, "select * from public.notification_settings where user_id = $1", [A])).rows.length === 0, "nobody else sees your settings");
+  // Saving from Settings (website) or Me (app): change your row, or add it the
+  // first time. An upsert also writes user_id, which nobody may update, so the
+  // database refused it every time.
+  const upsert = "insert into public.notification_settings (user_id, follows, feedback, messages) values ($1, true, false, true) on conflict (user_id) do update set user_id = excluded.user_id, follows = excluded.follows, feedback = excluded.feedback, messages = excluded.messages";
+  ok(!!(await fails("authenticated", B, upsert, [B])), "an upsert of your settings is refused (why the site doesn't use one)");
+  const change = "update public.notification_settings set follows = $2, feedback = false, messages = true where user_id = $1 returning user_id";
+  const first = await as("authenticated", B, change, [B, true]);
+  await as("authenticated", B, "insert into public.notification_settings (user_id, follows, feedback, messages) values ($1, true, false, true)", [B]);
+  const second = await as("authenticated", B, change, [B, false]);
+  const mine = (await db.query("select follows, feedback, messages from public.notification_settings where user_id = $1", [B])).rows[0];
+  ok(first.rows.length === 0 && second.rows.length === 1 && mine.follows === false && mine.feedback === false && mine.messages === true, "saving your settings: added the first time, changed after that");
 
   await readAll();
   await as("authenticated", C, "insert into public.comments (drop_id, user_id, body) values ($1, $2, 'The export is so fast')", [dropId, C]);

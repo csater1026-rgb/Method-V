@@ -22,8 +22,6 @@ import { useSignIn } from "./SignIn";
 import { Coin } from "./Coin";
 
 type MyApp = { id: string; name: string };
-// Something you can sponsor with: one of your apps, or a verified brand.
-type Sponsor = MyApp & { kind?: "app" | "brand" };
 type Redirect = { ok: true; url: string } | { ok: false; error: string };
 
 // Dollars typed by a person -> whole cents, or NaN.

@@ -3,6 +3,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { CATEGORIES, MAX_DROP_SECONDS, PRICING, STAGES, isOneOf } from "./constants";
+import { dbMessage } from "./db-errors";
 import { parseList, slugify } from "./format";
 import { checkLink } from "./link-check";
 import { createAdminClient } from "./supabase/server";
@@ -89,7 +90,7 @@ export async function publishApp(
       .select("id, slug")
       .single();
     if (data) app = data;
-    else if (error?.code !== "23505") return { ok: false, error: "Couldn't save your app." };
+    else if (error?.code !== "23505") return { ok: false, error: dbMessage(error, "Couldn't save your app.") };
   }
   if (!app) return { ok: false, error: "Couldn't pick a link for your app. Try a slightly different name." };
 
@@ -111,7 +112,7 @@ export async function publishApp(
 
   if (dropError) {
     await supabase.from("apps").delete().eq("id", app.id);
-    return { ok: false, error: "Couldn't save your Drop." };
+    return { ok: false, error: dbMessage(dropError, "Couldn't save your Drop.") };
   }
   return { ok: true, slug: app.slug };
 }

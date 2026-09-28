@@ -2,6 +2,7 @@ import "server-only";
 
 import { NextResponse } from "next/server";
 
+import { publicFileUrl } from "./supabase/env";
 import type { AppCard, AppDetail, Challenge, Profile } from "./types";
 
 // The public, read-only API (/api/v1). Everything here is already public on
@@ -50,7 +51,8 @@ export function publicApp(app: AppCard | AppDetail, origin: string) {
     page_url: `${origin}/apps/${app.slug}`,
     try_url: `${origin}/try/${app.slug}?via=api`,
     embed_url: `${origin}/embed/${app.slug}`,
-    poster_url: "poster_url" in app ? app.poster_url : (drop?.poster_url ?? null),
+    // The app's cover image when it has one, like its card on the site.
+    poster_url: "poster_url" in app ? app.poster_url : (publicFileUrl(app.cover_path ?? null) ?? drop?.poster_url ?? null),
     drop: drop ? { video_url: drop.video_url, poster_url: drop.poster_url, duration_seconds: drop.duration_seconds, caption: drop.caption } : undefined,
     stats: {
       tries: app.try_count,

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { SignOutButton } from "@/components/SignOutButton";
-import { hasAgreedToTerms } from "@/lib/gate";
+import { hasAgreedToTerms, safeNextPath } from "@/lib/gate";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
@@ -15,8 +15,8 @@ export const metadata: Metadata = { title: "One more step" };
 // saw the sign-up box), and accounts from before it existed.
 export default async function AgreePage({ searchParams }: PageProps<"/agree">) {
   const params = await searchParams;
-  const raw = typeof params.next === "string" ? params.next : "/";
-  const next = raw.startsWith("/") && !raw.startsWith("//") && !raw.startsWith("/\\") && !raw.startsWith("/agree") ? raw : "/";
+  const raw = safeNextPath(typeof params.next === "string" ? params.next : null);
+  const next = raw.startsWith("/agree") ? "/" : raw;
 
   if (isSupabaseConfigured) {
     const supabase = await createClient();

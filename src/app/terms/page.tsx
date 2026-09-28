@@ -36,7 +36,7 @@ export default function TermsPage() {
 
       <Section title="2. Your content">
         <p>
-          You own what you post: your apps, Drops (videos), photos, comments, questions, answers and feedback. When you post something, you
+          You own what you post: your apps, Drops (videos), photos, questions, answers and feedback. When you post something, you
           give us permission to store it, show it on Method V, and use it to promote Method V (for example, featuring your Drop on Home or
           sharing it on our social accounts). This permission ends when you delete the content or your account, except for copies that were
           already shared or that we must keep by law.

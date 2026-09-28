@@ -18,8 +18,10 @@ import { pushTarget } from "../src/lib/push-route.ts";
 import { bumpInterest, mergeInterests, parseInterests, rankFeed, serializeInterests } from "../src/lib/interests.ts";
 import { setUpFirst, topUpSuggestions } from "../src/lib/suggest.ts";
 import { EMAIL_TEMPLATES } from "../src/lib/email-templates.ts";
-import { agreeUrl, hasAgreedToTerms, isOpenPath, mustAgree, welcomeUrl } from "../src/lib/gate.ts";
+import { agreeUrl, hasAgreedToTerms, isOpenPath, mustAgree, safeNextPath, welcomeUrl } from "../src/lib/gate.ts";
 import { confirmMatches } from "../src/lib/account.ts";
+import { describeDatabaseError, loggingFetch } from "../src/lib/supabase/log.ts";
+import { dbMessage, withVCoin } from "../src/lib/db-errors.ts";
 
 let failures = 0;
 const ok = (cond: boolean, msg: string) => {
@@ -225,7 +227,7 @@ ok(JSON.stringify(pushTarget("https://evil.example")) === '{"screen":"/"}' && JS
 // an account stays open.
 {
   const gated = ["/", "/drops", "/browse", "/apps/noteflow", "/u/methodv", "/q/abc", "/credits", "/challenges", "/settings", "/loginx", "/api", "/termsx"];
-  const open = ["/login", "/auth/callback", "/api/push/send", "/api/stripe/webhook", "/api/health", "/embed/noteflow", "/badge/noteflow", "/try/noteflow", "/go/noteflow", "/sw.js", "/manifest.webmanifest", "/app-icon/192", "/setup/emails", "/offline", "/terms", "/privacy"];
+  const open = ["/login", "/auth/callback", "/api/push/send", "/api/stripe/webhook", "/api/health", "/embed/noteflow", "/badge/noteflow", "/try/noteflow", "/go/noteflow", "/sw.js", "/manifest.webmanifest", "/app-icon/192", "/setup/emails", "/offline", "/terms", "/privacy", "/opengraph-image"];
   ok(gated.every((p) => !isOpenPath(p)), `the site itself needs an account (${gated.filter(isOpenPath).join(", ") || "all gated"})`);
   ok(open.every(isOpenPath), `sign-in, webhooks, embeds and icons still work signed out (${open.filter((p) => !isOpenPath(p)).join(", ") || "all open"})`);
   ok(welcomeUrl("/", "") === "/login" && welcomeUrl("/apps/noteflow", "?tab=qa") === "/login?next=%2Fapps%2Fnoteflow%3Ftab%3Dqa", "after signing in you land where you were going");
@@ -236,6 +238,15 @@ ok(JSON.stringify(pushTarget("https://evil.example")) === '{"screen":"/"}' && JS
   ok(!mustAgree({}, "/agree") && !mustAgree({}, "/terms") && !mustAgree({}, "/privacy") && !mustAgree({}, "/api/stripe/webhook") && !mustAgree({}, "/auth/callback"), "/agree, the Terms, Privacy, webhooks and sign-in still work before agreeing");
   ok(!mustAgree({ agreed_to_terms: "September 27, 2026" }, "/"), "once agreed, never asked again");
   ok(agreeUrl("/", "") === "/agree" && agreeUrl("/u/ada", "?x=1") === "/agree?next=%2Fu%2Fada%3Fx%3D1", "after agreeing you land where you were going");
+  // After signing in, only ever back to a page on this site.
+  ok(safeNextPath("/apps/noteflow?tab=qa#discuss") === "/apps/noteflow?tab=qa#discuss" && safeNextPath("/") === "/", "a page on this site is kept");
+  for (const evil of ["//evil.example", "/\\evil.example", "/\t/evil.example", "/\n/evil.example", "/\r//evil.example", "https://evil.example", "evil.example", "/x\\y", " /x", "/a b", "", null, undefined]) {
+    ok(safeNextPath(evil) === "/", `a link that could leave the site goes home instead (${JSON.stringify(evil)})`);
+  }
+  // What the browser would make of the ones that pass: always this site.
+  for (const kept of ["/apps/x", "/%2F%2Fevil.example", "/%09/evil.example", "/q/1?next=//evil.example"]) {
+    ok(new URL(safeNextPath(kept), "https://methodv.app").host === "methodv.app", `${kept} stays on methodv.app`);
+  }
 }
 
 // Delete account: type your username to confirm.
@@ -295,6 +306,47 @@ ok(!confirmMatches("ada", "ada_builds") && !confirmMatches("", "ada_builds") && 
     /from\s+["'][^"']*\/mobile\//.test(readFileSync(f, "utf8")),
   );
   ok(offenders.length === 0, `the website never imports from mobile/ (${offenders.map((f) => f.replace(root, "")).join(", ") || "none"})`);
+}
+
+// --- Database errors are logged (so empty pages have a reason in the logs) ---
+{
+  const base = "https://x.supabase.co";
+  const err = (code: string) => JSON.stringify({ code, message: `boom ${code}`, details: null, hint: null });
+  ok(describeDatabaseError("GET", `${base}/rest/v1/apps`, 304, "") === null, "a status below 400 isn't an error");
+  const ambiguous = describeDatabaseError("GET", `${base}/rest/v1/questions?select=id,answers(id)&id=eq.1`, 400, err("PGRST201"));
+  ok(ambiguous === "database error: GET /questions -> 400 PGRST201: boom PGRST201", `a broken query is logged by table and code (${ambiguous})`);
+  ok(!ambiguous?.includes("select=") && !ambiguous?.includes("eq.1"), "the query itself (what people typed) isn't logged");
+  ok(describeDatabaseError("POST", `${base}/rest/v1/rpc/my_credits`, 404, err("PGRST202"))?.includes("/rpc/my_credits -> 404 PGRST202") === true, "a missing function is logged");
+  ok(describeDatabaseError("POST", `${base}/rest/v1/likes`, 409, err("23505")) === null, "a duplicate isn't logged");
+  ok(describeDatabaseError("POST", `${base}/rest/v1/rpc/tip`, 400, err("P0001")) === null, "a friendly message from the database isn't logged");
+  ok(describeDatabaseError("GET", `${base}/rest/v1/apps`, 406, err("PGRST116")) === null, "no row for .single() isn't logged");
+  ok(describeDatabaseError("POST", `${base}/auth/v1/token`, 400, err("invalid_grant")) === null, "sign-in errors aren't logged here");
+  ok(describeDatabaseError("GET", `${base}/rest/v1/apps`, 502, "<html>gateway</html>")?.endsWith("-> 502: <html>gateway</html>") === true, "a non-JSON error keeps its text");
+
+  const realFetch = globalThis.fetch;
+  const realError = console.error;
+  const logged: string[] = [];
+  console.error = (...args: unknown[]) => void logged.push(args.join(" "));
+  globalThis.fetch = (async () => new Response(err("42501"), { status: 403 })) as typeof fetch;
+  try {
+    const res = await loggingFetch(`${base}/rest/v1/notification_settings?on_conflict=user_id`, { method: "POST" });
+    ok(logged.length === 1 && logged[0].includes("POST /notification_settings -> 403 42501"), `loggingFetch logs a refused write (${logged[0]})`);
+    ok((await res.json()).code === "42501", "the caller still gets the error body");
+  } finally {
+    globalThis.fetch = realFetch;
+    console.error = realError;
+  }
+}
+
+// --- The database's own messages reach people, in V Coin words ---
+{
+  const tooFast = { code: "P0001", message: "You're doing that too fast. Take a short break and try again." };
+  ok(dbMessage(tooFast, "Couldn't post your question.") === tooFast.message, "the spam limit's message is shown as it is");
+  ok(dbMessage({ code: "42501", message: "new row violates row-level security policy" }, "Couldn't post.") === "Couldn't post.", "other errors get the plain fallback");
+  ok(dbMessage(null, "x") === "x" && dbMessage(undefined, "x") === "x", "no error, no message");
+  ok(withVCoin("That costs 50 credits and you have 20.") === "That costs 50 V Coin and you have 20.", "older messages say V Coin");
+  ok(withVCoin("The Spotlight costs 200 credits and you have 0.") === "The Spotlight costs 200 V Coin and you have 0." && withVCoin("Pick a credit pack.") === "Pick a V Coin pack.", "the Spotlight and pack messages too");
+  ok(dbMessage({ code: "P0001", message: "That costs 50 credits and you have 20." }, "x") === "That costs 50 V Coin and you have 20.", "and they're reworded on the way out");
 }
 
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");

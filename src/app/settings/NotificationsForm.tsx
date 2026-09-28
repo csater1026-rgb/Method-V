@@ -8,7 +8,7 @@ type Kinds = { follows: boolean; feedback: boolean; messages: boolean };
 
 const KINDS: { key: keyof Kinds; label: string; hint: string }[] = [
   { key: "follows", label: "New followers", hint: "When someone follows you." },
-  { key: "feedback", label: "Feedback on your apps", hint: "Tester feedback, comments on your Drops and questions about your apps." },
+  { key: "feedback", label: "Feedback on your apps", hint: "Tester feedback and questions about your apps." },
   { key: "messages", label: "Messages", hint: "Direct messages and connection requests." },
 ];
 

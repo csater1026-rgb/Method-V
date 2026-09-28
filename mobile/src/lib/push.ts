@@ -74,6 +74,15 @@ export async function getPushKinds(userId: string): Promise<PushKinds> {
 
 export async function savePushKinds(userId: string, kinds: PushKinds): Promise<Result> {
   if (!supabase) return fail(DEMO_MESSAGE);
-  const { error } = await supabase.from("notification_settings").upsert({ user_id: userId, ...kinds }, { onConflict: "user_id" });
-  return error ? fail("Couldn't save your notification settings.") : ok(undefined);
+  // Not an upsert: that also rewrites user_id, which people can't change, so
+  // the database refused every save. Change your row, or add it the first time.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const { data: changed, error } = await supabase.from("notification_settings").update(kinds).eq("user_id", userId).select("user_id");
+    if (error) break;
+    if (changed?.length) return ok(undefined);
+    const { error: insertError } = await supabase.from("notification_settings").insert({ user_id: userId, ...kinds });
+    if (!insertError) return ok(undefined);
+    if (insertError.code !== "23505") break; // added at the same moment elsewhere: change it instead
+  }
+  return fail("Couldn't save your notification settings.");
 }

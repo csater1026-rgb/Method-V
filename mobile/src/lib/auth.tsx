@@ -60,15 +60,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!supabase || !s) return setViewer(null);
     const [{ data, error }, balance] = await Promise.all([
       supabase.from("profiles").select("id, username, display_name, roles, avatar_path").eq("id", s.user.id).maybeSingle(),
-      // V Coin balances are private: my_credits() reads only your own. Before
-      // the website's 20261011000000_security_hardening.sql, read the column.
+      // V Coin balances are private: my_credits() reads only your own.
       supabase.rpc("my_credits"),
     ]);
-    let credits = Number(balance.data ?? 0);
-    if (balance.error) {
-      const { data: row } = await supabase.from("profiles").select("credits").eq("id", s.user.id).maybeSingle();
-      credits = Number(row?.credits ?? 0);
-    }
+    const credits = Number(balance.data ?? 0);
+    if (balance.error) console.warn("Couldn't load your V Coin", balance.error.message);
     if (error) console.warn("Couldn't load your profile", error.message);
     setViewer(
       data

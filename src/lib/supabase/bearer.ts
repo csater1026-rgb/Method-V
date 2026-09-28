@@ -3,6 +3,7 @@ import "server-only";
 import { createClient as createPlainClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { isSupabaseConfigured, supabasePublishableKey, supabaseUrl } from "./env";
+import { loggingFetch } from "./log";
 
 // For the mobile app, which signs in on the phone and sends its access token
 // as "Authorization: Bearer …". Returns a client that acts as that person (so
@@ -12,7 +13,7 @@ export async function clientFromBearer(request: Request): Promise<{ supabase: Su
   const token = request.headers.get("authorization")?.match(/^Bearer\s+(\S+)$/i)?.[1];
   if (!token) return null;
   const supabase = createPlainClient(supabaseUrl, supabasePublishableKey, {
-    global: { headers: { Authorization: `Bearer ${token}` } },
+    global: { headers: { Authorization: `Bearer ${token}` }, fetch: loggingFetch },
     auth: { persistSession: false, autoRefreshToken: false },
   });
   const { data, error } = await supabase.auth.getUser(token);

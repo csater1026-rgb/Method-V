@@ -19,6 +19,16 @@ const code = Martian_Mono({ variable: "--font-code", subsets: ["latin"], axes: [
 // The Method V logo's word (the V itself is pixels, see Wordmark).
 const logo = Sora({ variable: "--font-logo-word", subsets: ["latin"], weight: ["700", "800"] });
 
+// The live address, for absolute links in previews. A typo in
+// NEXT_PUBLIC_SITE_URL (say, no https://) falls back instead of breaking pages.
+function siteUrl(): URL {
+  try {
+    return new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "");
+  } catch {
+    return new URL("https://methodv.app");
+  }
+}
+
 export const metadata: Metadata = {
   title: {
     default: `Method V — ${TAGLINE}`,
@@ -27,6 +37,10 @@ export const metadata: Metadata = {
   description:
     "Method V is where builders and vibe coders show off the apps they've made, get honest feedback from real people, and get traction: testers, followers, featured spots and sponsors.",
   applicationName: "Method V",
+  // Link previews (opengraph-image.tsx is the picture) point at the real site.
+  metadataBase: siteUrl(),
+  openGraph: { type: "website", siteName: "Method V" },
+  twitter: { card: "summary_large_image" },
   // Opens full screen when added to an iPhone home screen.
   appleWebApp: { capable: true, title: "Method V", statusBarStyle: "default" },
 };

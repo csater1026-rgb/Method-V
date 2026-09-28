@@ -30,7 +30,7 @@ export default function PrivacyPage() {
             <strong>Your profile:</strong> your username, display name, bio, photo, status and the social links you add.
           </li>
           <li>
-            <strong>What you post:</strong> apps, Drops (videos), comments, questions, answers, polls and votes, feedback, and messages you
+            <strong>What you post:</strong> apps, Drops (videos), questions, answers, polls and votes, feedback, and messages you
             send to other people.
           </li>
           <li>
@@ -65,7 +65,7 @@ export default function PrivacyPage() {
       <Section title="3. What other people can see">
         <p>
           <strong>Public to other members:</strong> your profile (username, name, bio, photo, status, social links), your apps and Drops,
-          comments, questions and answers, your Tester Passport, and who you follow.
+          questions and answers, your Tester Passport, and who you follow.
         </p>
         <p>
           <strong>Private:</strong> your email address, your V Coin balance and history, your payments and earnings, and your messages
@@ -106,7 +106,7 @@ export default function PrivacyPage() {
 
       <Section title="7. Your choices">
         <ul>
-          <li>Edit your profile, and delete your comments, questions and answers, at any time.</li>
+          <li>Edit your profile, and delete your questions and answers, at any time.</li>
           <li>To remove an app or a Drop, email us and we&apos;ll take it down.</li>
           <li>Turn notifications on or off in your settings.</li>
           <li>

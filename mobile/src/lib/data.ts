@@ -13,7 +13,6 @@ import {
   demoApps,
   demoBrands,
   demoCommentDate,
-  demoComments,
   demoDrops,
   demoFeaturedIds,
   demoProfiles,
@@ -25,7 +24,6 @@ import type {
   App,
   AppCard,
   AppDetail,
-  Comment,
   Drop,
   FeedItem,
   Profile,
@@ -42,6 +40,7 @@ import { SIGNALS, bumpInterest, mergeInterests, rankFeed, rankQuestions, type In
 import { SUGGESTION_LIMIT, setUpFirst, topUpSuggestions } from "@shared/suggest";
 
 import { DEMO_MESSAGE, DROPS_BUCKET, SITE_URL, SUPABASE_KEY, SUPABASE_URL, fileUrl } from "./config";
+import { dbMessage } from "@shared/db-errors";
 import { fail, friendly, ok, type Result } from "./result";
 import { supabase } from "./supabase";
 
@@ -307,15 +306,12 @@ export async function browseApps({ q, category }: { q?: string; category?: strin
   return (data ?? []).map(toCard);
 }
 
-export async function getAppDetail(slug: string, viewerId: string | null): Promise<{ app: AppDetail; comments: Comment[] } | null> {
+export async function getAppDetail(slug: string, viewerId: string | null): Promise<{ app: AppDetail } | null> {
   if (!supabase) {
     const found = demoApps.find((a) => a.slug === slug);
     if (!found) return null;
     const drop = demoDrops.find((d) => d.app_id === found.id) ?? null;
-    const comments = drop
-      ? (demoComments[drop.id] ?? []).map((c, i) => ({ id: `${drop.id}-${i}`, body: c.body, created_at: demoCommentDate(c.days), user: toSummary(demoProfile(c.user)) }))
-      : [];
-    return { app: { ...found, owner: toSummary(demoProfile(found.owner_id)), drop, liked: false, sponsor: demoSponsor(found.id) }, comments };
+    return { app: { ...found, owner: toSummary(demoProfile(found.owner_id)), drop, liked: false, sponsor: demoSponsor(found.id) } };
   }
   const { data: row } = await supabase
     .from("apps")
@@ -332,21 +328,12 @@ export async function getAppDetail(slug: string, viewerId: string | null): Promi
     .limit(1)
     .maybeSingle();
   const drop = dropRow ? toDrop(dropRow) : null;
-  const [liked, sponsors, comments] = await Promise.all([
+  const [liked, sponsors] = await Promise.all([
     drop ? likedIds(viewerId, [drop.id]) : Promise.resolve(new Set<string>()),
     sponsorCards([row.id]),
-    drop
-      ? supabase
-          .from("comments")
-          .select(`id, body, created_at, user:profiles!comments_user_id_fkey(${SUMMARY})`)
-          .eq("drop_id", drop.id)
-          .order("created_at", { ascending: true })
-          .limit(100)
-      : Promise.resolve({ data: [] as any[] }),
   ]);
   return {
     app: { ...toApp(row), owner: toSummary(row.owner), drop, liked: drop ? liked.has(drop.id) : false, sponsor: sponsors.get(row.id) ?? null },
-    comments: ((comments.data ?? []) as any[]).map((c) => ({ id: c.id, body: c.body, created_at: c.created_at, user: toSummary(c.user) })),
   };
 }
 
@@ -436,10 +423,12 @@ async function getLeaderboards(): Promise<{ builders: TopBuilder[]; testers: Top
 // Questions (the Questions side of Drops, and a question's thread)
 // ---------------------------------------------------------------------------
 
-const QUESTION_SELECT = `id, body, created_at, vote_count, answer_count, best_answer_id, user_id, poll_options, poll_counts,
+const QUESTION_BASE = `id, app_id, body, created_at, vote_count, answer_count, best_answer_id, user_id, poll_options, poll_counts,
   user:profiles!questions_user_id_fkey(${SUMMARY}),
-  answers!answers_question_id_fkey(id, body, created_at, vote_count, parent_id, user:profiles!answers_user_id_fkey(${SUMMARY})),
-  app:apps!inner(id, slug, name, tagline, category, owner_id, link_checked_at)`;
+  answers!answers_question_id_fkey(id, body, created_at, vote_count, parent_id, user:profiles!answers_user_id_fkey(${SUMMARY}))`;
+const QUESTION_APP = "id, slug, name, tagline, category, owner_id, link_checked_at";
+const QUESTION_SELECT = `${QUESTION_BASE},
+  app:apps!inner(${QUESTION_APP})`;
 // (The app's question screens don't show Drop posters, so none are loaded.)
 
 // Best first, then votes, then oldest; replies right under their answer.
@@ -604,8 +593,19 @@ export async function getMyApps(viewerId: string | null): Promise<{ id: string; 
 
 export async function getQuestion(id: string, viewerId: string | null): Promise<QuestionCard | null> {
   if (!supabase) return demoQuestionCards().find((q) => q.id === id) ?? null;
-  const { data } = await supabase.from("questions").select(QUESTION_SELECT).eq("id", id).not("app.link_checked_at", "is", null).maybeSingle();
-  if (!data) return null;
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
+  const joined = await supabase.from("questions").select(QUESTION_SELECT).eq("id", id).not("app.link_checked_at", "is", null).maybeSingle();
+  if (joined.error) console.warn("Couldn't load the question", joined.error.message);
+  let data = joined.data as any;
+  if (!data) {
+    // Read the question and its app separately, so a problem with the
+    // combined read never turns a real question into "not found".
+    const { data: q } = await supabase.from("questions").select(QUESTION_BASE).eq("id", id).maybeSingle();
+    if (!q) return null;
+    const { data: app } = await supabase.from("apps").select(QUESTION_APP).eq("id", (q as any).app_id).maybeSingle();
+    if (!app?.link_checked_at) return null;
+    data = { ...(q as any), app };
+  }
   return toQuestionCard(data, await viewerQaState(viewerId, [data], true));
 }
 
@@ -625,17 +625,7 @@ export async function setLike(dropId: string, liked: boolean): Promise<Result> {
   const { error } = liked
     ? await supabase!.from("likes").insert({ user_id: auth.data.id, drop_id: dropId })
     : await supabase!.from("likes").delete().eq("user_id", auth.data.id).eq("drop_id", dropId);
-  return error && error.code !== "23505" ? fail("Couldn't save your like.") : ok(undefined);
-}
-
-export async function addComment(dropId: string, body: string): Promise<Result> {
-  const auth = await signedIn();
-  if (!auth.ok) return auth;
-  const text = body.trim();
-  if (!text) return fail("Write something first.");
-  if (text.length > 500) return fail("Comments can be up to 500 characters.");
-  const { error } = await supabase!.from("comments").insert({ drop_id: dropId, user_id: auth.data.id, body: text });
-  return error ? fail("Couldn't post your comment.") : ok(undefined);
+  return error && error.code !== "23505" ? fail(dbMessage(error, "Couldn't save your like.")) : ok(undefined);
 }
 
 // Who follows someone, or who they follow (newest first), with which of
@@ -715,7 +705,7 @@ export async function askQuestion(appId: string, body: string, pollOptions: stri
     .insert({ app_id: appId, user_id: auth.data.id, body: text, ...(options.length ? { poll_options: options } : {}) })
     .select("id")
     .single();
-  return error ? fail("Couldn't post your question.") : ok((data as { id: string }).id);
+  return error ? fail(dbMessage(error, "Couldn't post your question.")) : ok((data as { id: string }).id);
 }
 
 // Pick a poll choice (0-based), change it, or null to take it back.
@@ -736,7 +726,7 @@ export async function answerQuestion(questionId: string, body: string, parentId:
   const { error } = await supabase!
     .from("answers")
     .insert({ question_id: questionId, user_id: auth.data.id, body: text, ...(parentId ? { parent_id: parentId } : {}) });
-  return error ? fail("Couldn't post your answer.") : ok(undefined);
+  return error ? fail(dbMessage(error, "Couldn't post your answer.")) : ok(undefined);
 }
 
 // Your status (and other role tags), shown as a badge by your photo.

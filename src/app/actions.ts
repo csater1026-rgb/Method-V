@@ -35,7 +35,9 @@ import {
 import { sitePreview, type SitePreview } from "@/lib/site-preview";
 import { SOCIALS, cleanHandle } from "@/lib/socials";
 import { DEMO_MODE_MESSAGE, DROPS_BUCKET, authProviders, isSupabaseConfigured, type AuthProvider } from "@/lib/supabase/env";
+import { dbMessage, withVCoin } from "@/lib/db-errors";
 import { deleteAccount } from "@/lib/delete-account";
+import { safeNextPath } from "@/lib/gate";
 import { isPushServiceEndpoint } from "@/lib/push-core";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import type { ActionResult, Viewer } from "@/lib/types";
@@ -66,9 +68,7 @@ export type SignInState =
   | { status: "confirm"; email: string }
   | { status: "error"; error: string };
 
-function safeNext(value: string): string {
-  return value.startsWith("/") && !value.startsWith("//") && !value.startsWith("/\\") ? value : "/";
-}
+const safeNext = safeNextPath;
 
 async function siteOrigin(): Promise<string> {
   const configured = process.env.NEXT_PUBLIC_SITE_URL;
@@ -230,7 +230,7 @@ export async function setLike(dropId: string, liked: boolean): Promise<ActionRes
     ? await supabase.from("likes").insert({ user_id: auth.viewer.id, drop_id: dropId })
     : await supabase.from("likes").delete().eq("user_id", auth.viewer.id).eq("drop_id", dropId);
   // Liking twice (e.g. two tabs) is fine.
-  if (error && error.code !== "23505") return { ok: false, error: "Couldn't save your like." };
+  if (error && error.code !== "23505") return { ok: false, error: dbMessage(error, "Couldn't save your like.") };
   return { ok: true };
 }
 
@@ -244,7 +244,7 @@ export async function setFollow(profileId: string, follow: boolean): Promise<Act
   const { error } = follow
     ? await supabase.from("follows").insert({ follower_id: auth.viewer.id, following_id: profileId })
     : await supabase.from("follows").delete().eq("follower_id", auth.viewer.id).eq("following_id", profileId);
-  if (error && error.code !== "23505") return { ok: false, error: "Couldn't update follow." };
+  if (error && error.code !== "23505") return { ok: false, error: dbMessage(error, "Couldn't update follow.") };
   return { ok: true };
 }
 
@@ -388,16 +388,23 @@ export async function setAppCover(appId: string, path: string | null): Promise<A
 export async function saveNotificationSettings(settings: { follows: boolean; feedback: boolean; messages: boolean }): Promise<ActionResult> {
   const auth = await requireViewer();
   if ("error" in auth) return { ok: false, error: auth.error };
-  const row = {
-    user_id: auth.viewer.id,
+  const kinds = {
     follows: settings.follows === true,
     feedback: settings.feedback === true,
     messages: settings.messages === true,
   };
   const supabase = await createClient();
-  const { error } = await supabase.from("notification_settings").upsert(row, { onConflict: "user_id" });
-  if (error) return { ok: false, error: "Couldn't save your notification settings." };
-  return { ok: true };
+  // Not an upsert: that also rewrites user_id, which people can't change, so
+  // the database refused every save. Change your row, or add it the first time.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const { data: changed, error } = await supabase.from("notification_settings").update(kinds).eq("user_id", auth.viewer.id).select("user_id");
+    if (error) break;
+    if (changed?.length) return { ok: true };
+    const { error: insertError } = await supabase.from("notification_settings").insert({ user_id: auth.viewer.id, ...kinds });
+    if (!insertError) return { ok: true };
+    if (insertError.code !== "23505") break; // added at the same moment elsewhere: change it instead
+  }
+  return { ok: false, error: "Couldn't save your notification settings." };
 }
 
 export async function registerWebPush(sub: { endpoint: string; keys: { p256dh: string; auth: string } }): Promise<ActionResult> {
@@ -499,7 +506,7 @@ export async function submitFeedback(appId: string, appSlug: string, input: NewF
 
 function rpcError(message: string | undefined, fallback: string): string {
   // Messages raised by our database functions are written for people; anything else isn't.
-  return message && !/permission|violates|function|column|relation/i.test(message) ? message : fallback;
+  return message && !/permission|violates|function|column|relation/i.test(message) ? withVCoin(message) : fallback;
 }
 
 export async function requestTesters(appId: string, appSlug: string, testers: number): Promise<ActionResult> {
@@ -608,7 +615,7 @@ export async function postUpdate(body: string, appId: string | null): Promise<Ac
     .insert({ user_id: auth.viewer.id, app_id: appId || null, body: text })
     .select("app:apps(slug)")
     .single();
-  if (error) return { ok: false, error: "Couldn't post your update." };
+  if (error) return { ok: false, error: dbMessage(error, "Couldn't post your update.") };
   revalidatePath("/");
   revalidatePath(`/u/${auth.viewer.username}`);
   const slug = (data?.app as unknown as { slug: string } | null)?.slug;
@@ -696,7 +703,7 @@ export async function sendMessage(recipientId: string, username: string, body: s
   const { error } = await supabase.from("messages").insert({ sender_id: auth.viewer.id, recipient_id: recipientId, body: text });
   if (error) {
     if (error.code === "42501") return { ok: false, error: "You can message people once you're connected." };
-    return { ok: false, error: "Couldn't send your message." };
+    return { ok: false, error: dbMessage(error, "Couldn't send your message.") };
   }
   revalidatePath(`/inbox/${username}`);
   return { ok: true };
@@ -747,7 +754,7 @@ export async function askQuestion(
     if (options.length && (error.code === "PGRST204" || error.code === "42703")) {
       return { ok: false, error: "Polls need the latest database update. Open /api/health to see what to run." };
     }
-    return { ok: false, error: "Couldn't post your question." };
+    return { ok: false, error: dbMessage(error, "Couldn't post your question.") };
   }
   revalidatePath(qaPath(appSlug));
   revalidatePath("/drops");
@@ -786,7 +793,7 @@ export async function answerQuestion(
     if (parentId && (error.code === "PGRST204" || error.code === "42703")) {
       return { ok: false, error: "Replies need the latest database update. Open /api/health to see what to run." };
     }
-    return { ok: false, error: "Couldn't post your answer." };
+    return { ok: false, error: dbMessage(error, "Couldn't post your answer.") };
   }
   revalidatePath(qaPath(appSlug));
   revalidatePath(`/q/${questionId}`);

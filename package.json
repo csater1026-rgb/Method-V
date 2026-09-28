@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "test:db": "node tests/db.test.mjs",
+    "test:queries": "node tests/queries.test.mjs",
     "test:ui": "node tests/ui.test.mjs",
+    "test:crawl": "node tests/crawl.test.mjs",
     "test:unit": "node --conditions=react-server --experimental-strip-types --no-warnings tests/unit.test.mts",
     "db:bundle": "node scripts/bundle-migrations.mjs"
   },

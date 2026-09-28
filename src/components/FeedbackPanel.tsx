@@ -155,7 +155,7 @@ function FeedbackForm({ app, open }: { app: AppRef; open: TestRequest | null }) 
     <form action={submit} className="mt-3 flex flex-col gap-4">
       <p className="text-sm text-muted">
         Honest and specific helps most. Only the builder sees what you write
-        {open ? `; you earn ${CREDITS.feedbackReward} credits` : ""}.
+        {open ? `; you earn ${CREDITS.feedbackReward} V Coin` : ""}.
       </p>
 
       <fieldset>

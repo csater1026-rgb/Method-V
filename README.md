@@ -163,6 +163,8 @@ npm run lint
 npx tsc --noEmit
 npm run test:unit   # site preview parsing, category guesses, link safety, Stripe signatures
 npm run test:db     # security rules against an in-memory Postgres
+npm run test:queries  # every query in the site and app, checked against the real schema and its rules
 npm run build && npm start   # then, in another terminal:
 npm run test:ui     # clicks through the site in Chromium (demo mode)
+npm run test:crawl  # visits every page by following links: no 404s, errors or sideways scroll
 ```

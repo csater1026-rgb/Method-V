@@ -184,14 +184,6 @@ export const demoDrops: Drop[] = demoApps.map((app, i) => ({
   created_at: app.created_at,
 }));
 
-export const demoComments: Record<string, { user: string; body: string; days: number }[]> = {
-  "demo-drop-noteflow": [
-    { user: "demo-june", body: "The auto-assigning owners part is so good.", days: 1 },
-    { user: "demo-marco", body: "Does it work with Google Meet recordings?", days: 0.5 },
-  ],
-  "demo-drop-palettepal": [{ user: "demo-ada", body: "Using this for my next launch page.", days: 4 }],
-};
-
 export const demoCommentDate = ago;
 
 // Build-in-public updates.

@@ -186,13 +186,11 @@ function toFeedback(row: any): Feedback {
 
 const demoProfile = (id: string) => demoProfiles.find((p) => p.id === id)!;
 
-// Your V Coin balance. Balances are private (my_credits() reads only your
-// own); before 20261011000000_security_hardening.sql, read the column.
-async function myCredits(supabase: Awaited<ReturnType<typeof createClient>>, id: string): Promise<number> {
+// Your V Coin balance. Balances are private: my_credits() reads only your own.
+async function myCredits(supabase: Awaited<ReturnType<typeof createClient>>): Promise<number> {
   const { data, error } = await supabase.rpc("my_credits");
-  if (!error) return Number(data ?? 0);
-  const { data: row } = await supabase.from("profiles").select("credits").eq("id", id).maybeSingle<{ credits: number | null }>();
-  return row?.credits ?? 0;
+  if (error) console.error("my_credits failed", error.code, error.message);
+  return Number(data ?? 0);
 }
 
 export const getViewer = cache(async (): Promise<Viewer | null> => {
@@ -208,7 +206,7 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
       .select(avatarColumn ? "username, avatar_path" : "username")
       .eq("id", id)
       .maybeSingle<{ username: string; avatar_path?: string | null }>(),
-    myCredits(supabase, id),
+    myCredits(supabase),
   ]);
   return profile ? { id, username: profile.username, credits, avatar_url: publicFileUrl(profile.avatar_path ?? null) } : null;
 });

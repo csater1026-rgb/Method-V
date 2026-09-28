@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { labelFor, CATEGORIES } from "@/lib/constants";
 import { getApp } from "@/lib/data";
 import { formatCount } from "@/lib/format";
+import { publicFileUrl } from "@/lib/supabase/env";
 
 // An app card other sites can drop in with an <iframe>. Plain HTML and inline
 // CSS with system fonts: no scripts, nothing loaded from elsewhere except the
@@ -25,7 +26,8 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/embed/[slug]
   const t = THEMES[request.nextUrl.searchParams.get("theme") === "light" ? "light" : "dark"];
   const origin = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ?? request.nextUrl.origin;
   const page = `${origin}/apps/${app.slug}`;
-  const poster = app.drop?.poster_url;
+  // The app's cover image when it has one (like its card on Browse), else the Drop's poster.
+  const poster = publicFileUrl(app.cover_path ?? null) ?? app.drop?.poster_url;
   const tries = `${formatCount(app.try_count)} ${app.try_count === 1 ? "try" : "tries"}`;
   const builder = app.owner.display_name || `@${app.owner.username}`;
 

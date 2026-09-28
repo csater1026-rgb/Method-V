@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { TAGLINE } from "@/lib/constants";
 import { getViewer } from "@/lib/data";
+import { safeNextPath } from "@/lib/gate";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
 import { ProviderButtons } from "@/components/SignIn";
@@ -26,8 +27,7 @@ const ABOUT = [
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const params = await searchParams;
-  const next = typeof params.next === "string" ? params.next : "/";
-  const safeNext = next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/\\") ? next : "/";
+  const safeNext = safeNextPath(typeof params.next === "string" ? params.next : null);
   if (await getViewer()) redirect(safeNext);
 
   return (

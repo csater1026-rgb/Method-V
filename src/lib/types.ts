@@ -105,13 +105,6 @@ export type AppDetail = App & {
   sponsor: SponsorCard | null;
 };
 
-export type Comment = {
-  id: string;
-  body: string;
-  created_at: string;
-  user: ProfileSummary;
-};
-
 export type Viewer = {
   id: string;
   username: string;

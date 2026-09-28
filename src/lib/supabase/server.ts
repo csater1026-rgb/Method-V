@@ -5,11 +5,13 @@ import { createClient as createPlainClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 
 import { supabasePublishableKey, supabaseUrl } from "./env";
+import { loggingFetch } from "./log";
 
 // Acts as the signed-in person, so row level security applies.
 export async function createClient() {
   const cookieStore = await cookies();
   return createServerClient(supabaseUrl, supabasePublishableKey, {
+    global: { fetch: loggingFetch },
     cookies: {
       getAll() {
         return cookieStore.getAll();
@@ -35,6 +37,7 @@ export function createAdminClient() {
   const secret = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!supabaseUrl || !secret) return null;
   return createPlainClient(supabaseUrl, secret, {
+    global: { fetch: loggingFetch },
     auth: { persistSession: false, autoRefreshToken: false },
   });
 }

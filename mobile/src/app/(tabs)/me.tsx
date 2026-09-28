@@ -264,7 +264,7 @@ function StatusCard() {
 // here; the kinds apply to every device (the website has the same switches).
 const KINDS: { key: keyof PushKinds; label: string; hint: string }[] = [
   { key: "follows", label: "New followers", hint: "When someone follows you." },
-  { key: "feedback", label: "Feedback on your apps", hint: "Tester feedback, comments and questions." },
+  { key: "feedback", label: "Feedback on your apps", hint: "Tester feedback and questions about your apps." },
   { key: "messages", label: "Messages", hint: "Direct messages and connection requests." },
 ];
 
@@ -374,7 +374,7 @@ function DeleteAccountCard({ username }: { username: string }) {
     <Card style={{ gap: 10, borderColor: t.danger }}>
       <Body bold>Delete account</Body>
       <Body size={14}>
-        This can&apos;t be undone. It permanently deletes your profile, apps, Drops, comments, questions and messages, plus your V Coin, Pro,
+        This can&apos;t be undone. It permanently deletes your profile, apps, Drops, questions, answers and messages, plus your V Coin, Pro,
         and any earnings not yet paid out.
       </Body>
       <Body muted size={13}>
