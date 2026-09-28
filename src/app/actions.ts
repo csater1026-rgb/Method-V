@@ -123,12 +123,9 @@ export async function passwordAuth(_prev: SignInState, formData: FormData): Prom
     if (!password) return { status: "error", error: "Enter your password." };
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
-      return {
-        status: "error",
-        error: /confirm/i.test(error.message)
-          ? "Confirm your email first: check your inbox for the link."
-          : "That email and password don't match. Try again, or email yourself a sign-in link.",
-      };
+      // Never confirmed: back to "check your email", where they can send it again.
+      if (/confirm/i.test(error.message)) return { status: "confirm", email };
+      return { status: "error", error: "That email and password don't match. Try again, or email yourself a sign-in link." };
     }
   } else {
     if (password.length < MIN_PASSWORD) return { status: "error", error: `Use at least ${MIN_PASSWORD} characters for your password.` };
@@ -154,6 +151,26 @@ export async function passwordAuth(_prev: SignInState, formData: FormData): Prom
   }
   revalidatePath("/", "layout");
   redirect(next);
+}
+
+// "Didn't get it? Send it again" after creating an account. Errors are logged
+// so a sending problem (the email service, a limit) shows in Vercel's logs.
+export async function resendConfirmation(emailValue: string, nextValue: string): Promise<ActionResult> {
+  if (!isSupabaseConfigured) return { ok: false, error: DEMO_MODE_MESSAGE };
+  const email = String(emailValue ?? "").trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) return { ok: false, error: "Enter a valid email address." };
+  const next = safeNext(String(nextValue ?? ""));
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resend({
+    type: "signup",
+    email,
+    options: { emailRedirectTo: `${await siteOrigin()}/auth/callback?next=${encodeURIComponent(next)}` },
+  });
+  if (error) {
+    console.error("resend confirmation failed", error.status, error.message);
+    return { ok: false, error: emailError(error.message) };
+  }
+  return { ok: true };
 }
 
 // The one-time "agree to continue" step (/agree) for people who signed up

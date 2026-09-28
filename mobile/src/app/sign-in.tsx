@@ -32,6 +32,14 @@ export default function SignInScreen() {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [appleReady, setAppleReady] = useState(false);
+  // "Send a new code": once a minute.
+  const [resendWait, setResendWait] = useState(0);
+  const [resent, setResent] = useState(false);
+  useEffect(() => {
+    if (resendWait <= 0) return;
+    const timer = setTimeout(() => setResendWait((w) => w - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendWait]);
 
   useEffect(() => {
     if (Platform.OS === "ios" && AUTH_PROVIDERS.includes("apple")) void AppleAuthentication.isAvailableAsync().then(setAppleReady);
@@ -80,7 +88,27 @@ export default function SignInScreen() {
           style={[input, { fontFamily: fonts.mono, letterSpacing: 6 }]}
         />
         <Button label="Continue" onPress={() => void run("code", () => auth.verifyCode(email, code, awaiting))} busy={busy === "code"} disabled={code.trim().length < 6} />
-        <Button label="Back" kind="ghost" onPress={() => (setAwaiting(null), setCode(""), setError(null))} />
+        <Body muted size={13}>
+          Didn&apos;t get it? Check your spam or promotions folder, or send a new one.
+        </Body>
+        <Button
+          label={resendWait > 0 ? `Send a new code (${resendWait}s)` : "Send a new code"}
+          kind="ghost"
+          busy={busy === "resend"}
+          disabled={resendWait > 0}
+          onPress={async () => {
+            setBusy("resend");
+            setError(null);
+            setResent(false);
+            const r = await auth.resendCode(email, awaiting);
+            setBusy(null);
+            if (!r.ok) return setError(r.error);
+            setResent(true);
+            setResendWait(60);
+          }}
+        />
+        {resent ? <Body size={13} style={{ color: t.accent }}>Sent. It can take a minute to arrive.</Body> : null}
+        <Button label="Back" kind="ghost" onPress={() => (setAwaiting(null), setCode(""), setError(null), setResent(false))} />
         <ErrorText>{error}</ErrorText>
       </Wrap>
     );

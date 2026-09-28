@@ -36,6 +36,7 @@ type Auth = {
   signInWithApple: () => Promise<SignInResult>;
   sendCode: (email: string) => Promise<Result>;
   verifyCode: (email: string, code: string, kind: "email" | "signup") => Promise<Result>;
+  resendCode: (email: string, kind: "email" | "signup") => Promise<Result>;
   setPassword: (password: string) => Promise<Result>;
   agreeToTerms: () => Promise<Result>;
   deleteAccount: (confirm: string) => Promise<Result>;
@@ -106,7 +107,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!password) return fail("Enter your password.");
         const { error } = await supabase.auth.signInWithPassword({ email: cleanEmail(email), password });
         if (!error) return ok("signed-in");
-        if (/confirm/i.test(error.message)) return fail("Confirm your email first: check your inbox for the code or link.");
+        // Never confirmed: to the code screen, where they can ask for a new one.
+        if (/confirm/i.test(error.message)) return ok("check-email");
         return fail("That email and password don't match. Try again, or sign in with an emailed code.");
       },
 
@@ -175,6 +177,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!/^\d{6,10}$/.test(token)) return fail("Enter the code from the email.");
         const { error } = await supabase.auth.verifyOtp({ email: cleanEmail(email), token, type: kind });
         return error ? fail("That code didn't work or has expired. Ask for a new one.") : ok(undefined);
+      },
+
+      // "Send a new code": the sign-up confirmation again, or a new sign-in code.
+      async resendCode(email, kind) {
+        if (!supabase) return fail(DEMO_MESSAGE);
+        const { error } =
+          kind === "signup"
+            ? await supabase.auth.resend({ type: "signup", email: cleanEmail(email) })
+            : await supabase.auth.signInWithOtp({ email: cleanEmail(email), options: { shouldCreateUser: true } });
+        if (!error) return ok(undefined);
+        if (/rate limit|too many|seconds/i.test(error.message)) return fail("Too many emails asked for. Wait a minute, then try again.");
+        return fail(friendly(error.message, "Couldn't send a new code. Try again in a minute."));
       },
 
       async setPassword(password) {

@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState, useTransition } from "react";
 
-import { passwordAuth, signIn, type SignInState } from "@/app/actions";
+import { passwordAuth, resendConfirmation, signIn, type SignInState } from "@/app/actions";
 import { MIN_PASSWORD } from "@/lib/constants";
 
 type Mode = "signin" | "signup" | "link";
@@ -22,10 +22,13 @@ export function LoginForm({ next, disabled }: { next: string; disabled: boolean 
 
   if (state.status === "sent" || state.status === "confirm") {
     return (
-      <p className="mt-6 rounded-xl border border-accent/40 bg-accent/10 px-4 py-3">
-        Check <strong>{state.email}</strong> for{" "}
-        {state.status === "sent" ? "your sign-in link." : "a link to confirm your account. Then you're in."}
-      </p>
+      <div className="mt-6 flex flex-col gap-3 rounded-xl border border-accent/40 bg-accent/10 px-4 py-3">
+        <p>
+          Check <strong>{state.email}</strong> for{" "}
+          {state.status === "sent" ? "your sign-in link." : "a link to confirm your account. Then you're in."}
+        </p>
+        {state.status === "confirm" && <SendAgain email={state.email} next={next} />}
+      </div>
     );
   }
 
@@ -122,6 +125,46 @@ export function LoginForm({ next, disabled }: { next: string; disabled: boolean 
       <button type="button" onClick={() => setMode(mode === "link" ? "signin" : "link")} className="mt-3 w-full text-center text-sm text-accent hover:underline">
         {mode === "link" ? "Use a password instead" : "Forgot your password? Email me a sign-in link"}
       </button>
+    </div>
+  );
+}
+
+// "Didn't get it?": check spam, or send the confirmation again (once a minute).
+function SendAgain({ email, next }: { email: string; next: string }) {
+  const [wait, setWait] = useState(0);
+  const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  useEffect(() => {
+    if (wait <= 0) return;
+    const t = setTimeout(() => setWait((w) => w - 1), 1000);
+    return () => clearTimeout(t);
+  }, [wait]);
+
+  return (
+    <div className="flex flex-col gap-1.5 text-sm">
+      <p className="text-muted">
+        Didn&apos;t get it? Check your spam or promotions folder, then{" "}
+        <button
+          type="button"
+          disabled={pending || wait > 0}
+          className="font-semibold text-accent hover:underline disabled:opacity-60 disabled:hover:no-underline"
+          onClick={() =>
+            startTransition(async () => {
+              setNote(null);
+              const r = await resendConfirmation(email, next);
+              if (r.ok) {
+                setNote({ ok: true, text: "Sent again. It can take a minute to arrive." });
+                setWait(60);
+              } else setNote({ ok: false, text: r.error });
+            })
+          }
+        >
+          {pending ? "sending…" : wait > 0 ? `send it again (${wait}s)` : "send it again"}
+        </button>
+        .
+      </p>
+      {note && <p className={note.ok ? "text-accent" : "text-danger"}>{note.text}</p>}
     </div>
   );
 }
