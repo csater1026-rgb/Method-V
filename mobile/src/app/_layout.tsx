@@ -18,8 +18,10 @@ import { useEffect } from "react";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { SITE_URL, isLive } from "@/lib/config";
 import { pushSupported } from "@/lib/push";
+import { useProfileSetupSkipped } from "@/lib/welcome";
 import { hasAgreedToTerms } from "@shared/gate";
 import { pushTarget } from "@shared/push-route";
+import { isDefaultUsername } from "@shared/username";
 import { fonts, useTheme } from "@/theme";
 
 void SplashScreen.preventAutoHideAsync();
@@ -46,18 +48,21 @@ export default function RootLayout() {
 function Screens() {
   const t = useTheme();
   const router = useRouter();
-  const { ready, session } = useAuth();
+  const { ready, session, viewer } = useAuth();
   // Method V is for members: on the live app, nothing but sign-in until you're in.
   const signedOut = isLive && !session;
   // Signed in with Google or Apple (or before the sign-up box): agree to the Terms once first.
   const mustAgree = isLive && !!session && !hasAgreedToTerms(session.user.user_metadata);
+  // Then, still on builder_1a2b3c…: pick a username before the tour (unless they skipped it).
+  const skipped = useProfileSetupSkipped(viewer?.id ?? null);
+  const mustSetUp = isLive && !!session && !mustAgree && !!viewer && isDefaultUsername(viewer.username) && skipped === false;
   useEffect(() => {
     if (ready) void SplashScreen.hideAsync();
   }, [ready]);
 
   // Tapping a notification opens what it's about (also when it launched the app).
   useEffect(() => {
-    if (!ready || !pushSupported || signedOut || mustAgree) return;
+    if (!ready || !pushSupported || signedOut || mustAgree || mustSetUp) return;
     const open = (response: Notifications.NotificationResponse | null) => {
       if (!response) return;
       const target = pushTarget(response.notification.request.content.data?.url);
@@ -67,7 +72,7 @@ function Screens() {
     void Notifications.getLastNotificationResponseAsync().then(open);
     const sub = Notifications.addNotificationResponseReceivedListener(open);
     return () => sub.remove();
-  }, [ready, router, signedOut, mustAgree]);
+  }, [ready, router, signedOut, mustAgree, mustSetUp]);
   if (!ready) return null;
 
   return (
@@ -83,7 +88,7 @@ function Screens() {
           headerBackButtonDisplayMode: "minimal",
         }}
       >
-        <Stack.Protected guard={!signedOut && !mustAgree}>
+        <Stack.Protected guard={!signedOut && !mustAgree && !mustSetUp}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="apps/[slug]" options={{ title: "" }} />
           <Stack.Screen name="u/[username]" options={{ title: "" }} />
@@ -93,6 +98,9 @@ function Screens() {
         </Stack.Protected>
         <Stack.Protected guard={mustAgree}>
           <Stack.Screen name="agree" options={{ headerShown: false, gestureEnabled: false, animation: "fade" }} />
+        </Stack.Protected>
+        <Stack.Protected guard={mustSetUp}>
+          <Stack.Screen name="welcome" options={{ headerShown: false, gestureEnabled: false, animation: "fade" }} />
         </Stack.Protected>
         {/* Signed out it's the whole app (no closing it); signed in it's a sheet. */}
         <Stack.Screen

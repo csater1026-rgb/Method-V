@@ -601,6 +601,21 @@ await run("followers and following", phone, async (page) => {
   ok((await fetch(BASE + "/u/nobody_here_123/followers")).status === 404, "an unknown person's list is a 404");
 });
 
+await run("set up your profile", phone, async (page) => {
+  await go(page, "/welcome");
+  ok(await page.getByRole("heading", { name: "Set up your profile" }).isVisible(), "the first-sign-in page asks for a profile");
+  const box = page.getByRole("textbox", { name: /Username/ });
+  ok((await box.inputValue()) !== "", "a username is suggested");
+  await box.fill("No Spaces!");
+  ok((await box.inputValue()) === "no_spaces!", "typing is lowercased, spaces become _");
+  await page.getByText(/Usernames are 3–24 characters/).first().waitFor();
+  ok(await page.getByRole("button", { name: "Save and continue" }).isDisabled(), "a bad username can't be saved");
+  ok(await page.getByRole("button", { name: "Add a photo" }).isVisible(), "a photo is offered");
+  await page.getByRole("button", { name: "Skip for now" }).click();
+  await page.waitForURL((u) => new URL(u).pathname === "/");
+  ok(true, "Skip for now goes on to Home");
+});
+
 await run("terms and privacy", phone, async (page) => {
   await go(page, "/login");
   const agree = page.getByText("By signing in or creating an account, you agree to our");

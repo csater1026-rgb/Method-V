@@ -1,10 +1,13 @@
+import { cookies } from "next/headers";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { ChallengeBanner } from "@/components/ChallengeBanner";
 import { FeaturedCard } from "@/components/FeaturedCard";
 import { TopBuilders, TopTesters } from "@/components/Passport";
 import { Suggestions } from "@/components/Suggestions";
 import { getApps, getFeatured, getMyApps, getRunningChallenge, getSuggestions, getTopBuilders, getTopTesters, getViewer } from "@/lib/data";
+import { PROFILE_LATER_COOKIE, isDefaultUsername } from "@/lib/username";
 
 // Home: a running challenge (only while one is on), a nudge to show off your
 // app (or to get more eyes on it), Featured, builders to follow, the newest
@@ -13,6 +16,8 @@ import { getApps, getFeatured, getMyApps, getRunningChallenge, getSuggestions, g
 
 export default async function HomePage() {
   const viewer = await getViewer();
+  // First sign-in: pick a username before the tour (unless they skipped it).
+  if (viewer && isDefaultUsername(viewer.username) && !(await cookies()).get(PROFILE_LATER_COOKIE)) redirect("/welcome");
   const [challenge, featured, suggestions, newest, topBuilders, topTesters, myApps] = await Promise.all([
     getRunningChallenge(),
     getFeatured(),

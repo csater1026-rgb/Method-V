@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import {
@@ -38,6 +38,7 @@ import { DEMO_MODE_MESSAGE, DROPS_BUCKET, authProviders, isSupabaseConfigured, t
 import { dbMessage, withVCoin } from "@/lib/db-errors";
 import { deleteAccount } from "@/lib/delete-account";
 import { safeNextPath } from "@/lib/gate";
+import { PROFILE_LATER_COOKIE, USERNAME_HINT, USERNAME_PATTERN, isDefaultUsername } from "@/lib/username";
 import { isPushServiceEndpoint } from "@/lib/push-core";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import type { ActionResult, Viewer } from "@/lib/types";
@@ -311,6 +312,49 @@ export async function updateProfile(_prev: ProfileState, formData: FormData): Pr
   }
   revalidatePath("/", "layout");
   return { status: "saved" };
+}
+
+// ---------------------------------------------------------------------------
+// First sign-in: pick a username (/welcome), before the tour
+// ---------------------------------------------------------------------------
+
+export type UsernameCheck = { ok: true } | { ok: false; error: string };
+
+// Whether a username can be yours: the right shape, not reserved, not taken.
+export async function checkUsername(value: string): Promise<UsernameCheck> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  const username = String(value ?? "").trim().toLowerCase();
+  if (!USERNAME_PATTERN.test(username)) return { ok: false, error: `Usernames are ${USERNAME_HINT}` };
+  if (username === auth.viewer.username) return { ok: true };
+  if (username === OFFICIAL_HANDLE || isDefaultUsername(username)) return { ok: false, error: "That username is reserved." };
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("profiles").select("id").eq("username", username).maybeSingle();
+  if (error) return { ok: false, error: "Couldn't check that name. Try again." };
+  return data ? { ok: false, error: "That username is taken." } : { ok: true };
+}
+
+export async function saveWelcome(value: string, displayName: string): Promise<ActionResult> {
+  const check = await checkUsername(value);
+  if (!check.ok) return check;
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("profiles")
+    .update({ username: value.trim().toLowerCase(), display_name: String(displayName ?? "").trim().slice(0, 60) })
+    .eq("id", auth.viewer.id);
+  if (error) {
+    if (error.code === "23505") return { ok: false, error: "That username was just taken. Try another." };
+    return { ok: false, error: dbMessage(error, "Couldn't save your profile.") };
+  }
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+// "Skip for now": don't ask again on this browser. A reminder stays on their profile.
+export async function skipWelcome(): Promise<void> {
+  (await cookies()).set(PROFILE_LATER_COOKIE, "1", { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax", httpOnly: true });
 }
 
 // Saves (or with null, removes) the profile photo the browser just uploaded

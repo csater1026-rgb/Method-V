@@ -15,6 +15,7 @@ import { formatCount } from "@/lib/format";
 import { socialLinks } from "@/lib/socials";
 import { publicFileUrl } from "@/lib/supabase/env";
 import { Handle } from "@/components/Handle";
+import { isDefaultUsername } from "@/lib/username";
 
 export async function generateMetadata({ params }: PageProps<"/u/[username]">): Promise<Metadata> {
   const { username } = await params;
@@ -43,6 +44,17 @@ export default async function ProfilePage({ params }: PageProps<"/u/[username]">
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8">
+      {isSelf && isDefaultUsername(profile.username) && (
+        <Link
+          href="/welcome"
+          className="mb-6 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-accent/60 bg-surface px-4 py-3 text-sm transition hover:border-accent"
+        >
+          <span>
+            <strong>Pick your username.</strong> <span className="text-muted">People see you as @{profile.username} until you do.</span>
+          </span>
+          <span className="font-semibold text-accent">Choose one →</span>
+        </Link>
+      )}
       {/* Their header picture, behind their photo: only on this page. */}
       {cover ? (
         <div className="aspect-[3/1] max-h-64 w-full overflow-hidden rounded-xl border border-line bg-surface-2">

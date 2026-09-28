@@ -7,7 +7,7 @@ import { File, UploadType } from "expo-file-system";
 import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import { Platform } from "react-native";
 
-import { CATEGORIES, ROLES, isOneOf } from "@shared/constants";
+import { CATEGORIES, OFFICIAL_HANDLE, ROLES, isOneOf } from "@shared/constants";
 import { parseList } from "@shared/format";
 import {
   demoApps,
@@ -41,6 +41,7 @@ import { SUGGESTION_LIMIT, setUpFirst, topUpSuggestions } from "@shared/suggest"
 
 import { DEMO_MESSAGE, DROPS_BUCKET, SITE_URL, SUPABASE_KEY, SUPABASE_URL, fileUrl } from "./config";
 import { dbMessage } from "@shared/db-errors";
+import { USERNAME_HINT, USERNAME_PATTERN, isDefaultUsername } from "@shared/username";
 import { fail, friendly, ok, type Result } from "./result";
 import { supabase } from "./supabase";
 
@@ -727,6 +728,30 @@ export async function answerQuestion(questionId: string, body: string, parentId:
     .from("answers")
     .insert({ question_id: questionId, user_id: auth.data.id, body: text, ...(parentId ? { parent_id: parentId } : {}) });
   return error ? fail(dbMessage(error, "Couldn't post your answer.")) : ok(undefined);
+}
+
+// First sign-in (the Set up your profile screen): is this username free, and take it.
+export async function checkUsername(value: string, viewerId: string): Promise<Result> {
+  const username = value.trim().toLowerCase();
+  if (!USERNAME_PATTERN.test(username)) return fail(`Usernames are ${USERNAME_HINT}`);
+  if (username === OFFICIAL_HANDLE || isDefaultUsername(username)) return fail("That username is reserved.");
+  if (!supabase) return ok(undefined);
+  const { data, error } = await supabase.from("profiles").select("id").eq("username", username).maybeSingle();
+  if (error) return fail("Couldn't check that name. Try again.");
+  return data && (data as { id: string }).id !== viewerId ? fail("That username is taken.") : ok(undefined);
+}
+
+export async function claimUsername(value: string, displayName: string): Promise<Result> {
+  const auth = await signedIn();
+  if (!auth.ok) return auth;
+  const check = await checkUsername(value, auth.data.id);
+  if (!check.ok) return check;
+  const { error } = await supabase!
+    .from("profiles")
+    .update({ username: value.trim().toLowerCase(), display_name: displayName.trim().slice(0, 60) })
+    .eq("id", auth.data.id);
+  if (error?.code === "23505") return fail("That username was just taken. Try another.");
+  return error ? fail(dbMessage(error, "Couldn't save your profile.")) : ok(undefined);
 }
 
 // Your status (and other role tags), shown as a badge by your photo.

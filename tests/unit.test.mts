@@ -22,6 +22,7 @@ import { agreeUrl, hasAgreedToTerms, isOpenPath, isPreviewBot, mustAgree, previe
 import { confirmMatches } from "../src/lib/account.ts";
 import { describeDatabaseError, loggingFetch } from "../src/lib/supabase/log.ts";
 import { dbMessage, withVCoin } from "../src/lib/db-errors.ts";
+import { USERNAME_PATTERN, isDefaultUsername, suggestUsername } from "../src/lib/username.ts";
 
 let failures = 0;
 const ok = (cond: boolean, msg: string) => {
@@ -370,6 +371,17 @@ ok(!confirmMatches("ada", "ada_builds") && !confirmMatches("", "ada_builds") && 
   ok(withVCoin("That costs 50 credits and you have 20.") === "That costs 50 V Coin and you have 20.", "older messages say V Coin");
   ok(withVCoin("The Spotlight costs 200 credits and you have 0.") === "The Spotlight costs 200 V Coin and you have 0." && withVCoin("Pick a credit pack.") === "Pick a V Coin pack.", "the Spotlight and pack messages too");
   ok(dbMessage({ code: "P0001", message: "That costs 50 credits and you have 20." }, "x") === "That costs 50 V Coin and you have 20.", "and they're reworded on the way out");
+}
+
+// --- First sign-in: a real username instead of builder_1a2b3c… ---
+{
+  ok(isDefaultUsername("builder_3f9a1c2b7d") && !isDefaultUsername("builder_maya") && !isDefaultUsername("maya") && !isDefaultUsername(null), "only the automatic builder_… names count as not set up");
+  ok(suggestUsername("Maya Chen", "x@y.com") === "maya_chen", "suggested from their name");
+  ok(suggestUsername("", "jordan.lee+test@gmail.com") === "jordan_lee_test", "else from their email");
+  ok(suggestUsername("Zoë Ångström", null) === "zoe_angstrom", "accents are dropped");
+  ok(suggestUsername("李", "ab@x.com") === "", "nothing usable, no suggestion");
+  ok(suggestUsername("A very long display name that keeps going", null).length <= 24, "suggestions fit the 24-character limit");
+  ok(["maya_chen", "jordan_lee_test", "zoe_angstrom"].every((u) => USERNAME_PATTERN.test(u)), "suggestions are valid usernames");
 }
 
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");
