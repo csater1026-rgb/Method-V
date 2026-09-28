@@ -911,6 +911,16 @@ async function callSite<T>(path: string, token: string, body: unknown): Promise<
   }
 }
 
+// Remove a question (with its answers) or an answer: your own, or anything in
+// your app's Q&A. The website does it (removing other people's posts needs
+// Method V's secret key); same rules as its Remove button.
+export async function removePost(kind: "question" | "answer", id: string): Promise<Result> {
+  const auth = await signedIn();
+  if (!auth.ok) return auth;
+  const r = await callSite<{ removed: boolean }>("/api/mobile/remove-post", auth.data.token, { kind, id });
+  return r.ok ? ok(undefined) : r;
+}
+
 // Reads the app's website to fill in name, tagline and category.
 export async function previewLink(url: string): Promise<Result<SitePreview>> {
   const auth = await signedIn();

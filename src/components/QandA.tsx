@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { answerQuestion, askQuestion, deletePost, markBestAnswer, setVote } from "@/app/actions";
@@ -179,6 +180,8 @@ export function QuestionItem({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const canPickBest = viewerId !== null && (viewerId === question.user.id || viewerId === app.owner_id);
+  // The asker, or the app's builder keeping their Q&A clean.
+  const canRemove = viewerId !== null && (viewerId === question.user.id || viewerId === app.owner_id);
 
   function submitAnswer(e: React.FormEvent) {
     e.preventDefault();
@@ -231,6 +234,7 @@ export function QuestionItem({
               appSlug={app.slug}
               viewerId={viewerId}
               isBuilder={a.user.id === app.owner_id}
+              canRemove={viewerId !== null && (viewerId === a.user.id || viewerId === app.owner_id)}
             />
           ))}
         </ul>
@@ -265,8 +269,15 @@ export function QuestionItem({
             </div>
           </form>
         )}
-        {viewerId === question.user.id && question.answers.length === 0 && (
-          <DeleteButton kind="question" id={question.id} appSlug={app.slug} />
+        {canRemove && (
+          <RemoveButton
+            kind="question"
+            id={question.id}
+            appSlug={app.slug}
+            answers={question.answers.length}
+            // The thread itself is gone: back to the app's Q&A.
+            after={onThreadPage ? `/apps/${app.slug}?tab=qa#discuss` : null}
+          />
         )}
       </div>
     </li>
@@ -281,6 +292,7 @@ function AnswerItem({
   appSlug,
   viewerId,
   isBuilder,
+  canRemove,
 }: {
   answer: Answer;
   best: boolean;
@@ -289,6 +301,7 @@ function AnswerItem({
   appSlug: string;
   viewerId: string | null;
   isBuilder: boolean;
+  canRemove: boolean;
 }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -346,7 +359,7 @@ function AnswerItem({
               Mark as best
             </button>
           )}
-          {viewerId === answer.user.id && <DeleteButton kind="answer" id={answer.id} appSlug={appSlug} />}
+          {canRemove && <RemoveButton kind="answer" id={answer.id} appSlug={appSlug} answers={0} after={null} />}
         </div>
         {replying && (
           <form onSubmit={sendReply} className="mt-2 flex gap-2">
@@ -381,16 +394,56 @@ function Byline({ user, at }: { user: Question["user"]; at: string }) {
   );
 }
 
-function DeleteButton({ kind, id, appSlug }: { kind: "question" | "answer"; id: string; appSlug: string }) {
+// Remove, then a second tap to confirm (a question takes its answers with it).
+function RemoveButton({
+  kind,
+  id,
+  appSlug,
+  answers,
+  after,
+}: {
+  kind: "question" | "answer";
+  id: string;
+  appSlug: string;
+  answers: number;
+  after: string | null;
+}) {
+  const router = useRouter();
+  const [confirming, setConfirming] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  if (!confirming) {
+    return (
+      <button type="button" className="text-xs text-muted hover:text-danger" onClick={() => setConfirming(true)}>
+        Remove
+      </button>
+    );
+  }
+  const what =
+    kind === "answer" ? "Remove this answer?" : answers > 0 ? `Remove this question and its ${answers} ${answers === 1 ? "answer" : "answers"}?` : "Remove this question?";
   return (
-    <button
-      type="button"
-      disabled={pending}
-      className="text-xs text-muted hover:text-danger"
-      onClick={() => startTransition(async () => void (await deletePost(kind, id, appSlug)))}
-    >
-      Delete
-    </button>
+    <span className="inline-flex flex-wrap items-center gap-2 text-xs" role="group" aria-label={what}>
+      <span className="font-semibold">{what}</span>
+      <button
+        type="button"
+        disabled={pending}
+        className="font-semibold text-danger hover:underline"
+        onClick={() =>
+          startTransition(async () => {
+            setError(null);
+            const result = await deletePost(kind, id, appSlug);
+            if (!result.ok) return setError(result.error);
+            if (after) router.push(after);
+          })
+        }
+      >
+        {pending ? "Removing…" : "Yes, remove"}
+      </button>
+      <button type="button" disabled={pending} className="text-muted hover:text-ink" onClick={() => setConfirming(false)}>
+        Cancel
+      </button>
+      {error && <span className="text-danger">{error}</span>}
+    </span>
   );
 }

@@ -37,6 +37,7 @@ import { SOCIALS, cleanHandle } from "@/lib/socials";
 import { DEMO_MODE_MESSAGE, DROPS_BUCKET, authProviders, isSupabaseConfigured, type AuthProvider } from "@/lib/supabase/env";
 import { dbMessage, withVCoin } from "@/lib/db-errors";
 import { deleteAccount } from "@/lib/delete-account";
+import { removePost } from "@/lib/remove-post";
 import { safeNextPath } from "@/lib/gate";
 import { PROFILE_LATER_COOKIE, USERNAME_HINT, USERNAME_PATTERN, isDefaultUsername } from "@/lib/username";
 import { isPushServiceEndpoint } from "@/lib/push-core";
@@ -864,18 +865,16 @@ export async function markBestAnswer(questionId: string, answerId: string, appSl
   return callRpc("mark_best_answer", { p_question: questionId, p_answer: answerId }, "Couldn't mark the best answer.", [qaPath(appSlug)], invalid);
 }
 
+// Remove a question (with its answers) or an answer: your own, or anything in
+// your app's Q&A.
 export async function deletePost(kind: "question" | "answer", id: string, appSlug: string): Promise<ActionResult> {
   const auth = await requireViewer();
   if ("error" in auth) return { ok: false, error: auth.error };
-  if (!UUID.test(id)) return { ok: false, error: "Unknown post." };
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from(kind === "question" ? "questions" : "answers")
-    .delete()
-    .eq("id", id)
-    .eq("user_id", auth.viewer.id);
-  if (error) return { ok: false, error: "Couldn't delete it." };
-  revalidatePath(qaPath(appSlug));
+  const result = await removePost(await createClient(), auth.viewer.id, kind, id);
+  if (!result.ok) return result;
+  revalidatePath(qaPath(result.appSlug || appSlug));
+  revalidatePath(`/q/${result.questionId}`);
+  revalidatePath("/drops");
   return { ok: true };
 }
 

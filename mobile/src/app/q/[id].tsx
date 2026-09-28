@@ -10,7 +10,7 @@ import { Poll } from "@/components/Poll";
 import { VoteButton } from "@/components/VoteButton";
 import { Avatar, Body, Button, Card, Display, ErrorText, Handle, Mono, Tag } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
-import { answerQuestion, getQuestion, markBestAnswer } from "@/lib/data";
+import { answerQuestion, getQuestion, markBestAnswer, removePost } from "@/lib/data";
 import { useLoad } from "@/lib/useLoad";
 import { fonts, useTheme } from "@/theme";
 
@@ -32,6 +32,9 @@ export default function QuestionScreen() {
   const [busy, setBusy] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const [marking, setMarking] = useState<string | null>(null);
+  // Which post is asking "Remove this?" (a question's or an answer's id).
+  const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
+  const [removing, setRemoving] = useState(false);
 
   if (q === null && !error) return <Loading />;
   if (!q) {
@@ -57,6 +60,53 @@ export default function QuestionScreen() {
 
   // Only the person who asked, or the app's builder, picks the best answer.
   const canPickBest = Boolean(viewer && (viewer.id === q.user.id || viewer.id === q.app.owner_id));
+
+  // The asker, or the app's builder keeping their Q&A clean.
+  const canRemove = (authorId: string) => Boolean(viewer && (viewer.id === authorId || viewer.id === q!.app.owner_id));
+
+  async function remove(kind: "question" | "answer", postId: string) {
+    setRemoving(true);
+    setSendError(null);
+    const r = await removePost(kind, postId);
+    setRemoving(false);
+    setConfirmRemove(null);
+    if (!r.ok) return setSendError(r.error);
+    if (kind === "question") {
+      if (router.canGoBack()) router.back();
+      else router.replace(`/apps/${q!.app.slug}`);
+      return;
+    }
+    await reload();
+  }
+
+  function RemoveControl({ kind, postId, label }: { kind: "question" | "answer"; postId: string; label: string }) {
+    if (confirmRemove !== postId) {
+      return (
+        <Pressable accessibilityRole="button" onPress={() => setConfirmRemove(postId)} hitSlop={8}>
+          <Body muted size={13}>
+            Remove
+          </Body>
+        </Pressable>
+      );
+    }
+    return (
+      <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 14 }}>
+        <Body bold size={13}>
+          {label}
+        </Body>
+        <Pressable accessibilityRole="button" disabled={removing} onPress={() => void remove(kind, postId)} hitSlop={8}>
+          <Body bold size={13} style={{ color: t.danger, opacity: removing ? 0.5 : 1 }}>
+            {removing ? "Removing…" : "Yes, remove"}
+          </Body>
+        </Pressable>
+        <Pressable accessibilityRole="button" disabled={removing} onPress={() => setConfirmRemove(null)} hitSlop={8}>
+          <Body muted size={13}>
+            Cancel
+          </Body>
+        </Pressable>
+      </View>
+    );
+  }
 
   async function pickBest(answerId: string) {
     setMarking(answerId);
@@ -96,6 +146,13 @@ export default function QuestionScreen() {
           <VoteButton key={`q-${q.id}-${q.voted}`} kind="question" id={q.id} count={q.vote_count} voted={q.voted} authorId={q.user.id} onError={setSendError} />
         </View>
         {q.poll && <Poll questionId={q.id} poll={q.poll} />}
+        {canRemove(q.user.id) && (
+          <RemoveControl
+            kind="question"
+            postId={q.id}
+            label={q.answer_count > 0 ? `Remove this question and its ${q.answer_count} ${q.answer_count === 1 ? "answer" : "answers"}?` : "Remove this question?"}
+          />
+        )}
 
         <Mono style={{ marginTop: 6 }}>
           {q.answer_count} {q.answer_count === 1 ? "answer" : "answers"}
@@ -132,6 +189,7 @@ export default function QuestionScreen() {
                       Reply
                     </Body>
                   </Pressable>
+                  {canRemove(a.user.id) && <RemoveControl kind="answer" postId={a.id} label="Remove this answer?" />}
                   {canPickBest && !best && !a.parent_id && (
                     <Pressable
                       accessibilityRole="button"

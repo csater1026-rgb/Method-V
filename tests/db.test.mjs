@@ -506,6 +506,22 @@ await as("authenticated", A, "delete from public.answers where id = $1", [ans1])
 const qAfter = (await db.query("select best_answer_id, answer_count from public.questions where id = $1", [qid])).rows[0];
 ok(qAfter.best_answer_id === null && qAfter.answer_count === 1 && (await rep(A)) === repA, "deleting the best answer clears it and its points");
 
+// Removing a whole question (Remove on the website and in the app). The asker
+// can, even once it has answers; the app's builder can't directly, so the
+// server removes it with its key after checking they own the app.
+{
+  const q2 = (await as("authenticated", C, "insert into public.questions (app_id, user_id, body) values ($1, $2, 'Will there be a dark mode?') returning id", [appId, C])).rows[0].id;
+  const a2 = (await as("authenticated", D, "insert into public.answers (question_id, user_id, body) values ($1, $2, 'Asked the same thing!') returning id", [q2, D])).rows[0].id;
+  await as("authenticated", C, "select public.mark_best_answer($1, $2)", [q2, a2]);
+  ok(!(await fails("authenticated", C, "delete from public.questions where id = $1", [q2])), "the asker can remove a question that has answers");
+  const left = (await db.query("select count(*)::int n from public.answers where question_id = $1", [q2])).rows[0].n;
+  ok(left === 0, "its answers go with it");
+  const q3 = (await as("authenticated", D, "insert into public.questions (app_id, user_id, body) values ($1, $2, 'Spam spam spam') returning id", [appId, D])).rows[0].id;
+  ok(!!(await fails("authenticated", A, "delete from public.questions where id = $1", [q3])), "a builder can't remove someone else's question directly");
+  await db.query("delete from public.questions where id = $1", [q3]);
+  ok((await db.query("select 1 from public.questions where id = $1", [q3])).rows.length === 0, "the server's key removes it for the builder");
+}
+
 // Suggestions: E likes nothing yet; give E skills and a liked app to match on.
 await db.query("update public.profiles set skills = '{Next.js,Figma}' where id in ($1, $2)", [E, T]);
 const sug = (await as("authenticated", E, "select * from public.suggest_builders(10)")).rows;
