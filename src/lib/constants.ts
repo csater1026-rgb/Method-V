@@ -14,7 +14,10 @@ export const SAFETY_CHECKLIST = [
   { title: "You say what data you collect", body: "If you store emails or anything personal, add a short privacy note to your app." },
 ] as const;
 export const SAFETY_AGREEMENT = "This app is mine to share, and I've taken basic steps to keep the people who try it safe.";
-export const MAX_DROP_BYTES = 100 * 1024 * 1024;
+// Supabase's free plan takes files up to 50 MB (Storage → Settings), so Drops
+// stay under that. A 60-second 1080p screen recording is usually well below.
+export const MAX_DROP_MB = 50;
+export const MAX_DROP_BYTES = MAX_DROP_MB * 1024 * 1024;
 export const DROP_VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
 
 // Credits are called V Coin on screen: introduce them as credits the first

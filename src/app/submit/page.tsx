@@ -7,6 +7,9 @@ import { isSupabaseConfigured } from "@/lib/supabase/env";
 
 import { SubmitForm } from "./SubmitForm";
 
+// Checking a link can take up to 15 seconds (sleeping sites wake up slowly).
+export const maxDuration = 60;
+
 export const metadata: Metadata = { title: "Post a Drop" };
 
 export default async function SubmitPage() {

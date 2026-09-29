@@ -111,7 +111,7 @@ To run a challenge, add a row to the `challenges` table in the Supabase table ed
 
 To deploy, import the repo into [Vercel](https://vercel.com) and add the same environment variables there. After it deploys, open `https://<your site>/api/health`. It says whether the keys, database and secret key are working, and what to fix if not (it never shows the keys themselves).
 
-**Video size on Supabase's free plan:** uploads are capped at 50 MB per file (Storage → Settings), while Method V allows Drops up to 100 MB. On the free plan, bigger videos fail to upload. Either keep Drops under 50 MB, or move to Supabase Pro and raise the limit to 100 MB.
+**Video size:** Drops can be up to 50 MB (`MAX_DROP_MB` in `src/lib/constants.ts`), matching Supabase's free-plan upload limit (Storage → Settings). On Supabase Pro you can raise both.
 
 **Sign-in emails:** Supabase's built-in email is only for testing (a few emails an hour). Before real people sign up, add your own email sender under Authentication → Emails → SMTP Settings (e.g. Resend, Postmark or SendGrid). To make the emails look like Method V, open `https://<your site>/setup/emails` and copy each subject and message into **Authentication → Emails → Templates** (they keep the 6-digit code the phone app asks for).
 

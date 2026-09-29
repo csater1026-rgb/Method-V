@@ -107,7 +107,8 @@ await run("feed (phone)", phone, async (page) => {
   const bottomGap = tabs.y - (box.y + box.height);
   ok(Math.abs(bottomGap) <= 1, `feed fills the space above the tab bar (gap ${bottomGap}px)`);
   const tryLink = page.locator("article").first().getByRole("link", { name: "Try it →" });
-  ok((await tryLink.getAttribute("href")) === "/try/noteflow?via=feed", "Try it links to /try/<slug>, tagged as from the feed");
+  // The feed order shifts as the sample Drops age, so any app will do.
+  ok(/^\/try\/[a-z0-9-]+\?via=feed$/.test((await tryLink.getAttribute("href")) ?? ""), "Try it links to /try/<slug>, tagged as from the feed");
   await noSideScroll(page, "feed");
   await page.screenshot({ path: OUT + "feed-phone.png" });
 

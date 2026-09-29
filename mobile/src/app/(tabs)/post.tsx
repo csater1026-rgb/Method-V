@@ -6,7 +6,7 @@ import { useState } from "react";
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { CATEGORIES, DROP_VIDEO_TYPES, MAX_DROP_BYTES, MAX_DROP_SECONDS, SAFETY_AGREEMENT, SAFETY_CHECKLIST } from "@shared/constants";
+import { CATEGORIES, DROP_VIDEO_TYPES, MAX_DROP_BYTES, MAX_DROP_MB, MAX_DROP_SECONDS, SAFETY_AGREEMENT, SAFETY_CHECKLIST } from "@shared/constants";
 
 import { Body, Button, Card, Display, ErrorText, Mono, tap } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
@@ -64,7 +64,7 @@ export default function PostScreen() {
     const mimeType = a.mimeType ?? "video/mp4";
     if (!seconds || seconds > MAX_DROP_SECONDS + 0.5) return setError(`Drops can be up to ${MAX_DROP_SECONDS} seconds. Trim it and try again.`);
     if (!DROP_VIDEO_TYPES.includes(mimeType)) return setError("Use an MP4, MOV or WebM video.");
-    if (a.fileSize && a.fileSize > MAX_DROP_BYTES) return setError("That video is over 100 MB. Try a shorter or smaller one.");
+    if (a.fileSize && a.fileSize > MAX_DROP_BYTES) return setError(`That video is over ${MAX_DROP_MB} MB. Trim it, or record at 1080p instead of 4K.`);
     tap();
     setVideo({ uri: a.uri, mimeType, seconds: Math.min(seconds, MAX_DROP_SECONDS) });
   }

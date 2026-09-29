@@ -98,6 +98,10 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
               preload="metadata"
               className="h-full w-full bg-black object-contain"
             />
+          ) : app.cover_path ? (
+            // No Drop yet: the builder's cover image.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={publicFileUrl(app.cover_path) ?? ""} alt="" className="h-full w-full bg-black object-contain" />
           ) : (
             <DropPlaceholder name={app.name} category={app.category} />
           )}

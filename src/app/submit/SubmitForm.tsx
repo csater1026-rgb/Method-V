@@ -10,6 +10,7 @@ import {
   CATEGORIES,
   DROP_VIDEO_TYPES,
   MAX_DROP_BYTES,
+  MAX_DROP_MB,
   MAX_DROP_SECONDS,
   PRICING,
   SAFETY_AGREEMENT,
@@ -71,7 +72,7 @@ export function SubmitForm({ userId }: { userId: string | null }) {
       return;
     }
     if (file.size > MAX_DROP_BYTES) {
-      setVideoError("Videos can be up to 100 MB. Try exporting at 1080p or lower.");
+      setVideoError(`Videos can be up to ${MAX_DROP_MB} MB. Trim it, or record at 1080p instead of 4K.`);
       return;
     }
     const objectUrl = URL.createObjectURL(file);
@@ -125,7 +126,6 @@ export function SubmitForm({ userId }: { userId: string | null }) {
   }
 
   const missing = [
-    !video && "your video",
     !url.trim() && "your link",
     !name.trim() && "a name",
     !tagline.trim() && "a tagline",
@@ -140,30 +140,39 @@ export function SubmitForm({ userId }: { userId: string | null }) {
       setError(DEMO_MODE_MESSAGE);
       return;
     }
-    if (missing.length > 0 || !video) {
+    if (missing.length > 0) {
       setError(`Add ${missing.join(", ")}.`);
       return;
     }
 
     const supabase = createClient();
     const bucket = supabase.storage.from(DROPS_BUCKET);
-    const id = crypto.randomUUID();
-    const ext = video.file.type === "video/webm" ? "webm" : video.file.type === "video/quicktime" ? "mov" : "mp4";
-    const videoPath = `${userId}/${id}.${ext}`;
-    const posterPath = video.poster ? `${userId}/${id}.jpg` : null;
+    const uploaded: string[] = [];
+    let videoPath: string | null = null;
+    let posterPath: string | null = null;
 
     setStep("uploading");
-    const uploaded: string[] = [];
-    const up = await bucket.upload(videoPath, video.file, { contentType: video.file.type, upsert: false });
-    if (up.error) {
-      setStep("idle");
-      setError(`Upload failed: ${up.error.message}`);
-      return;
-    }
-    uploaded.push(videoPath);
-    if (posterPath && video.poster) {
-      const pup = await bucket.upload(posterPath, video.poster, { contentType: "image/jpeg", upsert: false });
-      if (!pup.error) uploaded.push(posterPath);
+    // The video is optional; without one the app still goes on Browse and your profile.
+    if (video) {
+      const id = crypto.randomUUID();
+      const ext = video.file.type === "video/webm" ? "webm" : video.file.type === "video/quicktime" ? "mov" : "mp4";
+      videoPath = `${userId}/${id}.${ext}`;
+      posterPath = video.poster ? `${userId}/${id}.jpg` : null;
+      const up = await bucket.upload(videoPath, video.file, { contentType: video.file.type, upsert: false });
+      if (up.error) {
+        setStep("idle");
+        setError(
+          /size|too large|exceed/i.test(up.error.message)
+            ? `That video is too big to upload (the limit is ${MAX_DROP_MB} MB). Trim it, or record at 1080p instead of 4K.`
+            : `Upload failed: ${up.error.message}`,
+        );
+        return;
+      }
+      uploaded.push(videoPath);
+      if (posterPath && video.poster) {
+        const pup = await bucket.upload(posterPath, video.poster, { contentType: "image/jpeg", upsert: false });
+        if (!pup.error) uploaded.push(posterPath);
+      }
     }
 
     let coverPath: string | null = null;
@@ -192,8 +201,8 @@ export function SubmitForm({ userId }: { userId: string | null }) {
       stage,
       caption,
       videoPath,
-      posterPath: uploaded.includes(posterPath ?? "") ? posterPath : null,
-      durationSeconds: video.duration,
+      posterPath: posterPath && uploaded.includes(posterPath) ? posterPath : null,
+      durationSeconds: video ? video.duration : null,
       safetyChecked: safe,
       coverPath,
     });
@@ -210,7 +219,7 @@ export function SubmitForm({ userId }: { userId: string | null }) {
     <>
       {busy && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg/85 backdrop-blur-sm">
-          <LoadingCoder message={step === "uploading" ? "Uploading your Drop…" : "Checking your link and posting…"} />
+          <LoadingCoder message={step === "uploading" ? (video ? "Uploading your Drop…" : "Uploading…") : "Checking your link and posting…"} />
         </div>
       )}
 
@@ -218,7 +227,7 @@ export function SubmitForm({ userId }: { userId: string | null }) {
         {/* Step 1 */}
         <section aria-labelledby="step-video">
           <StepTitle n={1} id="step-video">
-            Your Drop
+            Your Drop <span className="text-base font-normal text-muted normal-case">(optional)</span>
           </StepTitle>
           {video ? (
             <div className="mt-3 flex items-end gap-4">
@@ -244,7 +253,15 @@ export function SubmitForm({ userId }: { userId: string | null }) {
               <VideoPicker label="Choose a video" onFile={pickFile} disabled={busy} />
             </div>
           )}
-          <p className="mt-2 text-xs text-muted">Up to 60 seconds · MP4, WebM or MOV · 100 MB max</p>
+          <p className="mt-2 text-xs text-muted">
+            Up to {MAX_DROP_SECONDS} seconds · MP4, WebM or MOV · {MAX_DROP_MB} MB max. A quick screen recording of your app is perfect.
+          </p>
+          {!video && (
+            <p className="mt-1 text-xs text-muted">
+              No video yet? You can post without one. Your app still shows on Browse and your profile (add a cover image below so its card
+              isn&apos;t blank), but apps with a Drop also go in the Drops feed and get far more tries.
+            </p>
+          )}
           {videoError && <p className="mt-2 text-sm text-danger">{videoError}</p>}
         </section>
 

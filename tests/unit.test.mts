@@ -388,5 +388,23 @@ ok(!confirmMatches("ada", "ada_builds") && !confirmMatches("", "ada_builds") && 
   ok(["maya_chen", "jordan_lee_test", "zoe_angstrom"].every((u) => USERNAME_PATTERN.test(u)), "suggestions are valid usernames");
 }
 
+// --- Posting an App Store / Google Play link fills in the app's own name ---
+{
+  const apple = sitePreview(
+    `<html><head><title>\u200eHabitPal on the App Store</title><meta property="og:title" content="HabitPal">
+     <meta property="og:site_name" content="App Store"><meta property="og:description" content="Build habits that stick, one day at a time."></head></html>`,
+    "https://apps.apple.com/us/app/habitpal/id123",
+  );
+  ok(apple.name === "HabitPal" && apple.tagline === "Build habits that stick, one day at a time.", `App Store link: the app's name, not "App Store" (${apple.name})`);
+  const play = sitePreview(
+    `<html><head><title>HabitPal - Apps on Google Play</title><meta property="og:title" content="HabitPal - Apps on Google Play">
+     <meta name="description" content="Build habits that stick."></head></html>`,
+    "https://play.google.com/store/apps/details?id=com.habitpal",
+  );
+  ok(play.name === "HabitPal" && play.tagline === "Build habits that stick.", `Google Play link: no "Apps on Google Play" (${play.name} / ${play.tagline})`);
+  const site = sitePreview(`<title>NoteFlow — Meeting notes that turn into to-dos</title>`, "https://noteflow.app");
+  ok(site.name === "NoteFlow" && site.tagline === "Meeting notes that turn into to-dos", "ordinary sites work as before");
+}
+
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");
 process.exit(failures ? 1 : 0);

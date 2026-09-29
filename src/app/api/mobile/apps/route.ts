@@ -4,6 +4,9 @@ import { publishApp } from "@/lib/publish";
 import { clientFromBearer } from "@/lib/supabase/bearer";
 import { DEMO_MODE_MESSAGE, isSupabaseConfigured } from "@/lib/supabase/env";
 
+// Checking a link can take up to 15 seconds (sleeping sites wake up slowly).
+export const maxDuration = 60;
+
 const str = (v: unknown, max = 2000) => (typeof v === "string" ? v.slice(0, max) : "");
 
 // The mobile app posts here after uploading the video to storage itself. Same
@@ -26,9 +29,9 @@ export async function POST(request: Request) {
     pricing: str(body.pricing, 20) || "free",
     stage: str(body.stage, 20) || "launched",
     caption: str(body.caption, 400),
-    videoPath: str(body.videoPath, 300),
+    videoPath: str(body.videoPath, 300) || null,
     posterPath: str(body.posterPath, 300) || null,
-    durationSeconds: Number(body.durationSeconds),
+    durationSeconds: body.durationSeconds == null ? null : Number(body.durationSeconds),
     safetyChecked: body.safetyChecked === true,
     coverPath: str(body.coverPath, 300) || null,
   });

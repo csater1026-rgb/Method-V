@@ -11,7 +11,8 @@ import { Agent, fetch } from "undici";
 
 export type LinkCheckResult = { ok: true; finalUrl: string } | { ok: false; reason: string };
 
-const TIMEOUT_MS = 8000;
+// Apps on free hosting (Replit, Render…) can take a while to wake up.
+const TIMEOUT_MS = 15000;
 const MAX_REDIRECTS = 5;
 const ALLOWED_PORTS = new Set(["", "80", "443"]);
 // Sites that answer these are up, they just don't like bots.
@@ -148,7 +149,9 @@ async function follow(input: string, readHtml: boolean): Promise<FollowResult> {
     }
     return { ok: false, reason: "The link redirects too many times." };
   } catch (err) {
-    if (controller.signal.aborted) return { ok: false, reason: "The site took too long to answer." };
+    if (controller.signal.aborted) {
+      return { ok: false, reason: "The site took more than 15 seconds to answer. If it sleeps when nobody's using it, open it once to wake it up, then try again." };
+    }
     const code = (err as { cause?: { code?: string } })?.cause?.code;
     if (code === "EPRIVATE") return { ok: false, reason: "That link points to a private network address." };
     if (code === "ENOTFOUND") return { ok: false, reason: "That domain doesn't exist." };

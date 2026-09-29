@@ -23,9 +23,11 @@ export type NewApp = {
   pricing: string;
   stage: string;
   caption: string;
-  videoPath: string;
+  // The Drop (a short video) is optional: without one the app still shows on
+  // Browse, Featured and the builder's profile, just not in the Drops feed.
+  videoPath: string | null;
   posterPath: string | null;
-  durationSeconds: number;
+  durationSeconds: number | null;
   // The builder ticked the safety box on the Post screen.
   safetyChecked: boolean;
   // Optional cover image (drops/<id>/appcover-<time>.jpg) for the app's card.
@@ -47,8 +49,9 @@ export async function publishApp(
   if (!isOneOf(CATEGORIES, input.category)) return { ok: false, error: "Pick a category." };
   if (!isOneOf(PRICING, input.pricing)) return { ok: false, error: "Pick a pricing option." };
   if (!isOneOf(STAGES, input.stage)) return { ok: false, error: "Pick a stage." };
+  const videoPath = input.videoPath || null;
   const duration = Number(input.durationSeconds);
-  if (!Number.isFinite(duration) || duration <= 0 || duration > MAX_DROP_SECONDS) {
+  if (videoPath && (!Number.isFinite(duration) || duration <= 0 || duration > MAX_DROP_SECONDS)) {
     return { ok: false, error: `Drops can be up to ${MAX_DROP_SECONDS} seconds.` };
   }
   const ownFile = (p: string) => p.startsWith(`${viewerId}/`) && !p.includes("..") && p.length < 200;
@@ -56,7 +59,7 @@ export async function publishApp(
   if (coverPath && !new RegExp(`^${viewerId}/appcover-[0-9]+\\.jpg$`).test(coverPath)) {
     return { ok: false, error: "Upload the cover image again." };
   }
-  if (!ownFile(input.videoPath) || (input.posterPath && !ownFile(input.posterPath))) {
+  if ((videoPath && !ownFile(videoPath)) || (videoPath && input.posterPath && !ownFile(input.posterPath))) {
     return { ok: false, error: "Upload the video again." };
   }
 
@@ -101,14 +104,16 @@ export async function publishApp(
 
   const { error: dropError } = markError
     ? { error: markError }
-    : await supabase.from("drops").insert({
-        app_id: app.id,
-        owner_id: viewerId,
-        video_path: input.videoPath,
-        poster_path: input.posterPath,
-        duration_seconds: Math.round(duration * 100) / 100,
-        caption: input.caption.trim(),
-      });
+    : videoPath
+      ? await supabase.from("drops").insert({
+          app_id: app.id,
+          owner_id: viewerId,
+          video_path: videoPath,
+          poster_path: input.posterPath,
+          duration_seconds: Math.round(duration * 100) / 100,
+          caption: input.caption.trim(),
+        })
+      : { error: null };
 
   if (dropError) {
     await supabase.from("apps").delete().eq("id", app.id);

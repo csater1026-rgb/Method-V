@@ -68,10 +68,18 @@ export function guessCategory(text: string): Category | null {
   return null;
 }
 
+// App store pages name the store as the site ("App Store") and add it to the
+// title ("HabitPal on the App Store", "HabitPal - Apps on Google Play").
+const STORE_NAMES = /^(app store|google play|testflight|apple testflight|microsoft store|chrome web store)$/i;
+const STORE_SUFFIX = /\s*(?:[-–—|]\s*)?(?:on the (?:mac )?app store|apps on google play|on google play|on testflight|- chrome web store)\s*$/i;
+const cleanStore = (s: string) => s.replace(/[\u200e\u200f]/g, "").replace(STORE_SUFFIX, "").trim();
+
 export function sitePreview(html: string, url: string): SitePreview {
-  const { title, meta } = parseMeta(html);
-  const ogTitle = meta["og:title"] ?? meta["twitter:title"] ?? "";
-  const siteName = meta["og:site_name"] ?? meta["application-name"] ?? meta["apple-mobile-web-app-title"] ?? "";
+  const { title: rawTitle, meta } = parseMeta(html);
+  const title = cleanStore(rawTitle);
+  const ogTitle = cleanStore(meta["og:title"] ?? meta["twitter:title"] ?? "");
+  const namedSite = meta["og:site_name"] ?? meta["application-name"] ?? meta["apple-mobile-web-app-title"] ?? "";
+  const siteName = STORE_NAMES.test(namedSite.trim()) ? "" : cleanStore(namedSite);
   const description = meta["og:description"] ?? meta["description"] ?? meta["twitter:description"] ?? "";
 
   // "NoteFlow — Meeting notes that turn into to-dos" → name + tagline.

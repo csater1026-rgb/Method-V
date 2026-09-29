@@ -7,6 +7,9 @@ import { BRAND_LIMITS } from "@/lib/constants";
 import { getViewer } from "@/lib/data";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
+// Checking a link can take up to 15 seconds (sleeping sites wake up slowly).
+export const maxDuration = 60;
+
 export const metadata: Metadata = { title: "List your brand" };
 
 export default async function NewBrandPage() {

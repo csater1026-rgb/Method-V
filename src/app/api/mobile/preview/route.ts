@@ -5,6 +5,9 @@ import { sitePreview } from "@/lib/site-preview";
 import { clientFromBearer } from "@/lib/supabase/bearer";
 import { DEMO_MODE_MESSAGE, isSupabaseConfigured } from "@/lib/supabase/env";
 
+// Checking a link can take up to 15 seconds (sleeping sites wake up slowly).
+export const maxDuration = 60;
+
 // Fills in name, tagline and category from an app's website, for the mobile
 // Post screen. Signed-in only, and fetchPage keeps its private-address checks.
 export async function POST(request: Request) {
