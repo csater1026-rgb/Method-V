@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect, useState, useTransition } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 
-import { passwordAuth, resendConfirmation, signIn, type SignInState } from "@/app/actions";
+import { finishSignUp, passwordAuth, resendConfirmation, signIn, type SignInState } from "@/app/actions";
 import { MIN_PASSWORD } from "@/lib/constants";
 
 type Mode = "signin" | "signup" | "link";
@@ -17,6 +17,8 @@ export function LoginForm({ next, disabled }: { next: string; disabled: boolean 
   const [showPassword, setShowPassword] = useState(false);
   // New accounts tick a box agreeing to the Terms and Privacy Policy.
   const [agreed, setAgreed] = useState(false);
+  // Kept in this tab only, so "Check your email" can sign them in once they confirm.
+  const password = useRef("");
   const state = mode === "link" ? linkState : passwordState;
   const pending = mode === "link" ? linkPending : passwordPending;
 
@@ -27,6 +29,7 @@ export function LoginForm({ next, disabled }: { next: string; disabled: boolean 
           Check <strong>{state.email}</strong> for{" "}
           {state.status === "sent" ? "your sign-in link." : "a link to confirm your account. Then you're in."}
         </p>
+        {state.status === "confirm" && <AutoContinue email={state.email} password={password} next={next} />}
         {state.status === "confirm" && <SendAgain email={state.email} next={next} />}
       </div>
     );
@@ -68,6 +71,7 @@ export function LoginForm({ next, disabled }: { next: string; disabled: boolean 
                 id="password"
                 name="password"
                 type={showPassword ? "text" : "password"}
+                onChange={(e) => (password.current = e.target.value)}
                 required
                 minLength={mode === "signup" ? MIN_PASSWORD : undefined}
                 maxLength={72}
@@ -166,5 +170,45 @@ function SendAgain({ email, next }: { email: string; next: string }) {
       </p>
       {note && <p className={note.ok ? "text-accent" : "text-danger"}>{note.text}</p>}
     </div>
+  );
+}
+
+// Waits for the confirmation: tries to sign in now and then (and whenever they
+// come back to this tab), and goes on in as soon as it works.
+function AutoContinue({ email, password, next }: { email: string; password: React.RefObject<string>; next: string }) {
+  useEffect(() => {
+    const secret = password.current;
+    if (!secret) return;
+    let done = false;
+    let tries = 0;
+    let busy = false;
+    const attempt = async () => {
+      if (done || busy || tries >= 40) return;
+      busy = true;
+      tries++;
+      const r = await finishSignUp(email, secret).catch(() => ({ status: "error" as const }));
+      busy = false;
+      if (r.status === "in") {
+        done = true;
+        window.location.assign(next);
+      } else if (r.status === "error") done = true;
+    };
+    const timer = setInterval(attempt, 15000);
+    const onBack = () => document.visibilityState === "visible" && void attempt();
+    document.addEventListener("visibilitychange", onBack);
+    window.addEventListener("focus", onBack);
+    return () => {
+      done = true;
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", onBack);
+      window.removeEventListener("focus", onBack);
+    };
+  }, [email, password, next]);
+
+  return (
+    <p className="flex items-center gap-2 text-sm text-muted">
+      <span aria-hidden className="inline-block h-2 w-2 animate-pulse rounded-full bg-accent" />
+      Once you confirm, this page signs you in by itself, even if you confirm on your phone.
+    </p>
   );
 }

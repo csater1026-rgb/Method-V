@@ -153,6 +153,22 @@ export async function passwordAuth(_prev: SignInState, formData: FormData): Prom
   redirect(next);
 }
 
+// The "Check your email" screen tries this every little while (and when they
+// come back to the tab): once they've confirmed, on this device or another,
+// it signs them in and the page moves on by itself.
+export async function finishSignUp(emailValue: string, password: string): Promise<{ status: "in" | "waiting" | "error" }> {
+  if (!isSupabaseConfigured) return { status: "error" };
+  const email = String(emailValue ?? "").trim().toLowerCase();
+  if (!email || typeof password !== "string" || !password) return { status: "error" };
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (!error) {
+    revalidatePath("/", "layout");
+    return { status: "in" };
+  }
+  return { status: /confirm/i.test(error.message) ? "waiting" : "error" };
+}
+
 // "Didn't get it? Send it again" after creating an account. Errors are logged
 // so a sending problem (the email service, a limit) shows in Vercel's logs.
 export async function resendConfirmation(emailValue: string, nextValue: string): Promise<ActionResult> {
