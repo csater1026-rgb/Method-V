@@ -219,8 +219,12 @@ ok(JSON.stringify(pushTarget("https://evil.example")) === '{"screen":"/"}' && JS
   const by = (name: string) => EMAIL_TEMPLATES.find((t) => t.supabaseName === name)!;
   ok(EMAIL_TEMPLATES.length === 6, "all six Supabase email templates");
   ok(["Confirm sign up", "Magic link", "Reauthentication"].every((n) => by(n).html.includes("{{ .Token }}")), "the emails the app needs carry the 6-digit code");
-  ok(["Confirm sign up", "Magic link", "Reset password", "Change email address", "Invite user"].every((n) => by(n).html.includes('href="{{ .ConfirmationURL }}"')), "and the others the link");
-  ok(EMAIL_TEMPLATES.every((t) => (t.html.match(/\{\{[^}]*\}\}/g) ?? []).every((p) => /^\{\{ \.(Token|ConfirmationURL|Email|NewEmail) \}\}$/.test(p))), "only Supabase's own placeholders");
+  ok(["Reset password", "Change email address", "Invite user"].every((n) => by(n).html.includes('href="{{ .ConfirmationURL }}"')), "and the others the link");
+  ok(
+    ["Confirm sign up", "Magic link"].every((n) => by(n).html.includes('href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=email"')),
+    "confirming and signing in link to our own page, so they work in any browser",
+  );
+  ok(EMAIL_TEMPLATES.every((t) => (t.html.match(/\{\{[^}]*\}\}/g) ?? []).every((p) => /^\{\{ \.(Token|TokenHash|SiteURL|ConfirmationURL|Email|NewEmail) \}\}$/.test(p))), "only Supabase's own placeholders");
   ok(EMAIL_TEMPLATES.every((t) => t.subject.includes("Method V") && t.html.includes("METHOD")), "every email says it's from Method V");
 }
 

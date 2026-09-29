@@ -43,9 +43,15 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
         {params.deleted === "1" && (
           <p className="mt-4 rounded-lg border border-accent/40 bg-accent/10 px-3 py-2 text-sm">Your account has been deleted. Thanks for being part of Method V.</p>
         )}
-        {params.error === "link" && (
+        {params.confirmed === "1" && (
+          <p className="mt-4 rounded-lg border border-accent/40 bg-accent/10 px-3 py-2 text-sm">
+            <strong>Your email is confirmed.</strong> Sign in below to continue.
+          </p>
+        )}
+        {(params.error === "link" || params.error === "expired") && (
           <p className="mt-4 rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm">
-            That sign-in link didn&apos;t work or has expired. Request a new one.
+            {params.error === "expired" ? "That link was already used or has expired." : "That link didn't work."} Sign in with your
+            password below. If your account isn&apos;t confirmed yet, you&apos;ll be able to get a new link.
           </p>
         )}
         <ProviderButtons next={safeNext} />

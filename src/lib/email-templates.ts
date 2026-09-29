@@ -85,7 +85,9 @@ export const EMAIL_TEMPLATES: EmailTemplate[] = [
     html: layout({
       heading: "Welcome to Method V",
       intro: "Confirm your email to finish signing up, then post your first Drop, follow builders and test apps.",
-      button: { label: "Confirm my email", href: "{{ .ConfirmationURL }}" },
+      // Our own link (not {{ .ConfirmationURL }}): it works in any browser or
+      // email app, not just the one they signed up in. See /auth/callback.
+      button: { label: "Confirm my email", href: "{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=email" },
       code: "{{ .Token }}",
       footer: `If you didn't sign up for Method V, you can ignore this email.`,
     }),
@@ -96,7 +98,7 @@ export const EMAIL_TEMPLATES: EmailTemplate[] = [
     html: layout({
       heading: "Sign in to Method V",
       intro: "Tap the button to sign in. It also works if you forgot your password: you can set a new one under Edit profile.",
-      button: { label: "Sign in", href: "{{ .ConfirmationURL }}" },
+      button: { label: "Sign in", href: "{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=email" },
       code: "{{ .Token }}",
       footer: `The link and code work once and expire soon. ${IGNORE}`,
     }),

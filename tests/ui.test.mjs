@@ -601,6 +601,15 @@ await run("followers and following", phone, async (page) => {
   ok((await fetch(BASE + "/u/nobody_here_123/followers")).status === 404, "an unknown person's list is a 404");
 });
 
+await run("email link outcomes", phone, async (page) => {
+  await go(page, "/login?confirmed=1");
+  ok(await page.getByText("Your email is confirmed.").isVisible(), "a link opened in another browser says the email is confirmed");
+  await go(page, "/login?error=expired");
+  ok(await page.getByText("That link was already used or has expired.").isVisible(), "an old link says so, and what to do");
+  const res = await page.goto(BASE + "/auth/callback");
+  ok(new URL(page.url()).pathname === "/login" && res.status() < 400, "a bare callback goes back to sign-in");
+});
+
 await run("set up your profile", phone, async (page) => {
   await go(page, "/welcome");
   ok(await page.getByRole("heading", { name: "Set up your profile" }).isVisible(), "the first-sign-in page asks for a profile");
