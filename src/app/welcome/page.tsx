@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-import { getOwnProfile, getViewer } from "@/lib/data";
+import { getNotificationSettings, getOwnProfile, getViewer } from "@/lib/data";
 import { safeNextPath } from "@/lib/gate";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured, publicFileUrl } from "@/lib/supabase/env";
 import { isDefaultUsername, suggestUsername } from "@/lib/username";
 
 import { AvatarForm } from "../settings/AvatarForm";
+import { BrowserPush } from "../settings/NotificationsForm";
 import { WelcomeForm } from "./WelcomeForm";
 
 export const metadata: Metadata = { title: "Set up your profile" };
@@ -25,6 +26,7 @@ export default async function WelcomePage({ searchParams }: PageProps<"/welcome"
   let name = "";
   let photo: string | null = null;
   let suggestion = "maya_builds";
+  let notificationsReady = false;
   if (isSupabaseConfigured) {
     const viewer = await getViewer();
     if (!viewer) redirect("/login?next=/welcome");
@@ -36,6 +38,7 @@ export default async function WelcomePage({ searchParams }: PageProps<"/welcome"
     name = profile?.display_name ?? "";
     photo = publicFileUrl(profile?.avatar_path ?? null);
     suggestion = suggestUsername(name, typeof email === "string" ? email : null);
+    notificationsReady = (await getNotificationSettings(viewer)).ready;
   }
 
   return (
@@ -45,8 +48,20 @@ export default async function WelcomePage({ searchParams }: PageProps<"/welcome"
       <p className="mt-2 text-muted">
         Pick the name people will see on your apps, feedback and questions. You can change any of it later in Edit profile.
       </p>
-      <AvatarForm userId={userId} username={username} name={name} current={photo} />
-      <WelcomeForm suggestion={suggestion} name={name} next={next} />
+      <h2 className="mt-6 text-sm font-medium">Profile photo</h2>
+      <AvatarForm userId={userId} username={username} name={name} current={photo} welcome />
+      <WelcomeForm suggestion={suggestion} name={name} next={next}>
+        <section aria-labelledby="welcome-notify" className="rounded-xl border border-line bg-surface p-4">
+          <h2 id="welcome-notify" className="font-semibold">
+            Want notifications?
+          </h2>
+          <p className="mt-1 mb-3 text-sm text-muted">
+            Hear right away when someone follows you, gives feedback on your app, or messages you. Optional, and you can pick which ones or
+            turn them off any time in Edit profile.
+          </p>
+          <BrowserPush vapidKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ""} ready={notificationsReady} welcome />
+        </section>
+      </WelcomeForm>
     </div>
   );
 }

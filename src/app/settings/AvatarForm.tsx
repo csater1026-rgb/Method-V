@@ -33,11 +33,14 @@ export function AvatarForm({
   username,
   name,
   current,
+  welcome = false,
 }: {
   userId: string;
   username: string;
   name: string;
   current: string | null;
+  // On the first-time setup page: say it's optional but worth doing.
+  welcome?: boolean;
 }) {
   const router = useRouter();
   const input = useRef<HTMLInputElement>(null);
@@ -103,7 +106,14 @@ export function AvatarForm({
             </button>
           )}
         </div>
-        <p className="text-xs text-muted">Square works best. It shows next to your name everywhere.</p>
+        {welcome ? (
+          <p className="text-xs text-muted">
+            <span className="font-semibold text-ink">Optional, but recommended.</span> A face or logo shows next to your name on your
+            apps, Drops, feedback and questions, so people know who they&apos;re talking to.
+          </p>
+        ) : (
+          <p className="text-xs text-muted">Square works best. It shows next to your name everywhere.</p>
+        )}
         {error && <p className="text-sm text-danger">{error}</p>}
       </div>
       <input

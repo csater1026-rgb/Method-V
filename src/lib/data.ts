@@ -38,6 +38,8 @@ import type {
   PackageDeal,
   SponsorPackage,
   AppDetail,
+  ManageApp,
+  ProfileDrop,
   Conversation,
   ConnectionRequest,
   ConnectionState,
@@ -177,6 +179,8 @@ function toFeedback(row: any, links: Map<string, string> = new Map()): Feedback 
     confusing: row.confusing ?? "",
     worked_shots: shots(row.worked_shots),
     confusing_shots: shots(row.confusing_shots),
+    reply: row.reply ?? "",
+    replied_at: row.replied_at ?? null,
     earned: row.earned ?? 0,
     helpful_at: row.helpful_at,
     created_at: row.created_at,
@@ -411,6 +415,90 @@ export async function getApp(slug: string): Promise<AppDetail | null> {
   return { ...toApp(row), owner: toSummary(row.owner), drop, liked, sponsor: sponsors.get(row.id) ?? null };
 }
 
+// A builder's Drops for their profile, newest first.
+export async function getProfileDrops(profileId: string, max = 24): Promise<ProfileDrop[]> {
+  if (!isSupabaseConfigured) {
+    return demoDrops
+      .filter((d) => d.owner_id === profileId)
+      .map((d) => {
+        const app = demoApps.find((a) => a.id === d.app_id)!;
+        return { ...d, app: { id: app.id, slug: app.slug, name: app.name, category: app.category }, image_url: d.poster_url };
+      });
+  }
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("drops")
+    .select("*, app:apps!inner(id, slug, name, category, cover_path, link_checked_at)")
+    .eq("owner_id", profileId)
+    .not("app.link_checked_at", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(max);
+  if (error) {
+    console.error("couldn't load profile drops", error.code, error.message);
+    return [];
+  }
+  return (data ?? []).map((row) => {
+    // Embedded one-to-one relations come back as objects at runtime.
+    const app = row.app as unknown as ProfileDrop["app"] & { cover_path: string | null };
+    const drop = toDrop(row);
+    return {
+      ...drop,
+      app: { id: app.id, slug: app.slug, name: app.name, category: app.category },
+      image_url: drop.poster_url ?? publicFileUrl(app.cover_path ?? null),
+    };
+  });
+}
+
+// One Drop, shaped for the feed: /drops?d=<id> opens the feed on it (from a
+// profile's Drops).
+export async function getFeedItem(dropId: string): Promise<FeedItem | null> {
+  if (!isSupabaseConfigured) {
+    const d = demoDrops.find((x) => x.id === dropId);
+    const app = d && demoApps.find((a) => a.id === d.app_id);
+    return d && app ? { ...d, app, owner: toSummary(demoProfile(d.owner_id)), liked: false, sponsor: demoSponsorCard(app.id) } : null;
+  }
+  if (!/^[0-9a-f-]{36}$/i.test(dropId)) return null;
+  const supabase = await createClient();
+  const { data: row } = await supabase
+    .from("drops")
+    .select(
+      `id, app_id, owner_id, video_path, poster_path, duration_seconds, caption, like_count, comment_count, created_at,
+       app:apps!inner(id, slug, name, tagline, category, try_count, link_checked_at),
+       owner:profiles!drops_owner_id_fkey(${summaryCols()})`,
+    )
+    .eq("id", dropId)
+    .not("app.link_checked_at", "is", null)
+    .maybeSingle();
+  if (!row) return null;
+  const app = row.app as unknown as FeedItem["app"];
+  const [liked, sponsors] = await Promise.all([likedDropIds(await getViewer(), [row.id as string]), getSponsorCards([row.app_id as string])]);
+  return {
+    ...toDrop(row),
+    app: { id: app.id, slug: app.slug, name: app.name, tagline: app.tagline, category: app.category, try_count: app.try_count },
+    owner: toSummary(row.owner),
+    liked: liked.has(row.id as string),
+    sponsor: sponsors.get(row.app_id as string) ?? null,
+  };
+}
+
+// The Manage page for one of your apps. Null if it isn't yours. In demo mode,
+// any sample app (so the page can be looked at; saving is off).
+export async function getManageApp(slug: string, viewer: Viewer | null): Promise<ManageApp | null> {
+  if (!isSupabaseConfigured) {
+    const app = demoApps.find((a) => a.slug === slug);
+    return app ? { app, drops: demoDrops.filter((d) => d.app_id === app.id), unreplied: 0 } : null;
+  }
+  if (!viewer) return null;
+  const supabase = await createClient();
+  const { data: row } = await supabase.from("apps").select("*").eq("slug", slug).eq("owner_id", viewer.id).maybeSingle();
+  if (!row) return null;
+  const [{ data: dropRows }, unanswered] = await Promise.all([
+    supabase.from("drops").select("*").eq("app_id", row.id).order("created_at", { ascending: false }),
+    supabase.from("feedback").select("id", { count: "exact", head: true }).eq("app_id", row.id).eq("reply", ""),
+  ]);
+  return { app: toApp(row), drops: (dropRows ?? []).map(toDrop), unreplied: unanswered.error ? null : (unanswered.count ?? 0) };
+}
+
 export async function isFollowing(viewer: Viewer | null, profileId: string): Promise<boolean> {
   if (!viewer || viewer.id === profileId || !isSupabaseConfigured) return false;
   const supabase = await createClient();
@@ -491,9 +579,9 @@ export async function getOwnProfile(): Promise<Profile | null> {
 // Phase 3: credits and feedback
 // ---------------------------------------------------------------------------
 
-const FEEDBACK_FIELDS = () => `id, would_use, rating, worked, confusing, worked_shots, confusing_shots, earned, helpful_at, created_at,
+const FEEDBACK_FIELDS = () => `id, would_use, rating, worked, confusing, worked_shots, confusing_shots, reply, replied_at, earned, helpful_at, created_at,
   user:profiles!feedback_user_id_fkey(${summaryCols()}, feedback_given_count, feedback_helpful_count)` as const;
-// Before the screenshots migration is run, those two columns don't exist yet.
+// Before the screenshots and replies migrations are run, those columns don't exist yet.
 const FEEDBACK_FIELDS_NO_SHOTS = () => `id, would_use, rating, worked, confusing, earned, helpful_at, created_at,
   user:profiles!feedback_user_id_fkey(${summaryCols()}, feedback_given_count, feedback_helpful_count)` as const;
 

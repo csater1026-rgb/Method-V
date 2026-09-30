@@ -27,6 +27,7 @@ import type {
   Drop,
   FeedItem,
   Profile,
+  ProfileDrop,
   ProfileSummary,
   QuestionCard,
   SponsorCard,
@@ -341,21 +342,40 @@ export async function getAppDetail(slug: string, viewerId: string | null): Promi
 export async function getProfileBundle(
   username: string,
   viewerId: string | null,
-): Promise<{ profile: Profile; apps: AppCard[]; following: boolean } | null> {
+): Promise<{ profile: Profile; apps: AppCard[]; drops: ProfileDrop[]; following: boolean } | null> {
   if (!supabase) {
     const profile = demoProfiles.find((p) => p.username === username);
     if (!profile) return null;
-    return { profile, apps: demoCards().filter((a) => a.owner_id === profile.id), following: false };
+    const drops = demoDrops
+      .filter((d) => d.owner_id === profile.id)
+      .map((d) => {
+        const app = demoApps.find((a) => a.id === d.app_id)!;
+        return { ...d, app: { id: app.id, slug: app.slug, name: app.name, category: app.category }, image_url: d.poster_url };
+      });
+    return { profile, apps: demoCards().filter((a) => a.owner_id === profile.id), drops, following: false };
   }
   const { data: profile } = await supabase.from("profiles").select(PROFILE_COLUMNS).eq("username", username).maybeSingle();
   if (!profile) return null;
-  const [apps, follow] = await Promise.all([
+  const [apps, dropRows, follow] = await Promise.all([
     supabase.from("apps").select(CARD_SELECT).eq("owner_id", profile.id).not("link_checked_at", "is", null).order("created_at", { ascending: false }),
+    supabase
+      .from("drops")
+      .select("*, app:apps!inner(id, slug, name, category, cover_path, link_checked_at)")
+      .eq("owner_id", profile.id)
+      .not("app.link_checked_at", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(24),
     viewerId && viewerId !== profile.id
       ? supabase.from("follows").select("follower_id").eq("follower_id", viewerId).eq("following_id", profile.id).maybeSingle()
       : Promise.resolve({ data: null }),
   ]);
-  return { profile: profile as Profile, apps: (apps.data ?? []).map(toCard), following: Boolean(follow.data) };
+  // Their Drops, newest first; the tile shows the Drop's frame, else the app's card picture.
+  const drops: ProfileDrop[] = (dropRows.data ?? []).map((row) => {
+    const app = row.app as unknown as ProfileDrop["app"] & { cover_path: string | null };
+    const drop = toDrop(row);
+    return { ...drop, app: { id: app.id, slug: app.slug, name: app.name, category: app.category }, image_url: drop.poster_url ?? fileUrl(app.cover_path ?? null) };
+  });
+  return { profile: profile as Profile, apps: (apps.data ?? []).map(toCard), drops, following: Boolean(follow.data) };
 }
 
 // ---------------------------------------------------------------------------

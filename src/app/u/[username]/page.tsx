@@ -7,10 +7,11 @@ import { Avatar } from "@/components/Avatar";
 import { ConnectButton } from "@/components/ConnectButton";
 import { FollowButton } from "@/components/FollowButton";
 import { PassportCard } from "@/components/Passport";
+import { ProfileDrops } from "@/components/ProfileDrops";
 import { Updates } from "@/components/Updates";
 import { Chip, RoleTags, StatusBadge, primaryStatus } from "@/components/Tags";
 import { SignOutButton } from "@/components/SignOutButton";
-import { getConnectionState, getMyApps, getPassport, getProfile, getUpdates, getViewer, isPro } from "@/lib/data";
+import { getConnectionState, getMyApps, getPassport, getProfile, getProfileDrops, getUpdates, getViewer, isPro } from "@/lib/data";
 import { formatCount } from "@/lib/format";
 import { socialLinks } from "@/lib/socials";
 import { publicFileUrl } from "@/lib/supabase/env";
@@ -32,11 +33,12 @@ export default async function ProfilePage({ params }: PageProps<"/u/[username]">
   // Pro builders can pin one app to the front.
   const pinnedId = pro ? profile.pinned_app_id : null;
   const orderedApps = pinnedId ? [...apps].sort((a, b) => Number(b.id === pinnedId) - Number(a.id === pinnedId)) : apps;
-  const [passport, updates, myApps, connection] = await Promise.all([
+  const [passport, updates, myApps, connection, drops] = await Promise.all([
     getPassport(profile.id),
     getUpdates({ userId: profile.id, limit: 20 }),
     isSelf ? getMyApps(viewer) : Promise.resolve([]),
     getConnectionState(viewer, profile.id),
+    getProfileDrops(profile.id),
   ]);
 
   const links = socialLinks(profile);
@@ -189,7 +191,71 @@ export default async function ProfilePage({ params }: PageProps<"/u/[username]">
         </div>
       </section>
 
-      <div className="mt-8">
+      {/* What they've made comes first: their Drops, then their apps. */}
+      <section aria-labelledby="profile-drops" className="mt-10">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 id="profile-drops" className="display text-4xl">
+            Drops <span className="text-2xl text-muted">{drops.length}</span>
+          </h2>
+          {drops.length > 0 && (
+            <Link href="/drops" className="text-sm text-accent hover:underline">
+              Watch all Drops →
+            </Link>
+          )}
+        </div>
+        {drops.length === 0 && !isSelf ? (
+          <p className="mt-3 text-muted">No Drops yet.</p>
+        ) : (
+          <ProfileDrops drops={drops} isSelf={isSelf} />
+        )}
+      </section>
+
+      <section aria-labelledby="profile-apps" className="mt-12">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 id="profile-apps" className="display text-4xl">
+            {isSelf ? "Your apps" : "Apps"} <span className="text-2xl text-muted">{apps.length}</span>
+          </h2>
+          {isSelf && apps.length > 0 && <p className="text-sm text-muted">Edit, add Drops, reply to feedback or delete from each app&apos;s Manage page.</p>}
+        </div>
+        {apps.length > 0 ? (
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {orderedApps.map((app, i) => (
+              <div key={app.id} className="relative flex flex-col gap-2">
+                {app.id === pinnedId && <span className="tag-accent absolute top-2 right-2 z-10">Pinned</span>}
+                <AppCard app={app} showOwner={false} index={i} />
+                {isSelf && (
+                  <div className="flex flex-wrap gap-2">
+                    <Link href={`/apps/${app.slug}/manage`} className="btn-accent flex-1 px-3 py-1.5 text-center text-sm">
+                      ✎ Manage
+                    </Link>
+                    <Link href={`/apps/${app.slug}#feedback`} className="btn-ghost px-3 py-1.5 text-sm">
+                      Feedback{app.feedback_count > 0 ? ` · ${formatCount(app.feedback_count)}` : ""}
+                    </Link>
+                    <Link href={`/dashboard?app=${app.slug}`} className="btn-ghost px-3 py-1.5 text-sm">
+                      Stats
+                    </Link>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-4 text-muted">
+            {isSelf ? (
+              <>
+                Nothing posted yet.{" "}
+                <Link href="/submit" className="text-accent hover:underline">
+                  Post your first app
+                </Link>
+              </>
+            ) : (
+              "No apps posted yet."
+            )}
+          </p>
+        )}
+      </section>
+
+      <div className="mt-12">
         <PassportCard profile={profile} passport={passport} isSelf={isSelf} />
       </div>
 
@@ -204,31 +270,6 @@ export default async function ProfilePage({ params }: PageProps<"/u/[username]">
           />
         </div>
       </section>
-
-      <h2 className="display mt-12 text-4xl">Apps</h2>
-      {apps.length > 0 ? (
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {orderedApps.map((app, i) => (
-            <div key={app.id} className="relative">
-              {app.id === pinnedId && <span className="tag-accent absolute top-2 right-2 z-10">Pinned</span>}
-              <AppCard app={app} showOwner={false} index={i} />
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className="mt-4 text-muted">
-          {isSelf ? (
-            <>
-              Nothing posted yet.{" "}
-              <Link href="/submit" className="text-accent hover:underline">
-                Post your first Drop
-              </Link>
-            </>
-          ) : (
-            "No apps posted yet."
-          )}
-        </p>
-      )}
     </div>
   );
 }

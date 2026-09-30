@@ -84,7 +84,7 @@ export function NotificationsForm({ initial, vapidKey, ready }: { initial: Kinds
 
 type BrowserState = "checking" | "unsupported" | "needs-install" | "blocked" | "off" | "on";
 
-function BrowserPush({ vapidKey, ready }: { vapidKey: string; ready: boolean }) {
+export function BrowserPush({ vapidKey, ready, welcome = false }: { vapidKey: string; ready: boolean; welcome?: boolean }) {
   const [state, setState] = useState<BrowserState>("checking");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -161,22 +161,22 @@ function BrowserPush({ vapidKey, ready }: { vapidKey: string; ready: boolean }) 
   else if (state === "blocked") note = "Notifications are blocked for this site. Allow them in your browser's site settings, then come back.";
 
   return (
-    <div className="mt-5 border-t border-line pt-4">
-      <p className="font-semibold">This browser</p>
+    <div className={welcome ? "" : "mt-5 border-t border-line pt-4"}>
+      {!welcome && <p className="font-semibold">This browser</p>}
       {note ? (
         <p className="mt-1 text-sm text-muted">{note}</p>
       ) : state === "checking" ? (
         <p className="mt-1 text-sm text-muted">Checking…</p>
       ) : state === "on" ? (
         <div className="mt-2 flex flex-wrap items-center gap-3">
-          <span className="tag-accent">On</span>
+          <span className="tag-accent">{welcome ? "Notifications are on ✓" : "On"}</span>
           <button type="button" className="btn-ghost" disabled={busy} onClick={() => void turnOff()}>
             Turn off in this browser
           </button>
         </div>
       ) : (
         <button type="button" className="btn-accent mt-2" disabled={busy || !ready} onClick={() => void turnOn()}>
-          {busy ? "Turning on…" : "Turn on notifications in this browser"}
+          {busy ? "Turning on…" : welcome ? "Yes, turn on notifications" : "Turn on notifications in this browser"}
         </button>
       )}
       {error && <p className="mt-2 text-sm text-danger">{error}</p>}

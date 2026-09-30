@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 import { ScrollView, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Avatar, Body, Button, Display, ErrorText, Eyebrow, Mono, Wordmark } from "@/components/ui";
+import { Avatar, Body, Button, Card, Display, ErrorText, Eyebrow, Mono, Wordmark } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import { checkUsername, claimUsername, setPhoto } from "@/lib/data";
+import { pushSupported, turnOnPush } from "@/lib/push";
 import { skipProfileSetup, useProfileSetupSkipped } from "@/lib/welcome";
 import { fonts, useTheme } from "@/theme";
 import { USERNAME_HINT, USERNAME_PATTERN, isDefaultUsername, suggestUsername } from "@shared/username";
@@ -26,6 +27,7 @@ export default function WelcomeScreen() {
   const [result, setResult] = useState<{ value: string; ok: boolean; message: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [photoBusy, setPhotoBusy] = useState(false);
+  const [notify, setNotify] = useState<"ask" | "busy" | "on">("ask");
   const [error, setError] = useState<string | null>(null);
 
   const value = username.trim().toLowerCase();
@@ -88,6 +90,14 @@ export default function WelcomeScreen() {
     setPhotoBusy(false);
   }
 
+  async function turnOnNotifications() {
+    setError(null);
+    setNotify("busy");
+    const r = await turnOnPush();
+    setNotify(r.ok ? "on" : "ask");
+    if (!r.ok) setError(r.error);
+  }
+
   const input = { borderWidth: 1, borderColor: t.line, backgroundColor: t.surface, color: t.ink, borderRadius: 8, paddingHorizontal: 12, minHeight: 48, fontSize: 16 } as const;
 
   return (
@@ -97,9 +107,15 @@ export default function WelcomeScreen() {
       <Display size={42}>Set up your profile</Display>
       <Body muted>Pick the name people will see on your apps, feedback and questions. You can change it later on the Me tab or the website.</Body>
 
+      <Mono>Profile photo</Mono>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
         <Avatar username={value || viewer.username} name={displayName} src={viewer.avatar_url} size={64} />
-        <Button label={viewer.avatar_url ? "Change photo" : "Add a photo"} kind="ghost" busy={photoBusy} onPress={() => void pickPhoto()} />
+        <View style={{ flex: 1, gap: 6, alignItems: "flex-start" }}>
+          <Button label={viewer.avatar_url ? "Change photo" : "Add a photo"} kind={viewer.avatar_url ? "ghost" : "accent"} busy={photoBusy} onPress={() => void pickPhoto()} />
+          <Body muted size={12}>
+            Optional, but recommended. It shows next to your name on your apps, Drops, feedback and questions.
+          </Body>
+        </View>
       </View>
 
       <Mono>Username</Mono>
@@ -131,6 +147,23 @@ export default function WelcomeScreen() {
         accessibilityLabel="Your name"
         style={[input, { fontFamily: fonts.body }]}
       />
+
+      {pushSupported && (
+        <Card style={{ gap: 8 }}>
+          <Body bold>Want notifications?</Body>
+          <Body muted size={13}>
+            Hear right away when someone follows you, gives feedback on your app, or messages you. Optional, and you can change it any time on
+            the Me tab.
+          </Body>
+          {notify === "on" ? (
+            <Body size={14} style={{ color: t.accent }}>
+              Notifications are on ✓
+            </Body>
+          ) : (
+            <Button label="Yes, turn on notifications" kind="ghost" busy={notify === "busy"} onPress={() => void turnOnNotifications()} />
+          )}
+        </Card>
+      )}
 
       <ErrorText>{error}</ErrorText>
       <Button label="Save and continue" onPress={() => void save()} busy={busy} disabled={!check.ok} />

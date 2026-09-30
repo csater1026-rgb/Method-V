@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 
-import { cancelTesters, markHelpful, requestTesters, submitFeedback } from "@/app/actions";
+import { cancelTesters, markHelpful, replyToFeedback, requestTesters, submitFeedback } from "@/app/actions";
 import { CREDITS, MAX_FEEDBACK_SHOTS, TESTER_PACKS, WOULD_USE, labelFor } from "@/lib/constants";
 import { imageProblem, shrinkToJpeg } from "@/lib/crop-image";
 import { timeAgo } from "@/lib/format";
@@ -546,6 +546,16 @@ function FeedbackItem({ item, appSlug, canMarkHelpful }: { item: Feedback; appSl
           <ShotList urls={item.confusing_shots} label="What was confusing" />
         </>
       )}
+      {canMarkHelpful && appSlug ? (
+        <ReplyBox item={item} appSlug={appSlug} />
+      ) : (
+        item.reply && (
+          <div className="mt-3 rounded-lg border-l-2 border-accent bg-surface px-3 py-2">
+            <p className="text-xs font-semibold text-muted uppercase">The builder replied</p>
+            <p className="mt-0.5 break-words whitespace-pre-line">{item.reply}</p>
+          </div>
+        )
+      )}
       {canMarkHelpful && (
         <div className="mt-3">
           {helpful ? (
@@ -560,5 +570,90 @@ function FeedbackItem({ item, appSlug, canMarkHelpful }: { item: Feedback; appSl
         </div>
       )}
     </article>
+  );
+}
+
+// The builder's reply on a piece of feedback: write one, change it or take it
+// back. Only the tester and the builder see it; the tester gets a notification.
+function ReplyBox({ item, appSlug }: { item: Feedback; appSlug: string }) {
+  const [reply, setReply] = useState(item.reply);
+  const [draft, setDraft] = useState(item.reply);
+  const [editing, setEditing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  function save(text: string) {
+    setError(null);
+    startTransition(async () => {
+      const result = await replyToFeedback(item.id, appSlug, text);
+      if (!result.ok) return setError(result.error);
+      setReply(text.trim());
+      setDraft(text.trim());
+      setEditing(false);
+    });
+  }
+
+  if (editing) {
+    return (
+      <div className="mt-3 flex flex-col gap-2">
+        <label className="flex flex-col gap-1.5">
+          <span className="text-xs font-semibold text-muted uppercase">Your reply</span>
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            maxLength={1000}
+            rows={3}
+            autoFocus
+            placeholder={`Thanks @${item.user.username}! …`}
+            className="field"
+          />
+        </label>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" className="btn-accent px-3 py-1.5 text-xs" disabled={pending || !draft.trim()} onClick={() => save(draft)}>
+            {pending ? "Sending…" : reply ? "Save reply" : "Send reply"}
+          </button>
+          <button
+            type="button"
+            className="btn-ghost px-3 py-1.5 text-xs"
+            disabled={pending}
+            onClick={() => {
+              setDraft(reply);
+              setEditing(false);
+              setError(null);
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+        <p className="text-xs text-muted">Only they can see it, and they&apos;ll get a notification.</p>
+        {error && <p className="text-xs text-danger">{error}</p>}
+      </div>
+    );
+  }
+
+  if (!reply) {
+    return (
+      <div className="mt-3">
+        <button type="button" className="btn-ghost px-3 py-1 text-xs" onClick={() => setEditing(true)}>
+          ↩ Reply
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-3 rounded-lg border-l-2 border-accent bg-surface px-3 py-2">
+      <p className="text-xs font-semibold text-muted uppercase">Your reply</p>
+      <p className="mt-0.5 break-words whitespace-pre-line">{reply}</p>
+      <div className="mt-1.5 flex gap-3 text-xs">
+        <button type="button" className="text-accent hover:underline" disabled={pending} onClick={() => setEditing(true)}>
+          Edit
+        </button>
+        <button type="button" className="text-muted hover:text-danger" disabled={pending} onClick={() => save("")}>
+          {pending ? "Removing…" : "Remove"}
+        </button>
+      </div>
+      {error && <p className="mt-1 text-xs text-danger">{error}</p>}
+    </div>
   );
 }

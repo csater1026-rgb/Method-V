@@ -40,6 +40,7 @@ import { DEMO_MODE_MESSAGE, DROPS_BUCKET, authProviders, isSupabaseConfigured, t
 import { dbMessage, withVCoin } from "@/lib/db-errors";
 import { deleteAccount } from "@/lib/delete-account";
 import { removePost } from "@/lib/remove-post";
+import * as manage from "@/lib/manage-app";
 import { safeNextPath } from "@/lib/gate";
 import { PROFILE_LATER_COOKIE, USERNAME_HINT, USERNAME_PATTERN, isDefaultUsername } from "@/lib/username";
 import { isPushServiceEndpoint } from "@/lib/push-core";
@@ -638,6 +639,93 @@ export async function cancelTesters(appId: string, appSlug: string): Promise<Act
   revalidatePath(`/apps/${appSlug}`);
   revalidatePath("/test");
   revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Managing your own apps and Drops (the app's Manage page)
+// ---------------------------------------------------------------------------
+
+export type AppDetailsInput = manage.AppDetailsInput;
+
+function revalidateApp(slug: string, username: string) {
+  revalidatePath(`/apps/${slug}`);
+  revalidatePath(`/apps/${slug}/manage`);
+  revalidatePath(`/u/${username}`);
+  revalidatePath("/");
+  revalidatePath("/browse");
+  revalidatePath("/drops");
+}
+
+export async function updateAppDetails(appId: string, input: AppDetailsInput): Promise<ActionResult> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  if (!UUID.test(appId)) return { ok: false, error: "Unknown app." };
+  const r = await manage.updateDetails(await createClient(), auth.viewer.id, appId, input);
+  if (!r.ok) return r;
+  revalidateApp(r.slug, auth.viewer.username);
+  return { ok: true };
+}
+
+export async function changeAppLink(appId: string, url: string): Promise<ActionResult> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  if (!UUID.test(appId)) return { ok: false, error: "Unknown app." };
+  const r = await manage.changeLink(await createClient(), auth.viewer.id, appId, url);
+  if (!r.ok) return r;
+  revalidateApp(r.slug, auth.viewer.username);
+  return { ok: true };
+}
+
+export async function addDropToApp(appId: string, input: manage.NewDrop): Promise<ActionResult> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  if (!UUID.test(appId)) return { ok: false, error: "Unknown app." };
+  const r = await manage.addDrop(await createClient(), auth.viewer.id, appId, input);
+  if (!r.ok) return r;
+  revalidateApp(r.slug, auth.viewer.username);
+  return { ok: true };
+}
+
+export async function editDropCaption(dropId: string, appSlug: string, caption: string): Promise<ActionResult> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  if (!UUID.test(dropId)) return { ok: false, error: "Unknown Drop." };
+  const r = await manage.setDropCaption(await createClient(), auth.viewer.id, dropId, caption);
+  if (r.ok) revalidateApp(appSlug, auth.viewer.username);
+  return r;
+}
+
+export async function removeDrop(dropId: string, appSlug: string): Promise<ActionResult> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  if (!UUID.test(dropId)) return { ok: false, error: "Unknown Drop." };
+  const r = await manage.deleteDrop(await createClient(), auth.viewer.id, dropId);
+  if (r.ok) revalidateApp(appSlug, auth.viewer.username);
+  return r;
+}
+
+export async function deleteMyApp(appId: string, typedName: string): Promise<ActionResult> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  if (!UUID.test(appId)) return { ok: false, error: "Unknown app." };
+  const r = await manage.deleteApp(await createClient(), auth.viewer.id, appId, typedName);
+  if (!r.ok) return r;
+  revalidatePath(`/u/${auth.viewer.username}`);
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+export async function replyToFeedback(feedbackId: string, appSlug: string, body: string): Promise<ActionResult> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  if (!UUID.test(feedbackId)) return { ok: false, error: "Unknown feedback." };
+  const text = String(body ?? "").trim();
+  if (text.length > 1000) return { ok: false, error: "Keep your reply under 1,000 characters." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("reply_to_feedback", { p_feedback_id: feedbackId, p_body: text });
+  if (error) return { ok: false, error: dbMessage(error, "Couldn't save your reply.") };
+  revalidatePath(`/apps/${appSlug}`);
   return { ok: true };
 }
 

@@ -8,7 +8,7 @@ import { USERNAME_HINT, USERNAME_PATTERN } from "@/lib/username";
 
 type Check = { state: "idle" | "checking" | "ok" | "bad"; message: string };
 
-export function WelcomeForm({ suggestion, name, next }: { suggestion: string; name: string; next: string }) {
+export function WelcomeForm({ suggestion, name, next, children }: { suggestion: string; name: string; next: string; children?: React.ReactNode }) {
   const router = useRouter();
   const [username, setUsername] = useState(suggestion);
   const [displayName, setDisplayName] = useState(name);
@@ -106,6 +106,8 @@ export function WelcomeForm({ suggestion, name, next }: { suggestion: string; na
         />
         <span className="text-sm text-muted">Optional. Shown above your username.</span>
       </label>
+
+      {children}
 
       {error && <p className="text-sm text-danger">{error}</p>}
 

@@ -1,20 +1,21 @@
 import { Image } from "expo-image";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import { useState } from "react";
 import { Linking, Pressable, RefreshControl, ScrollView, View } from "react-native";
 
 import { ROLES, labelFor, primaryStatus } from "@shared/constants";
-import { formatCount } from "@shared/format";
+import { formatCount, formatDuration } from "@shared/format";
 import { socialLinks } from "@shared/socials";
 
-import { AppCard } from "@/components/AppCard";
+import { AppCard, DropPlaceholder } from "@/components/AppCard";
 import { Loading } from "@/components/Loading";
 import { Avatar, Body, Button, Display, ErrorText, Handle, Mono, StatusBadge, Tag } from "@/components/ui";
-import { fileUrl } from "@/lib/config";
+import { SITE_URL, fileUrl } from "@/lib/config";
 import { useAuth } from "@/lib/auth";
 import { getProfileBundle, setFollow } from "@/lib/data";
 import { useLoad } from "@/lib/useLoad";
-import { useTheme } from "@/theme";
+import { media, useTheme } from "@/theme";
 
 export default function ProfileScreen() {
   const { username } = useLocalSearchParams<{ username: string }>();
@@ -42,7 +43,7 @@ export default function ProfileScreen() {
       </View>
     );
   }
-  const { profile, apps } = data;
+  const { profile, apps, drops } = data;
   const isSelf = viewer?.id === profile.id;
   const isFollowing = following ?? data.following;
   const pro = Boolean(profile.pro_until && Date.parse(profile.pro_until) > Date.now());
@@ -143,12 +144,66 @@ export default function ProfileScreen() {
       {!isSelf && <Button label={isFollowing ? "Following" : "Follow"} kind={isFollowing ? "ghost" : "accent"} onPress={() => void toggleFollow()} />}
       <ErrorText>{followError}</ErrorText>
 
+      {/* What they've made comes first: their Drops, then their apps. */}
       <Display size={34} style={{ marginTop: 10 }}>
-        Apps
+        Drops <Body muted>{drops.length}</Body>
+      </Display>
+      {drops.length === 0 && !isSelf ? (
+        <Body muted>No Drops yet.</Body>
+      ) : (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+          {isSelf && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Post a Drop"
+              onPress={() => router.push("/post")}
+              style={{ width: 120, aspectRatio: 9 / 16, borderRadius: 12, borderWidth: 1, borderStyle: "dashed", borderColor: t.line, backgroundColor: t.surface, alignItems: "center", justifyContent: "center", gap: 6, padding: 10 }}
+            >
+              <Display size={40} style={{ color: t.accent }}>
+                +
+              </Display>
+              <Body bold size={13} style={{ textAlign: "center" }}>
+                Post a Drop
+              </Body>
+            </Pressable>
+          )}
+          {drops.map((drop) => (
+            <Pressable
+              key={drop.id}
+              accessibilityRole="link"
+              accessibilityLabel={`${drop.app.name} Drop`}
+              onPress={() => router.push(`/apps/${drop.app.slug}`)}
+              style={{ width: 120, aspectRatio: 9 / 16, borderRadius: 12, overflow: "hidden", backgroundColor: media.bg }}
+            >
+              {drop.image_url ? (
+                <Image source={{ uri: drop.image_url }} accessibilityIgnoresInvertColors style={{ width: "100%", height: "100%" }} contentFit="cover" />
+              ) : (
+                <DropPlaceholder name={drop.app.name} />
+              )}
+              <View style={{ position: "absolute", left: 0, right: 0, bottom: 0, padding: 8, backgroundColor: "rgba(0,0,0,0.6)" }}>
+                <Body bold size={13} numberOfLines={1} style={{ color: "#fff" }}>
+                  {drop.app.name}
+                </Body>
+                <Mono style={{ color: "rgba(255,255,255,0.75)" }}>
+                  ▶ {formatDuration(drop.duration_seconds)} · ♥ {formatCount(drop.like_count)}
+                </Mono>
+              </View>
+            </Pressable>
+          ))}
+        </ScrollView>
+      )}
+
+      <Display size={34} style={{ marginTop: 10 }}>
+        {isSelf ? "Your apps" : "Apps"} <Body muted>{apps.length}</Body>
       </Display>
       {apps.length === 0 && <Body muted>No apps posted yet.</Body>}
       {apps.map((app) => (
-        <AppCard key={app.id} app={app} />
+        <View key={app.id} style={{ gap: 8 }}>
+          <AppCard app={app} />
+          {isSelf && SITE_URL && (
+            <Button label="✎ Manage: edit, Drops, feedback" kind="ghost" onPress={() => void WebBrowser.openBrowserAsync(`${SITE_URL}/apps/${app.slug}/manage`)} />
+          )}
+        </View>
       ))}
     </ScrollView>
   );

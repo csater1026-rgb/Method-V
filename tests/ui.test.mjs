@@ -360,7 +360,39 @@ await run("profile", desktop, async (page) => {
   ok((await page.getByText("Open to collab").count()) === 1 && (await page.locator("main .tag-accent", { hasText: "Open to collab" }).isVisible()), "status shows once, as the badge by the avatar");
   ok(await page.locator("main").getByText("Founder", { exact: true }).isVisible(), "other role tags still shown");
   ok((await page.locator("main article").count()) === 2, "profile lists their 2 apps");
+  const drops = page.getByRole("list", { name: "Drops" }).getByRole("link");
+  ok((await drops.count()) === 2, "profile shows their 2 Drops");
+  ok(/^\/drops\?d=/.test((await drops.first().getAttribute("href")) ?? ""), "a Drop opens the feed on it");
+  const dropsTop = (await page.getByRole("heading", { name: /^Drops/ }).boundingBox()).y;
+  const appsTop = (await page.getByRole("heading", { name: /^Apps/ }).boundingBox()).y;
+  const passportTop = (await page.getByText("Tester passport", { exact: false }).first().boundingBox()).y;
+  ok(dropsTop < appsTop && appsTop < passportTop, "Drops come first, then apps, then the passport");
   await page.screenshot({ path: OUT + "profile-desktop.png", fullPage: true });
+});
+
+await run("open the feed on one Drop", phone, async (page) => {
+  await go(page, "/drops?d=demo-drop-splitsy");
+  ok((await page.locator("article").first().textContent()).includes("Splitsy"), "/drops?d= starts the feed on that Drop");
+  ok((await page.locator("article").count()) === 4, "…with the rest of the feed after it, no repeats");
+});
+
+await run("manage an app", desktop, async (page) => {
+  await go(page, "/apps/noteflow/manage");
+  for (const h of ["Drops", "Details", "Link", "Card image", "Delete this app"]) {
+    ok(await page.getByRole("heading", { name: new RegExp(`^${h}`) }).first().isVisible(), `Manage has ${h}`);
+  }
+  ok((await page.getByRole("textbox", { name: "Name" }).inputValue()) === "NoteFlow", "details are filled in");
+  ok(await page.getByText("+ Add a Drop").isVisible(), "you can add a Drop");
+  ok(await page.getByRole("button", { name: "Delete Drop" }).isVisible(), "…and delete one");
+  await page.getByRole("button", { name: "Save details" }).click();
+  await page.getByText(/demo mode/i).nth(1).waitFor();
+  ok(true, "saving in demo mode explains itself");
+  await page.getByRole("button", { name: "Delete app…" }).click();
+  const del = page.getByRole("button", { name: "Delete forever" });
+  ok(await del.isDisabled(), "deleting needs the app's name typed first");
+  await page.getByRole("textbox", { name: /to confirm/ }).fill("noteflow");
+  ok(await del.isEnabled(), "…then it can go");
+  await noSideScroll(page, "manage");
 });
 
 {
@@ -621,6 +653,8 @@ await run("set up your profile", phone, async (page) => {
   await page.getByText(/Usernames are 3–24 characters/).first().waitFor();
   ok(await page.getByRole("button", { name: "Save and continue" }).isDisabled(), "a bad username can't be saved");
   ok(await page.getByRole("button", { name: "Add a photo" }).isVisible(), "a photo is offered");
+  ok(await page.getByText("Optional, but recommended.").isVisible(), "…as optional, but recommended");
+  ok(await page.getByRole("heading", { name: "Want notifications?" }).isVisible(), "it asks about notifications");
   await page.getByRole("button", { name: "Skip for now" }).click();
   await page.waitForURL((u) => new URL(u).pathname === "/");
   ok(true, "Skip for now goes on to Home");

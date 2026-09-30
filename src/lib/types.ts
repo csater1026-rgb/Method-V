@@ -98,6 +98,21 @@ export type AppCard = App & {
   poster_url: string | null;
 };
 
+// A Drop on a builder's profile: which app it's for, and a picture for the tile.
+export type ProfileDrop = Drop & {
+  app: Pick<App, "id" | "slug" | "name" | "category">;
+  // The Drop's frame, else the app's card picture.
+  image_url: string | null;
+};
+
+// An app's Manage page: the app, every Drop, and how much feedback still
+// has no reply (null before the replies update is run).
+export type ManageApp = {
+  app: App;
+  drops: Drop[];
+  unreplied: number | null;
+};
+
 export type AppDetail = App & {
   owner: ProfileSummary;
   drop: Drop | null;
@@ -126,6 +141,9 @@ export type Feedback = {
   // Signed links to the screenshots attached to each answer (up to 3 each).
   worked_shots: string[];
   confusing_shots: string[];
+  // The builder's reply (empty if none). Only the tester and builder see it.
+  reply: string;
+  replied_at: string | null;
   earned: number;
   helpful_at: string | null;
   created_at: string;

@@ -153,6 +153,11 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
             />
           )}
           <ShareButton path={`/apps/${app.slug}`} title={`${app.name} on Method V`} layout="inline" />
+          {isOwner && (
+            <Link href={`/apps/${app.slug}/manage`} className="btn-ghost">
+              ✎ Manage
+            </Link>
+          )}
           {!isOwner && <BackButton app={{ id: app.id, slug: app.slug, name: app.name }} signedIn={Boolean(viewer) || !isSupabaseConfigured} />}
           {/* Jumps down to the builder's sponsorship packages (only when they offer some). */}
           {!isOwner && packages.some((p) => p.active) && (

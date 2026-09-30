@@ -11,8 +11,11 @@ const migrationsDir = new URL("../supabase/migrations/", import.meta.url);
 // Sponsorship packages replace pay-per-try offers, so they're applied after
 // the per-try tests (which still check deals already running).
 const LATE = ["20261008000000_sponsor_packages.sql", "20261009000000_review_fixes.sql"];
+// Newer files that redefine what the LATE ones set (the notification kinds),
+// so they have to come after them, as they do on a real database.
+const AFTER_LATE = ["20261014000000_feedback_replies.sql"];
 const migrations = readdirSync(migrationsDir)
-  .filter((f) => f.endsWith(".sql") && !LATE.includes(f))
+  .filter((f) => f.endsWith(".sql") && !LATE.includes(f) && !AFTER_LATE.includes(f))
   .sort()
   .map((f) => readFileSync(new URL(f, migrationsDir), "utf8"));
 
@@ -69,7 +72,7 @@ async function runAgain(files) {
   return failed;
 }
 {
-  const newest = readdirSync(migrationsDir).filter((f) => f >= "20261001000000" && f.endsWith(".sql") && !LATE.includes(f)).sort();
+  const newest = readdirSync(migrationsDir).filter((f) => f >= "20261001000000" && f.endsWith(".sql") && !LATE.includes(f) && !AFTER_LATE.includes(f)).sort();
   const failed = await runAgain(newest);
   ok(failed.length === 0 && newest.length === 11, `the newest migrations are safe to run twice (${failed.join("; ") || newest.join(", ")})`);
 }
@@ -235,6 +238,7 @@ ok(!!(await fails("authenticated", B, "select public.mark_feedback_helpful($1)",
 await as("authenticated", A, "select public.mark_feedback_helpful($1)", [fbCId]);
 ok((await credits(C)) === 13, "helpful feedback earns the tester +1");
 ok(!!(await fails("authenticated", A, "select public.mark_feedback_helpful($1)", [fbCId])), "helpful only counts once");
+
 
 // Cancel refunds the 2 unused spots.
 const refunded = await as("authenticated", A, "select public.cancel_test_request($1) as n", [appId]);
@@ -1190,6 +1194,31 @@ ok(!!(await fails("anon", null, "insert into public.sponsorships (sponsor_brand,
 {
   const failed = await runAgain(LATE);
   ok(failed.length === 0, `the newest migrations can be run again with data in place (${failed.join("; ") || LATE.join(", ")})`);
+}
+
+// Replies to feedback (20261014000000_feedback_replies.sql), in its real place
+// after the LATE files.
+{
+  for (const f of AFTER_LATE) await db.exec(readFileSync(new URL(f, migrationsDir), "utf8"));
+  const again = await runAgain(AFTER_LATE);
+  ok(again.length === 0, `the feedback replies update is safe to run twice (${again.join("; ") || "clean"})`);
+  // Builders reply to feedback on their own apps; the tester is told once.
+  ok(!!(await fails("authenticated", B, "select public.reply_to_feedback($1, 'Thanks!')", [fbCId])), "only the builder can reply to feedback");
+  ok(!!(await fails("authenticated", C, "update public.feedback set reply = 'x' where id = $1", [fbCId])), "nobody writes replies directly");
+  await as("authenticated", A, "select public.reply_to_feedback($1, '  Thanks, fixing the pricing link today!  ')", [fbCId]);
+  let replyRow = (await db.query("select reply, replied_at from public.feedback where id = $1", [fbCId])).rows[0];
+  ok(replyRow.reply === "Thanks, fixing the pricing link today!" && replyRow.replied_at, "the builder's reply is saved (trimmed)");
+  const replyNotes = async () =>
+    (await db.query("select count(*)::int n from public.notifications where user_id = $1 and kind = 'feedback_reply'", [C])).rows[0].n;
+  ok((await replyNotes()) === 1, "the tester is notified about the reply");
+  await as("authenticated", A, "select public.reply_to_feedback($1, 'Fixed now.')", [fbCId]);
+  ok((await replyNotes()) === 1, "editing the reply doesn't notify again");
+  ok((await as("authenticated", C, "select reply from public.feedback where id = $1", [fbCId])).rows[0]?.reply === "Fixed now.", "the tester sees the reply");
+  ok((await as("authenticated", D, "select reply from public.feedback where id = $1", [fbCId])).rows.length === 0, "nobody else sees it");
+  ok(!!(await fails("authenticated", A, "select public.reply_to_feedback($1, $2)", [fbCId, "x".repeat(1001)])), "replies are 1,000 characters at most");
+  await as("authenticated", A, "select public.reply_to_feedback($1, '')", [fbCId]);
+  replyRow = (await db.query("select reply, replied_at from public.feedback where id = $1", [fbCId])).rows[0];
+  ok(replyRow.reply === "" && replyRow.replied_at === null, "an empty reply removes it");
 }
 
 // Security hardening (20261011000000_security_hardening.sql).

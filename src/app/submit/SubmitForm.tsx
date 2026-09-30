@@ -5,11 +5,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createApp, previewLink } from "@/app/actions";
 import { uploadAppCover } from "@/components/AppCover";
 import { LoadingCoder } from "@/components/LoadingCoder";
+import { VideoPicker } from "@/components/VideoPicker";
 import { imageProblem } from "@/lib/crop-image";
 import {
   CATEGORIES,
-  DROP_VIDEO_TYPES,
-  MAX_DROP_BYTES,
   MAX_DROP_MB,
   MAX_DROP_SECONDS,
   PRICING,
@@ -19,14 +18,12 @@ import {
   type Category,
 } from "@/lib/constants";
 import { formatDuration } from "@/lib/format";
+import { readDropVideo, uploadDropVideo, type DropVideo } from "@/lib/drop-video";
 import { clearPendingVideo, peekPendingVideo } from "@/lib/pending-video";
 import { DEMO_MODE_MESSAGE, DROPS_BUCKET } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/client";
 
-// Recorders often land a hair over a round number, so allow half a second.
-const DURATION_GRACE = 0.5;
-
-type Video = { file: File; url: string; duration: number; poster: Blob | null };
+type Video = DropVideo;
 type LinkState = { state: "empty" | "reading" | "ok" | "bad"; message?: string };
 type Step = "idle" | "uploading" | "saving";
 
@@ -67,29 +64,9 @@ export function SubmitForm({ userId }: { userId: string | null }) {
   const pickFile = useCallback(async (file: File) => {
     setVideo(null);
     setVideoError(null);
-    if (!DROP_VIDEO_TYPES.includes(file.type)) {
-      setVideoError("Use an MP4, WebM or MOV video.");
-      return;
-    }
-    if (file.size > MAX_DROP_BYTES) {
-      setVideoError(`Videos can be up to ${MAX_DROP_MB} MB. Trim it, or record at 1080p instead of 4K.`);
-      return;
-    }
-    const objectUrl = URL.createObjectURL(file);
-    try {
-      const { duration, poster } = await inspectVideo(objectUrl);
-      if (duration > MAX_DROP_SECONDS + DURATION_GRACE) {
-        URL.revokeObjectURL(objectUrl);
-        setVideoError(
-          `That video is ${Math.round(duration)} seconds. Drops can be up to ${MAX_DROP_SECONDS} seconds — trim it and try again.`,
-        );
-        return;
-      }
-      setVideo({ file, url: objectUrl, duration: Math.min(duration, MAX_DROP_SECONDS), poster });
-    } catch {
-      URL.revokeObjectURL(objectUrl);
-      setVideoError("We couldn't read that video. Try exporting it again as MP4.");
-    }
+    const read = await readDropVideo(file);
+    if (read.ok) setVideo(read.video);
+    else setVideoError(read.error);
   }, []);
 
   // A video picked from the + button on the previous screen.
@@ -154,25 +131,15 @@ export function SubmitForm({ userId }: { userId: string | null }) {
     setStep("uploading");
     // The video is optional; without one the app still goes on Browse and your profile.
     if (video) {
-      const id = crypto.randomUUID();
-      const ext = video.file.type === "video/webm" ? "webm" : video.file.type === "video/quicktime" ? "mov" : "mp4";
-      videoPath = `${userId}/${id}.${ext}`;
-      posterPath = video.poster ? `${userId}/${id}.jpg` : null;
-      const up = await bucket.upload(videoPath, video.file, { contentType: video.file.type, upsert: false });
-      if (up.error) {
+      const up = await uploadDropVideo(userId, video);
+      if (!up.ok) {
         setStep("idle");
-        setError(
-          /size|too large|exceed/i.test(up.error.message)
-            ? `That video is too big to upload (the limit is ${MAX_DROP_MB} MB). Trim it, or record at 1080p instead of 4K.`
-            : `Upload failed: ${up.error.message}`,
-        );
+        setError(up.error);
         return;
       }
-      uploaded.push(videoPath);
-      if (posterPath && video.poster) {
-        const pup = await bucket.upload(posterPath, video.poster, { contentType: "image/jpeg", upsert: false });
-        if (!pup.error) uploaded.push(posterPath);
-      }
+      videoPath = up.videoPath;
+      posterPath = up.posterPath;
+      uploaded.push(videoPath, ...(posterPath ? [posterPath] : []));
     }
 
     let coverPath: string | null = null;
@@ -514,55 +481,6 @@ function StepTitle({ n, id, children }: { n: number; id: string; children: React
   );
 }
 
-function VideoPicker({
-  label,
-  capture = false,
-  small = false,
-  disabled,
-  onFile,
-}: {
-  label: string;
-  capture?: boolean;
-  small?: boolean;
-  disabled: boolean;
-  onFile: (file: File) => void;
-}) {
-  return (
-    <label
-      className={
-        small
-          ? "btn-ghost cursor-pointer px-3 py-1.5"
-          : `flex cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-line bg-surface px-4 py-6 text-center hover:border-accent ${
-              capture ? "pointer-fine:hidden" : ""
-            }`
-      }
-    >
-      {!small && (
-        <span className="text-2xl" aria-hidden>
-          {capture ? "●" : "▶"}
-        </span>
-      )}
-      <span className={small ? "" : "font-semibold"}>{label}</span>
-      {!small && (
-        <span className="text-xs text-muted">{capture ? "Use your camera" : "From your phone or computer"}</span>
-      )}
-      <input
-        type="file"
-        accept={capture ? "video/*" : DROP_VIDEO_TYPES.join(",")}
-        capture={capture ? "environment" : undefined}
-        disabled={disabled}
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          e.target.value = "";
-          if (file) onFile(file);
-        }}
-        className="sr-only"
-        aria-label={capture ? "Record a video" : "Drop video"}
-      />
-    </label>
-  );
-}
-
 function Choice({ selected, onClick, children }: { selected: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
@@ -588,53 +506,4 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
       {children}
     </label>
   );
-}
-
-// Reads the real duration and grabs a frame to use as the thumbnail.
-function inspectVideo(url: string): Promise<{ duration: number; poster: Blob | null }> {
-  return new Promise((resolve, reject) => {
-    const el = document.createElement("video");
-    el.preload = "metadata";
-    el.muted = true;
-    el.playsInline = true;
-    el.src = url;
-    let duration = 0;
-
-    const fail = () => reject(new Error("unreadable"));
-    const timer = setTimeout(fail, 15000);
-
-    el.onerror = () => {
-      clearTimeout(timer);
-      fail();
-    };
-    el.onloadedmetadata = () => {
-      if (Number.isFinite(el.duration)) {
-        duration = el.duration;
-        el.currentTime = Math.min(1, duration / 2);
-      } else {
-        // Some recorders write WebM without a duration; seeking far ahead makes the browser work it out.
-        el.currentTime = 1e9;
-      }
-    };
-    el.onseeked = () => {
-      if (!duration) {
-        if (!Number.isFinite(el.duration)) return;
-        duration = el.duration;
-        el.currentTime = Math.min(1, duration / 2);
-        return;
-      }
-      clearTimeout(timer);
-      const scale = Math.min(1, 720 / (el.videoWidth || 720));
-      const canvas = document.createElement("canvas");
-      canvas.width = Math.round((el.videoWidth || 720) * scale);
-      canvas.height = Math.round((el.videoHeight || 1280) * scale);
-      const ctx = canvas.getContext("2d");
-      if (!ctx) {
-        resolve({ duration, poster: null });
-        return;
-      }
-      ctx.drawImage(el, 0, 0, canvas.width, canvas.height);
-      canvas.toBlob((blob) => resolve({ duration, poster: blob }), "image/jpeg", 0.8);
-    };
-  });
 }

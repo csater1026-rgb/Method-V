@@ -1,5 +1,6 @@
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
+import * as WebBrowser from "expo-web-browser";
 import { Pressable, RefreshControl, ScrollView, Share, View } from "react-native";
 
 import { CATEGORIES, PRICING, STAGES, labelFor } from "@shared/constants";
@@ -97,6 +98,10 @@ export default function AppScreen() {
           kind="ghost"
           onPress={() => void Share.share({ message: `${app.name}: ${app.tagline}. Try it on Method V ${SITE_URL ? `${SITE_URL}/apps/${app.slug}` : ""}`.trim() })}
         />
+        {/* Your own app: edit it, add Drops, reply to feedback (on the website for now). */}
+        {viewer?.id === app.owner_id && SITE_URL ? (
+          <Button label="✎ Manage" kind="ghost" onPress={() => void WebBrowser.openBrowserAsync(`${SITE_URL}/apps/${app.slug}/manage`)} />
+        ) : null}
       </View>
 
       {app.sponsor && <Sponsored sponsor={app.sponsor} />}

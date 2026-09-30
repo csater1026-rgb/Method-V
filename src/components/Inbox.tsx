@@ -49,6 +49,8 @@ function describe(n: Notification): { text: string; href: string } {
       return { text: `left feedback on ${app}`, href: `${appHref}#feedback` };
     case "helpful":
       return { text: `marked your feedback on ${app} helpful`, href: appHref };
+    case "feedback_reply":
+      return { text: `replied to your feedback on ${app}`, href: `${appHref}#feedback` };
     case "connection_request":
       return { text: "wants to connect", href: "/inbox?tab=requests" };
     case "connection_accepted":

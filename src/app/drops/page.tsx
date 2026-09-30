@@ -4,7 +4,7 @@ import Link from "next/link";
 
 import { DropFeed } from "@/components/DropFeed";
 import { QuestionFeed } from "@/components/QuestionFeed";
-import { getFeed, getQuestionFeed, getViewer, type FeedTab } from "@/lib/data";
+import { getFeed, getFeedItem, getQuestionFeed, getViewer, type FeedTab } from "@/lib/data";
 import { INTERESTS_COOKIE, parseInterests } from "@/lib/interests";
 
 export const metadata: Metadata = { title: "Drops" };
@@ -29,10 +29,14 @@ export default async function DropsPage({ searchParams }: PageProps<"/drops">) {
   const interests = parseInterests((await cookies()).get(INTERESTS_COOKIE)?.value);
 
   const viewer = await getViewer();
-  const [items, questions] = await Promise.all([
+  // ?d=<drop id> (from a profile's Drops): open the feed on that Drop.
+  const startId = typeof params.d === "string" && tab !== "questions" ? params.d : null;
+  const [feed, questions, start] = await Promise.all([
     tab === "questions" ? Promise.resolve([]) : getFeed({ tab, interests }),
     tab === "questions" ? getQuestionFeed(viewer, interests) : Promise.resolve([]),
+    startId ? getFeedItem(startId) : Promise.resolve(null),
   ]);
+  const items = start ? [start, ...feed.filter((d) => d.id !== start.id)] : feed;
 
   return (
     <div className="relative">
