@@ -10,7 +10,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 # Method V
 
-Read `PLAN.md` for the product plan and `README.md` for setup and how the code is laid out.
+Read `docs/PLAN.md` for the product plan and `docs/SETUP.md` for setup and how the code is laid out (`README.md` is the short overview for visitors).
 
 - Next.js 16 App Router + Supabase. `src/proxy.ts` is the old "middleware" (renamed in Next 16). `params`, `searchParams` and `cookies()` are async.
 - With no Supabase keys the site runs in demo mode using `src/lib/demo.ts`. Every read in `src/lib/data.ts` and every action in `src/app/actions.ts` must keep working (or explain itself) in demo mode.

@@ -43,7 +43,7 @@ Builds run in the cloud on [EAS](https://expo.dev/eas), so you don't need a Mac.
 2. Change `ios.bundleIdentifier` and `android.package` in `app.json` from `com.methodv.app` to an ID you own (e.g. your domain backwards).
 3. Add the same `EXPO_PUBLIC_…` values to EAS: `npx eas-cli@latest env:create` for the `preview` and `production` environments (or on expo.dev → your project → Environment variables).
 4. Try it on real phones: `npx eas-cli@latest build --profile preview`. On Android you get an APK to install. iPhones need to be registered for internal builds, or use TestFlight.
-5. Push notifications (optional; the website side is in the main README, step 7): step 1's `init` adds the project ID the app needs to get a push token. iPhone: when `eas build` asks, let it create an Apple Push Notifications key. Android: add an FCM V1 key with `npx eas-cli@latest credentials` (see Expo's "push notifications setup" guide). Then Me → Notifications → Turn on notifications on a real phone.
+5. Push notifications (optional; the website side is in [docs/SETUP.md](../docs/SETUP.md), step 7): step 1's `init` adds the project ID the app needs to get a push token. iPhone: when `eas build` asks, let it create an Apple Push Notifications key. Android: add an FCM V1 key with `npx eas-cli@latest credentials` (see Expo's "push notifications setup" guide). Then Me → Notifications → Turn on notifications on a real phone.
 6. Store builds: `npx eas-cli@latest build --profile production --platform all`, then `npx eas-cli@latest submit --platform ios` and `--platform android`. You need an Apple Developer account ($99/year) and a Google Play Console account ($25 once). Store listings need screenshots, a privacy policy URL and a support URL.
 
 ## Checks

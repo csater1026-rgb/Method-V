@@ -7,7 +7,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 // Called by a Supabase Database Webhook each time a row lands in push_queue
-// (see supabase/migrations/20261005000000_push.sql and the README). Only
+// (see supabase/migrations/20261005000000_push.sql and docs/SETUP.md). Only
 // requests carrying the shared secret are accepted. Each row is claimed
 // before sending, so a retried webhook never sends twice. A request without
 // a row sends anything still waiting from the last day.

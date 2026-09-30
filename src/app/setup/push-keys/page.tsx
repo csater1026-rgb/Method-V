@@ -13,7 +13,7 @@ export default function PushKeysPage() {
       <h1 className="display rise text-5xl">Push notification keys</h1>
       <p className="mt-2 text-muted">
         Made right here in your browser; nothing is sent anywhere. Copy each value into Vercel → Settings → Environment
-        Variables, then redeploy. The webhook secret also goes into the Supabase webhook (see the README).
+        Variables, then redeploy. The webhook secret also goes into the Supabase webhook (see docs/SETUP.md).
       </p>
       <PushKeys />
     </div>

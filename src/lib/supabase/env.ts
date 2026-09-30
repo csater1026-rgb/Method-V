@@ -8,7 +8,7 @@ export const supabasePublishableKey =
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabasePublishableKey);
 
 export const DEMO_MODE_MESSAGE =
-  "Method V is running in demo mode. Add your Supabase keys to .env.local (see README) to sign in and post.";
+  "Method V is running in demo mode. Add your Supabase keys to .env.local (see docs/SETUP.md) to sign in and post.";
 
 export const DROPS_BUCKET = "drops";
 // Private: screenshots testers attach to feedback. Opened through signed links only.
