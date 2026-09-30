@@ -2,11 +2,14 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 
 import { cancelTesters, markHelpful, requestTesters, submitFeedback } from "@/app/actions";
-import { CREDITS, TESTER_PACKS, WOULD_USE, labelFor } from "@/lib/constants";
+import { CREDITS, MAX_FEEDBACK_SHOTS, TESTER_PACKS, WOULD_USE, labelFor } from "@/lib/constants";
+import { imageProblem, shrinkToJpeg } from "@/lib/crop-image";
 import { timeAgo } from "@/lib/format";
+import { createClient } from "@/lib/supabase/client";
+import { FEEDBACK_BUCKET } from "@/lib/supabase/env";
 import type { Feedback, FeedbackPanel as Panel, TestRequest } from "@/lib/types";
 
 import { Avatar } from "./Avatar";
@@ -132,22 +135,74 @@ function TryFirst({ app, open }: { app: AppRef; open: TestRequest | null }) {
   );
 }
 
+type Shot = { file: File; preview: string };
+
+// Shrinks each picked screenshot and uploads it into the tester's own folder
+// of the private feedback bucket. Returns the paths, or an error (and removes
+// anything that did upload).
+async function uploadShots(shots: Shot[]): Promise<{ paths: string[] } | { error: string }> {
+  if (shots.length === 0) return { paths: [] };
+  const supabase = createClient();
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) return { error: "Sign in again to add screenshots." };
+  const bucket = supabase.storage.from(FEEDBACK_BUCKET);
+  const paths: string[] = [];
+  for (const shot of shots) {
+    let picture: Blob;
+    try {
+      picture = await shrinkToJpeg(shot.file);
+    } catch {
+      if (paths.length) await bucket.remove(paths);
+      return { error: "Couldn't read one of your screenshots. Try a PNG or JPG." };
+    }
+    const path = `${data.user.id}/fb-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
+    const up = await bucket.upload(path, picture, { contentType: "image/jpeg", upsert: false });
+    if (up.error) {
+      if (paths.length) await bucket.remove(paths);
+      return {
+        error: /bucket not found/i.test(up.error.message)
+          ? "Screenshots can't be added right now. Remove them to send your feedback."
+          : "Couldn't upload your screenshots. Check your connection and try again.",
+      };
+    }
+    paths.push(path);
+  }
+  return { paths };
+}
+
 function FeedbackForm({ app, open }: { app: AppRef; open: TestRequest | null }) {
   const [wouldUse, setWouldUse] = useState<string>("");
   const [rating, setRating] = useState(0);
+  const [workedShots, setWorkedShots] = useState<Shot[]>([]);
+  const [confusingShots, setConfusingShots] = useState<Shot[]>([]);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   function submit(formData: FormData) {
     setError(null);
     startTransition(async () => {
+      setUploading(workedShots.length + confusingShots.length > 0);
+      const worked = await uploadShots(workedShots);
+      const confusing = "error" in worked ? worked : await uploadShots(confusingShots);
+      setUploading(false);
+      if ("error" in worked || "error" in confusing) {
+        if ("paths" in worked) await createClient().storage.from(FEEDBACK_BUCKET).remove(worked.paths);
+        return setError("error" in worked ? worked.error : "error" in confusing ? confusing.error : null);
+      }
       const result = await submitFeedback(app.id, app.slug, {
         wouldUse,
         rating,
         worked: String(formData.get("worked") ?? ""),
         confusing: String(formData.get("confusing") ?? ""),
+        workedShots: worked.paths,
+        confusingShots: confusing.paths,
       });
-      if (!result.ok) setError(result.error);
+      if (!result.ok) {
+        const uploaded = [...worked.paths, ...confusing.paths];
+        if (uploaded.length) await createClient().storage.from(FEEDBACK_BUCKET).remove(uploaded);
+        setError(result.error);
+      }
     });
   }
 
@@ -199,22 +254,155 @@ function FeedbackForm({ app, open }: { app: AppRef; open: TestRequest | null }) 
         </div>
       </fieldset>
 
-      <label className="flex flex-col gap-1.5">
-        <span className="text-sm font-medium">What worked?</span>
-        <textarea name="worked" required minLength={10} maxLength={1000} rows={3} className="field" />
-      </label>
-      <label className="flex flex-col gap-1.5">
-        <span className="text-sm font-medium">
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="fb-worked" className="text-sm font-medium">
+          What worked?
+        </label>
+        <textarea
+          id="fb-worked"
+          name="worked"
+          required
+          minLength={10}
+          maxLength={1000}
+          rows={3}
+          className="field"
+          onPaste={(e) => pasteShots(e, workedShots, setWorkedShots, setError)}
+        />
+        <ShotPicker label="What worked" shots={workedShots} onChange={setWorkedShots} onError={setError} disabled={pending} />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="fb-confusing" className="text-sm font-medium">
           What confused you? <span className="font-normal text-muted">· Optional</span>
-        </span>
-        <textarea name="confusing" maxLength={1000} rows={3} className="field" />
-      </label>
+        </label>
+        <textarea
+          id="fb-confusing"
+          name="confusing"
+          maxLength={1000}
+          rows={3}
+          className="field"
+          onPaste={(e) => pasteShots(e, confusingShots, setConfusingShots, setError)}
+        />
+        <ShotPicker label="What confused you" shots={confusingShots} onChange={setConfusingShots} onError={setError} disabled={pending} />
+      </div>
 
       {error && <p className="text-sm text-danger">{error}</p>}
       <button className="btn-accent self-start" disabled={pending || !wouldUse || rating === 0}>
-        {pending ? "Sending…" : "Send feedback"}
+        {uploading ? "Uploading screenshots…" : pending ? "Sending…" : "Send feedback"}
       </button>
     </form>
+  );
+}
+
+// Adds picked or pasted images to a list, up to MAX_FEEDBACK_SHOTS.
+function addShots(files: File[], shots: Shot[], onChange: (s: Shot[]) => void, onError: (e: string | null) => void) {
+  const images = files.filter((f) => f.type.startsWith("image/"));
+  if (images.length === 0) return;
+  const room = MAX_FEEDBACK_SHOTS - shots.length;
+  if (room <= 0) return onError(`You can add up to ${MAX_FEEDBACK_SHOTS} screenshots to each answer.`);
+  const problem = images.map(imageProblem).find(Boolean);
+  if (problem) return onError(problem);
+  onError(images.length > room ? `You can add up to ${MAX_FEEDBACK_SHOTS} screenshots to each answer, so only the first ${room} were added.` : null);
+  onChange([...shots, ...images.slice(0, room).map((file) => ({ file, preview: URL.createObjectURL(file) }))]);
+}
+
+// Pasting a screenshot (Ctrl+V / Cmd+V) into an answer adds it to that answer.
+function pasteShots(
+  e: React.ClipboardEvent,
+  shots: Shot[],
+  onChange: (s: Shot[]) => void,
+  onError: (e: string | null) => void,
+) {
+  const files = Array.from(e.clipboardData.files ?? []);
+  if (!files.some((f) => f.type.startsWith("image/"))) return;
+  e.preventDefault();
+  addShots(files, shots, onChange, onError);
+}
+
+// Up to 3 screenshots on an answer: thumbnails with a remove button, and an
+// "Add screenshot" button. On a computer you can also paste one into the box.
+function ShotPicker({
+  label,
+  shots,
+  onChange,
+  onError,
+  disabled,
+}: {
+  label: string;
+  shots: Shot[];
+  onChange: (s: Shot[]) => void;
+  onError: (e: string | null) => void;
+  disabled: boolean;
+}) {
+  const input = useRef<HTMLInputElement>(null);
+  // Free the previews when the form goes away.
+  const latest = useRef(shots);
+  useEffect(() => {
+    latest.current = shots;
+  }, [shots]);
+  useEffect(() => () => latest.current.forEach((s) => URL.revokeObjectURL(s.preview)), []);
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {shots.map((shot, i) => (
+        <div key={shot.preview} className="relative">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={shot.preview} alt={`${label} screenshot ${i + 1}`} className="h-16 w-auto max-w-28 rounded-md border border-line object-cover" />
+          <button
+            type="button"
+            disabled={disabled}
+            aria-label={`Remove ${label.toLowerCase()} screenshot ${i + 1}`}
+            onClick={() => {
+              URL.revokeObjectURL(shot.preview);
+              onChange(shots.filter((s) => s !== shot));
+            }}
+            className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full border border-line bg-surface text-xs hover:text-danger"
+          >
+            ✕
+          </button>
+        </div>
+      ))}
+      {shots.length < MAX_FEEDBACK_SHOTS && (
+        <button type="button" disabled={disabled} onClick={() => input.current?.click()} className="btn-ghost px-3 py-1.5 text-xs">
+          + Add screenshot{shots.length ? "" : "s"}
+        </button>
+      )}
+      <span className="text-xs text-muted">
+        {shots.length}/{MAX_FEEDBACK_SHOTS}
+        <span className="hidden sm:inline"> · or paste one into the box</span>
+      </span>
+      <input
+        ref={input}
+        type="file"
+        accept="image/*"
+        multiple
+        hidden
+        aria-label={`${label} screenshots`}
+        onChange={(e) => {
+          addShots(Array.from(e.target.files ?? []), shots, onChange, onError);
+          e.target.value = "";
+        }}
+      />
+    </div>
+  );
+}
+
+// Screenshots on a sent answer; tap one to open it full size.
+function ShotList({ urls, label }: { urls: string[]; label: string }) {
+  if (urls.length === 0) return null;
+  return (
+    <div className="mt-2 flex flex-wrap gap-2">
+      {urls.map((url, i) => (
+        <a key={url} href={url} target="_blank" rel="noopener noreferrer" className="block">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={url}
+            alt={`${label} screenshot ${i + 1}`}
+            loading="lazy"
+            className="h-28 w-auto max-w-[45vw] rounded-md border border-line object-cover hover:border-accent sm:max-w-60"
+          />
+        </a>
+      ))}
+    </div>
   );
 }
 
@@ -350,10 +538,12 @@ function FeedbackItem({ item, appSlug, canMarkHelpful }: { item: Feedback; appSl
       </header>
       <p className="mt-3 text-xs font-semibold text-muted uppercase">What worked</p>
       <p className="mt-0.5 break-words whitespace-pre-line">{item.worked}</p>
-      {item.confusing && (
+      <ShotList urls={item.worked_shots} label="What worked" />
+      {(item.confusing || item.confusing_shots.length > 0) && (
         <>
           <p className="mt-3 text-xs font-semibold text-muted uppercase">What was confusing</p>
-          <p className="mt-0.5 break-words whitespace-pre-line">{item.confusing}</p>
+          {item.confusing && <p className="mt-0.5 break-words whitespace-pre-line">{item.confusing}</p>}
+          <ShotList urls={item.confusing_shots} label="What was confusing" />
         </>
       )}
       {canMarkHelpful && (

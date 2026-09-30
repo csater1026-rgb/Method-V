@@ -8,6 +8,7 @@ import { formatCount, timeAgo } from "@shared/format";
 import { DropPlaceholder } from "@/components/AppCard";
 import { Loading } from "@/components/Loading";
 import { Sponsored } from "@/components/Sponsored";
+import { TryCount } from "@/components/TryCount";
 import { Avatar, Body, Button, Card, Display, ErrorText, Handle, Mono, StatusBadge, Tag, tap } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import { SITE_URL } from "@/lib/config";
@@ -101,7 +102,7 @@ export default function AppScreen() {
       {app.sponsor && <Sponsored sponsor={app.sponsor} />}
 
       <View style={{ flexDirection: "row", gap: 8 }}>
-        <Stat label="Tries" value={formatCount(app.try_count)} />
+        <Stat label="Tries" value={<TryCount appId={app.id} count={app.try_count} />} />
         <Stat label="Likes" value={formatCount(app.like_count)} />
         <Stat label="Would use" value={wouldUse === null ? "—" : `${wouldUse}%`} />
         <Stat label="Rating" value={rating === null ? "—" : `${rating}★`} />
@@ -171,7 +172,7 @@ function Player({ uri }: { uri: string }) {
   return <VideoView player={player} style={{ flex: 1 }} contentFit="contain" nativeControls />;
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value }: { label: string; value: React.ReactNode }) {
   const t = useTheme();
   return (
     <View style={{ flex: 1, backgroundColor: t.surface, borderColor: t.line, borderWidth: 1, borderRadius: 8, paddingVertical: 10, alignItems: "center" }}>

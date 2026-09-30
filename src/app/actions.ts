@@ -10,11 +10,13 @@ import {
   PACKAGE_RULES,
   EARN,
   LEGAL,
+  MAX_FEEDBACK_SHOTS,
   MIN_PASSWORD,
   OFFICIAL_HANDLE,
   ROLES,
   TESTER_PACKS,
   WOULD_USE,
+  feedbackShotPattern,
   isOneOf,
   packageFor,
 } from "@/lib/constants";
@@ -550,6 +552,9 @@ export type NewFeedback = {
   rating: number;
   worked: string;
   confusing: string;
+  // Paths of screenshots already uploaded to the feedback bucket (up to 3 each).
+  workedShots?: string[];
+  confusingShots?: string[];
 };
 
 export async function submitFeedback(appId: string, appSlug: string, input: NewFeedback): Promise<ActionResult & { earned?: number }> {
@@ -563,11 +568,31 @@ export async function submitFeedback(appId: string, appSlug: string, input: NewF
   const confusing = input.confusing.trim();
   if (worked.length < 10) return { ok: false, error: "Tell them what worked (at least 10 characters)." };
   if (worked.length > 1000 || confusing.length > 1000) return { ok: false, error: "Keep each answer under 1,000 characters." };
+  const ownShot = feedbackShotPattern(auth.viewer.id);
+  const shots = (list: unknown) => (Array.isArray(list) ? list : []);
+  const workedShots = shots(input.workedShots);
+  const confusingShots = shots(input.confusingShots);
+  if (workedShots.length > MAX_FEEDBACK_SHOTS || confusingShots.length > MAX_FEEDBACK_SHOTS) {
+    return { ok: false, error: `Add up to ${MAX_FEEDBACK_SHOTS} screenshots to each answer.` };
+  }
+  if (![...workedShots, ...confusingShots].every((p) => typeof p === "string" && ownShot.test(p))) {
+    return { ok: false, error: "Add your screenshots again." };
+  }
 
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("feedback")
-    .insert({ app_id: appId, user_id: auth.viewer.id, would_use: input.wouldUse, rating, worked, confusing })
+    .insert({
+      app_id: appId,
+      user_id: auth.viewer.id,
+      would_use: input.wouldUse,
+      rating,
+      worked,
+      confusing,
+      // Only sent when there are some, so plain feedback never depends on them.
+      ...(workedShots.length ? { worked_shots: workedShots } : {}),
+      ...(confusingShots.length ? { confusing_shots: confusingShots } : {}),
+    })
     .select("earned")
     .single();
   if (error) {

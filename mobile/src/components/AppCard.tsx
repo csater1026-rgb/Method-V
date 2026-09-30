@@ -3,11 +3,11 @@ import { Link } from "expo-router";
 import { Pressable, View } from "react-native";
 
 import { CATEGORIES, labelFor } from "@shared/constants";
-import { formatCount } from "@shared/format";
 import type { AppCard as Card } from "@shared/types";
 
 import { media, useTheme } from "@/theme";
 
+import { TryCount } from "./TryCount";
 import { Avatar, Body, Display, Handle, Mono, Tag } from "./ui";
 
 // A striped stand-in when there's no poster (like the website's).
@@ -68,7 +68,9 @@ export function AppCard({ app, wide }: { app: Card; wide?: boolean }) {
             <Body size={12} muted numberOfLines={1} style={{ flex: 1 }}>
               {app.owner.display_name || <Handle username={app.owner.username} size={12} />}
             </Body>
-            <Mono>{formatCount(app.try_count)} tries</Mono>
+            <Mono>
+              <TryCount appId={app.id} count={app.try_count} /> tries
+            </Mono>
           </View>
         </View>
       </Pressable>

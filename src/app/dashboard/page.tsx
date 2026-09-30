@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { StatsChart } from "@/components/StatsChart";
+import { TryCount } from "@/components/TryCount";
 import { ANALYTICS_FREE_DAYS, ANALYTICS_RANGES, TRY_SOURCES, labelFor } from "@/lib/constants";
 import { dashboardContext } from "@/lib/dashboard";
 import { getAnalytics, getApp } from "@/lib/data";
@@ -121,7 +122,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
             <section aria-label="All time" className="mt-10">
               <h2 className="display text-3xl">All time</h2>
               <dl className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <Total label="Tries" value={detail.try_count} />
+                <Total label="Tries" value={<TryCount appId={detail.id} count={detail.try_count} />} />
                 <Total label="Likes" value={detail.like_count} />
                 <Total label="Backers" value={detail.backer_count} />
                 <Total label="Testers" value={detail.feedback_count} />
@@ -134,11 +135,11 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
   );
 }
 
-function Total({ label, value }: { label: string; value: number }) {
+function Total({ label, value }: { label: string; value: number | React.ReactNode }) {
   return (
     <div className="rounded-lg border border-line bg-surface px-3 py-3">
       <dt className="font-mono text-[10px] tracking-wide text-muted uppercase">{label}</dt>
-      <dd className="mt-1 font-mono text-2xl font-bold">{formatCount(value)}</dd>
+      <dd className="mt-1 font-mono text-2xl font-bold">{typeof value === "number" ? formatCount(value) : value}</dd>
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { Avatar } from "./Avatar";
 import { DropPlaceholder } from "./DropVideo";
 import { CategoryChip, PricingStage } from "./Tags";
 import { Handle } from "./Handle";
+import { TryCount } from "./TryCount";
 
 type Props = { app: AppCardData; showOwner?: boolean; index?: number };
 
@@ -50,7 +51,7 @@ export function AppCard({ app, showOwner = true, index = 0 }: Props) {
             <span />
           )}
           <span className="font-mono text-[11px]">
-            {formatCount(app.try_count)} tries · {formatCount(app.like_count)} ♥
+            <TryCount appId={app.id} count={app.try_count} /> tries · {formatCount(app.like_count)} ♥
           </span>
         </div>
       </div>

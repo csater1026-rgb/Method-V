@@ -18,6 +18,11 @@ export const SAFETY_AGREEMENT = "This app is mine to share, and I've taken basic
 // stay under that. A 60-second 1080p screen recording is usually well below.
 export const MAX_DROP_MB = 50;
 export const MAX_DROP_BYTES = MAX_DROP_MB * 1024 * 1024;
+
+// Screenshots a tester can attach to each feedback answer.
+export const MAX_FEEDBACK_SHOTS = 3;
+// A feedback screenshot's path: feedback/<tester id>/fb-<time>-<random>.jpg
+export const feedbackShotPattern = (userId: string) => new RegExp(`^${userId}/fb-[0-9]+-[a-z0-9]+\\.jpg$`);
 export const DROP_VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
 
 // Credits are called V Coin on screen: introduce them as credits the first

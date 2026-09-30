@@ -11,6 +11,8 @@ export const DEMO_MODE_MESSAGE =
   "Method V is running in demo mode. Add your Supabase keys to .env.local (see README) to sign in and post.";
 
 export const DROPS_BUCKET = "drops";
+// Private: screenshots testers attach to feedback. Opened through signed links only.
+export const FEEDBACK_BUCKET = "feedback";
 
 // One-tap sign-in providers turned on in Supabase (Authentication → Providers),
 // listed in NEXT_PUBLIC_AUTH_PROVIDERS, e.g. "google,apple,github".

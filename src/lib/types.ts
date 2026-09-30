@@ -123,6 +123,9 @@ export type Feedback = {
   rating: number;
   worked: string;
   confusing: string;
+  // Signed links to the screenshots attached to each answer (up to 3 each).
+  worked_shots: string[];
+  confusing_shots: string[];
   earned: number;
   helpful_at: string | null;
   created_at: string;

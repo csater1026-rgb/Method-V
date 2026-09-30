@@ -22,7 +22,7 @@ import {
 } from "./demo";
 import { SIGNALS, bumpInterest, mergeInterests, rankFeed, rankQuestions, type Interests } from "./interests";
 import { SUGGESTION_LIMIT, setUpFirst, topUpSuggestions } from "./suggest";
-import { isSupabaseConfigured, publicFileUrl } from "./supabase/env";
+import { FEEDBACK_BUCKET, isSupabaseConfigured, publicFileUrl } from "./supabase/env";
 import { createClient } from "./supabase/server";
 import type {
   Analytics,
@@ -167,13 +167,16 @@ function toApp(row: any): App {
   };
 }
 
-function toFeedback(row: any): Feedback {
+function toFeedback(row: any, links: Map<string, string> = new Map()): Feedback {
+  const shots = (paths: unknown) => (Array.isArray(paths) ? paths : []).flatMap((p: string) => (links.has(p) ? [links.get(p) as string] : []));
   return {
     id: row.id,
     would_use: row.would_use,
     rating: row.rating,
     worked: row.worked,
     confusing: row.confusing ?? "",
+    worked_shots: shots(row.worked_shots),
+    confusing_shots: shots(row.confusing_shots),
     earned: row.earned ?? 0,
     helpful_at: row.helpful_at,
     created_at: row.created_at,
@@ -488,8 +491,37 @@ export async function getOwnProfile(): Promise<Profile | null> {
 // Phase 3: credits and feedback
 // ---------------------------------------------------------------------------
 
-const FEEDBACK_FIELDS = () => `id, would_use, rating, worked, confusing, earned, helpful_at, created_at,
+const FEEDBACK_FIELDS = () => `id, would_use, rating, worked, confusing, worked_shots, confusing_shots, earned, helpful_at, created_at,
   user:profiles!feedback_user_id_fkey(${summaryCols()}, feedback_given_count, feedback_helpful_count)` as const;
+// Before the screenshots migration is run, those two columns don't exist yet.
+const FEEDBACK_FIELDS_NO_SHOTS = () => `id, would_use, rating, worked, confusing, earned, helpful_at, created_at,
+  user:profiles!feedback_user_id_fkey(${summaryCols()}, feedback_given_count, feedback_helpful_count)` as const;
+
+type Supabase = Awaited<ReturnType<typeof createClient>>;
+
+// Feedback rows, with their screenshots turned into signed links that work
+// for an hour (the bucket is private: only the tester and the builder can
+// get them).
+async function loadFeedback(
+  supabase: Supabase,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  run: (fields: string) => PromiseLike<{ data: any; error: { code?: string; message: string } | null }>,
+): Promise<Feedback[]> {
+  let { data, error } = await run(FEEDBACK_FIELDS());
+  if (error?.code === "42703") ({ data, error } = await run(FEEDBACK_FIELDS_NO_SHOTS()));
+  if (error) {
+    console.error("couldn't load feedback", error.code, error.message);
+    return [];
+  }
+  const rows = data == null ? [] : Array.isArray(data) ? data : [data];
+  const paths = rows.flatMap((r) => [...(r.worked_shots ?? []), ...(r.confusing_shots ?? [])]) as string[];
+  const links = new Map<string, string>();
+  if (paths.length) {
+    const { data: signed } = await supabase.storage.from(FEEDBACK_BUCKET).createSignedUrls(paths, 60 * 60);
+    for (const s of signed ?? []) if (s.path && s.signedUrl) links.set(s.path, s.signedUrl);
+  }
+  return rows.map((r) => toFeedback(r, links));
+}
 
 const RANK_ORDER: string[] = TESTER_RANKS.map((r) => r.slug);
 
@@ -511,24 +543,20 @@ export async function getFeedbackPanel(app: App, viewer: Viewer | null): Promise
   if (!viewer) return { mode: "signed-out", request };
 
   if (viewer.id === app.owner_id) {
-    const { data } = await supabase
-      .from("feedback")
-      .select(FEEDBACK_FIELDS())
-      .eq("app_id", app.id)
-      .order("created_at", { ascending: false })
-      .limit(200);
+    const rows = await loadFeedback(supabase, (fields) =>
+      supabase.from("feedback").select(fields).eq("app_id", app.id).order("created_at", { ascending: false }).limit(200),
+    );
     // Trusted and Pro testers' feedback shows first; newest first within a rank.
-    const feedback = (data ?? [])
-      .map(toFeedback)
+    const feedback = rows
       .sort((a, b) => RANK_ORDER.indexOf(b.user_rank) - RANK_ORDER.indexOf(a.user_rank) || b.created_at.localeCompare(a.created_at));
     return { mode: "owner", request, feedback, credits: viewer.credits };
   }
 
-  const [{ data: mine }, { data: tried }] = await Promise.all([
-    supabase.from("feedback").select(FEEDBACK_FIELDS()).eq("app_id", app.id).eq("user_id", viewer.id).maybeSingle(),
+  const [mine, { data: tried }] = await Promise.all([
+    loadFeedback(supabase, (fields) => supabase.from("feedback").select(fields).eq("app_id", app.id).eq("user_id", viewer.id).maybeSingle()),
     supabase.from("try_clicks").select("id").eq("app_id", app.id).eq("user_id", viewer.id).limit(1).maybeSingle(),
   ]);
-  return { mode: "tester", request, tried: Boolean(tried), mine: mine ? toFeedback(mine) : null };
+  return { mode: "tester", request, tried: Boolean(tried), mine: mine[0] ?? null };
 }
 
 // Apps with open tester spots, oldest request first so everyone gets a turn.

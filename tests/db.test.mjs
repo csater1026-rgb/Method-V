@@ -71,7 +71,7 @@ async function runAgain(files) {
 {
   const newest = readdirSync(migrationsDir).filter((f) => f >= "20261001000000" && f.endsWith(".sql") && !LATE.includes(f)).sort();
   const failed = await runAgain(newest);
-  ok(failed.length === 0 && newest.length === 10, `the newest migrations are safe to run twice (${failed.join("; ") || newest.join(", ")})`);
+  ok(failed.length === 0 && newest.length === 11, `the newest migrations are safe to run twice (${failed.join("; ") || newest.join(", ")})`);
 }
 
 async function as(role, uid, sql, params) {
@@ -1228,6 +1228,40 @@ ok(!!(await fails("anon", null, "insert into public.sponsorships (sponsor_brand,
 
   const truncate = await db.query("select has_table_privilege('anon', 'public.payments', 'truncate') a, has_table_privilege('authenticated', 'public.apps', 'truncate') b");
   ok(!truncate.rows[0].a && !truncate.rows[0].b, "the public roles can't empty tables");
+}
+
+// Feedback screenshots: private, up to 3 per answer, only the tester's own
+// files, and only the tester and the app's builder can open them.
+{
+  const P = "cccccccc-cccc-cccc-cccc-cccccccccccc"; // tester
+  const Q = "dddddddd-dddd-dddd-dddd-dddddddddddd"; // stranger
+  await db.exec(`insert into auth.users (id) values ('${P}'), ('${Q}')`);
+  const shot = (who, n) => `${who}/fb-17000000000${n}-abc${n}.jpg`;
+  const upload = "insert into storage.objects (bucket_id, name) values ('feedback', $1)";
+  for (const n of [1, 2, 3, 4]) await as("authenticated", P, upload, [shot(P, n)]);
+  ok(!!(await fails("authenticated", P, upload, [shot(Q, 1)])), "feedback screenshots only go in your own folder");
+  ok(!!(await fails("anon", null, upload, [shot(P, 9)])), "signed-out people can't upload feedback screenshots");
+  ok((await db.query("select public from storage.buckets where id = 'feedback'")).rows[0]?.public === false, "the feedback bucket is private");
+
+  await as("authenticated", P, "insert into public.try_clicks (app_id, user_id) values ($1, $2)", [appId, P]);
+  const withShots = `insert into public.feedback (app_id, user_id, would_use, rating, worked, confusing, worked_shots, confusing_shots) values ($1, $2, 'yes', 4, $3, 'The settings menu.', $4, $5)`;
+  ok(!!(await fails("authenticated", P, withShots, [appId, P, good, [shot(P, 1), shot(P, 2), shot(P, 3), shot(P, 4)], []])), "at most 3 screenshots per answer");
+  ok(!!(await fails("authenticated", P, withShots, [appId, P, good, [shot(Q, 1)], []])), "can't attach someone else's screenshot");
+  ok(!!(await fails("authenticated", P, withShots, [appId, P, good, [`${P}/../x.jpg`], []])), "screenshot paths must be plain files in your folder");
+  let error = null;
+  try {
+    await as("authenticated", P, withShots, [appId, P, good, [shot(P, 1), shot(P, 2)], [shot(P, 3)]]);
+  } catch (e) {
+    error = e.message;
+  }
+  ok(!error, `feedback can carry screenshots on both answers (${error ?? "saved"})`);
+
+  const sees = async (who) => (await as("authenticated", who, "select name from storage.objects where bucket_id = 'feedback' order by name")).rows.map((r) => r.name);
+  const builderSees = await sees(A);
+  ok(builderSees.length === 3 && !builderSees.includes(shot(P, 4)), "the builder sees the screenshots on their app's feedback, and nothing else");
+  ok((await sees(P)).length === 4, "the tester sees their own screenshots");
+  ok((await sees(Q)).length === 0, "nobody else can open feedback screenshots");
+  ok((await as("anon", null, "select name from storage.objects where bucket_id = 'feedback'")).rows.length === 0, "signed-out people can't either");
 }
 
 // Delete account (website Edit profile, app Me tab): deleting the sign-in

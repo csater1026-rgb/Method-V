@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
-import { formatCount, formatDuration } from "@/lib/format";
+import { formatDuration } from "@/lib/format";
 import { INTERESTS_COOKIE, SIGNALS, bumpInterest, parseInterests, serializeInterests } from "@/lib/interests";
 import type { FeedItem } from "@/lib/types";
 
@@ -14,6 +14,7 @@ import { ShareButton } from "./ShareButton";
 import { SponsoredBy } from "./Sponsored";
 import { CategoryChip, StatusBadge } from "./Tags";
 import { Handle } from "./Handle";
+import { TryCount } from "./TryCount";
 
 // Vertical, swipeable feed. Each Drop fills the screen; the one in view plays
 // (muted until someone taps for sound), the rest pause, and its caption
@@ -205,7 +206,7 @@ function DropSlide({ item, first, signedIn, muted, onToggleSound }: SlideProps) 
               Try it →
             </a>
             <CategoryChip category={app.category} />
-            <span className="font-mono text-[11px] text-muted">{formatCount(app.try_count)} tries</span>
+            <span className="font-mono text-[11px] text-muted"><TryCount appId={app.id} count={app.try_count} /> tries</span>
           </div>
           {item.sponsor && (
             <div className={`mt-2 w-fit max-w-[80%] ${reveal} delay-150`}>

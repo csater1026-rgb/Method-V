@@ -19,6 +19,7 @@ import { LikeButton } from "@/components/LikeButton";
 import { ShareButton } from "@/components/ShareButton";
 import { ShareKit } from "@/components/ShareKit";
 import { TeamUp } from "@/components/Swaps";
+import { TryCount } from "@/components/TryCount";
 import { CategoryChip, Chip, PricingStage, RoleTags, StatusBadge, primaryStatus } from "@/components/Tags";
 import {
   appStatus,
@@ -164,7 +165,7 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
         {app.sponsor && <SponsoredBy sponsor={app.sponsor} />}
 
         <dl className="grid grid-cols-2 gap-3 text-center sm:grid-cols-4">
-          <Stat label="Tries" value={formatCount(app.try_count)} />
+          <Stat label="Tries" value={<TryCount appId={app.id} count={app.try_count} />} />
           <Stat label="Likes" value={formatCount(app.like_count)} />
           <Stat
             label="Would use"
@@ -341,7 +342,7 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
   );
 }
 
-function Stat({ label, value, note }: { label: string; value: string; note?: string }) {
+function Stat({ label, value, note }: { label: string; value: React.ReactNode; note?: string }) {
   return (
     <div className="rounded-lg border border-line bg-surface px-3 py-3">
       <dt className="font-mono text-[10px] tracking-wide text-muted uppercase">{label}</dt>

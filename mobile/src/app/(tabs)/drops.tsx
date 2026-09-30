@@ -11,6 +11,7 @@ import type { FeedItem } from "@shared/types";
 import { DropPlaceholder } from "@/components/AppCard";
 import { Loading } from "@/components/Loading";
 import { Sponsored } from "@/components/Sponsored";
+import { TryCount } from "@/components/TryCount";
 import { Avatar, Body, Button, Display, ErrorText, Handle, Mono, StatusBadge, Tag, tap } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import { SITE_URL } from "@/lib/config";
@@ -305,7 +306,7 @@ function DropPage({
             }}
           />
           <Tag>{labelFor(CATEGORIES, item.app.category)}</Tag>
-          <Mono style={{ color: media.muted }}>{formatCount(item.app.try_count)} tries</Mono>
+          <Mono style={{ color: media.muted }}><TryCount appId={item.app.id} count={item.app.try_count} /> tries</Mono>
         </View>
         {item.sponsor && (
           <View style={{ marginTop: 4 }}>

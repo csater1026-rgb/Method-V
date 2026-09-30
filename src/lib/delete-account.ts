@@ -2,7 +2,7 @@ import "server-only";
 
 import { confirmMatches } from "./account";
 import { LEGAL, OFFICIAL_HANDLE } from "./constants";
-import { DROPS_BUCKET } from "./supabase/env";
+import { DROPS_BUCKET, FEEDBACK_BUCKET } from "./supabase/env";
 import { createAdminClient } from "./supabase/server";
 
 // Deleting your own account (Edit profile on the website, the Me tab in the
@@ -46,15 +46,20 @@ export async function deleteAccount(userId: string, typed: string): Promise<Dele
   }
   if ((payouts.count ?? 0) > 0) return { ok: false, error: "A payout to you is on its way. Try again once it arrives." };
 
-  // Every file lives under drops/<user id>/ (videos, posters, photos).
-  const bucket = admin.storage.from(DROPS_BUCKET);
-  for (;;) {
-    const { data: files, error } = await bucket.list(userId, { limit: 100 });
-    if (error) return { ok: false, error: "Couldn't delete your files. Try again in a minute." };
-    if (!files?.length) break;
-    const { error: removeError } = await bucket.remove(files.map((f) => `${userId}/${f.name}`));
-    if (removeError) return { ok: false, error: "Couldn't delete your files. Try again in a minute." };
-    if (files.length < 100) break;
+  // Every file lives under <bucket>/<user id>/: videos, posters and photos in
+  // drops, feedback screenshots in feedback.
+  for (const name of [DROPS_BUCKET, FEEDBACK_BUCKET]) {
+    const bucket = admin.storage.from(name);
+    for (;;) {
+      const { data: files, error } = await bucket.list(userId, { limit: 100 });
+      // Before the screenshots migration there's no feedback bucket: nothing to delete.
+      if (error && name === FEEDBACK_BUCKET && /not found/i.test(error.message)) break;
+      if (error) return { ok: false, error: "Couldn't delete your files. Try again in a minute." };
+      if (!files?.length) break;
+      const { error: removeError } = await bucket.remove(files.map((f) => `${userId}/${f.name}`));
+      if (removeError) return { ok: false, error: "Couldn't delete your files. Try again in a minute." };
+      if (files.length < 100) break;
+    }
   }
 
   const { error } = await admin.auth.admin.deleteUser(userId);

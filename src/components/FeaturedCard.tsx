@@ -1,11 +1,11 @@
 import Link from "next/link";
 
-import { formatCount } from "@/lib/format";
 import type { AppCard, FeaturedApp } from "@/lib/types";
 
 import { Avatar } from "./Avatar";
 import { DropPlaceholder } from "./DropVideo";
 import { Handle } from "./Handle";
+import { TryCount } from "./TryCount";
 
 const LABELS: Record<FeaturedApp["reason"], string> = {
   featured: "Featured",
@@ -58,7 +58,7 @@ export function FeaturedCard({ app, rank }: { app: AppCard & { reason?: Featured
           <Link href={`/u/${app.owner.username}`} className="truncate hover:text-ink">
             <Handle username={app.owner.username} />
           </Link>
-          <span className="ml-auto shrink-0 font-mono text-[11px]">{formatCount(app.try_count)} tries</span>
+          <span className="ml-auto shrink-0 font-mono text-[11px]"><TryCount appId={app.id} count={app.try_count} /> tries</span>
         </div>
       </div>
     </article>
