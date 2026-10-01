@@ -19,19 +19,20 @@ export async function GET() {
     const supabase = await createClient();
     const { error: reach } = await supabase.from("apps").select("id", { head: true, count: "exact" }).limit(1);
     // Photos, social handles, polls and the Spotlight are from the newest migrations, so they show the database is up to date.
-    const [{ error: behindProfiles }, { error: behindQa }, { error: behindSpotlight }, { error: behindPackages }, { error: behindCovers }, { error: behindShots }] = await Promise.all([
+    const [{ error: behindProfiles }, { error: behindQa }, { error: behindSpotlight }, { error: behindPackages }, { error: behindCovers }, { error: behindShots }, { error: behindGuarantee }] = await Promise.all([
       supabase.from("profiles").select("avatar_path, instagram_handle, cover_path", { head: true }).limit(1),
       supabase.from("questions").select("poll_options", { head: true }).limit(1),
       supabase.from("spotlights").select("id", { head: true }).limit(1),
       supabase.from("sponsor_packages").select("kind", { head: true }).limit(1),
       supabase.from("apps").select("cover_path", { head: true }).limit(1),
       supabase.from("feedback").select("worked_shots, reply", { head: true }).limit(1),
+      supabase.from("test_requests").select("expires_at", { head: true }).limit(1),
     ]);
-    const latest = behindProfiles ?? behindQa ?? behindSpotlight ?? behindPackages ?? behindCovers ?? behindShots;
+    const latest = behindProfiles ?? behindQa ?? behindSpotlight ?? behindPackages ?? behindCovers ?? behindShots ?? behindGuarantee;
     checks.database = reach
       ? { ok: false, note: /relation|does not exist|schema cache/i.test(reach.message) ? "Tables are missing: run supabase/setup.sql in the Supabase SQL Editor." : "Can't reach the database: check the Supabase URL and key." }
       : latest
-        ? { ok: false, note: "The database is behind: in Supabase → SQL Editor, run the newest files in supabase/migrations/ you haven't run yet (20261014000000_feedback_replies.sql lets builders reply to feedback; 20261013000000_feedback_screenshots.sql adds screenshots on feedback; 20261012000000_app_covers.sql adds app cover images; 20261011000000_security_hardening.sql makes V Coin balances private and adds spam limits; 20261010000000_cover_photos.sql adds profile header pictures; 20261009000000_review_fixes.sql: fixes from a code review; 20261008000000_sponsor_packages.sql adds sponsorship packages; 20261007000000_spotlight.sql adds the Spotlight and credit packs; 20261004000000_qa_fixes.sql fixes replies, polls and the builders board; 20261003000000_questions_feed.sql adds polls and replies; 20261002000000_socials.sql adds Instagram, TikTok, YouTube and Threads; 20261001000000_avatars.sql adds profile photos). Run them oldest first." }
+        ? { ok: false, note: "The database is behind: in Supabase → SQL Editor, run the newest files in supabase/migrations/ you haven't run yet (20261015000000_tester_guarantee.sql refunds tester spots nobody fills; 20261014000000_feedback_replies.sql lets builders reply to feedback; 20261013000000_feedback_screenshots.sql adds screenshots on feedback; 20261012000000_app_covers.sql adds app cover images; 20261011000000_security_hardening.sql makes V Coin balances private and adds spam limits; 20261010000000_cover_photos.sql adds profile header pictures; 20261009000000_review_fixes.sql: fixes from a code review; 20261008000000_sponsor_packages.sql adds sponsorship packages; 20261007000000_spotlight.sql adds the Spotlight and credit packs; 20261004000000_qa_fixes.sql fixes replies, polls and the builders board; 20261003000000_questions_feed.sql adds polls and replies; 20261002000000_socials.sql adds Instagram, TikTok, YouTube and Threads; 20261001000000_avatars.sql adds profile photos). Run them oldest first." }
         : { ok: true, note: "Connected, and the tables are up to date." };
 
     const admin = createAdminClient();

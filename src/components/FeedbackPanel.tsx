@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 
 import { cancelTesters, markHelpful, replyToFeedback, requestTesters, submitFeedback } from "@/app/actions";
-import { CREDITS, MAX_FEEDBACK_SHOTS, TESTER_PACKS, WOULD_USE, labelFor } from "@/lib/constants";
+import { CREDITS, MAX_FEEDBACK_SHOTS, TESTER_GUARANTEE, TESTER_PACKS, WOULD_USE, labelFor } from "@/lib/constants";
 import { imageProblem, shrinkToJpeg } from "@/lib/crop-image";
 import { timeAgo } from "@/lib/format";
 import { createClient } from "@/lib/supabase/client";
@@ -176,6 +176,7 @@ function FeedbackForm({ app, open }: { app: AppRef; open: TestRequest | null }) 
   const [workedShots, setWorkedShots] = useState<Shot[]>([]);
   const [confusingShots, setConfusingShots] = useState<Shot[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [workedLength, setWorkedLength] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -209,9 +210,14 @@ function FeedbackForm({ app, open }: { app: AppRef; open: TestRequest | null }) 
   return (
     <form action={submit} className="mt-3 flex flex-col gap-4">
       <p className="text-sm text-muted">
-        Honest and specific helps most. Only the builder sees what you write
-        {open ? `; you earn ${CREDITS.feedbackReward} V Coin` : ""}.
+        Honest and specific helps most. Only the builder sees what you write.
       </p>
+      {open && (
+        <p className="rounded-lg border border-accent/40 bg-accent/5 px-3 py-2 text-sm">
+          <strong>To earn V Coin:</strong> use the app for at least a minute after tapping Try it, and write a couple of sentences
+          ({TESTER_GUARANTEE.minChars}+ characters) about what worked.
+        </p>
+      )}
 
       <fieldset>
         <legend className="mb-1.5 text-sm font-medium">Would you use it?</legend>
@@ -267,7 +273,15 @@ function FeedbackForm({ app, open }: { app: AppRef; open: TestRequest | null }) 
           rows={3}
           className="field"
           onPaste={(e) => pasteShots(e, workedShots, setWorkedShots, setError)}
+          onChange={(e) => setWorkedLength(e.target.value.trim().length)}
         />
+        {open && (
+          <span className={`text-xs ${workedLength >= TESTER_GUARANTEE.minChars ? "text-accent" : "text-muted"}`} aria-live="polite">
+            {workedLength >= TESTER_GUARANTEE.minChars
+              ? "✓ Long enough to earn V Coin"
+              : `${workedLength}/${TESTER_GUARANTEE.minChars} characters to earn V Coin`}
+          </span>
+        )}
         <ShotPicker label="What worked" shots={workedShots} onChange={setWorkedShots} onError={setError} disabled={pending} />
       </div>
       <div className="flex flex-col gap-1.5">
@@ -444,7 +458,16 @@ function OwnerView({
         {open ? (
           <>
             <p className="mt-1 text-sm text-muted">
-              {app.name} is in the Test &amp; earn queue: {open.slots_filled} of {open.slots_total} spots filled.
+              {app.name} is in the Test &amp; earn queue: <strong className="text-ink">{open.slots_filled}</strong> of {open.slots_total}{" "}
+              testers so far.
+              {open.expires_at && (
+                <>
+                  {" "}
+                  Any spots still open on{" "}
+                  <span suppressHydrationWarning>{new Date(open.expires_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>{" "}
+                  come back to you automatically.
+                </>
+              )}
             </p>
             <div className="mt-2 h-2 overflow-hidden rounded-full bg-surface-2" aria-hidden>
               <div className="h-full bg-accent" style={{ width: `${(open.slots_filled / open.slots_total) * 100}%` }} />
@@ -452,10 +475,18 @@ function OwnerView({
           </>
         ) : (
           <p className="mt-1 text-sm text-muted">
-            Put {app.name} in the Test &amp; earn queue. Each tester costs {CREDITS.perTester} credits, and they earn them by
-            trying your app and telling you what worked and what didn&apos;t.
+            Put {app.name} in the Test &amp; earn queue, where people try apps and give feedback for V Coin. Each tester is{" "}
+            {CREDITS.perTester} credits.
           </p>
         )}
+        <div className="mt-3 rounded-lg border border-accent/40 bg-accent/5 p-3 text-sm">
+          <p className="font-semibold">Real testers, or your credits back</p>
+          <ul className="mt-1 list-disc space-y-0.5 pl-5 text-muted">
+            <li>Your credits are held, not spent. A spot is only used when someone opens {app.name} with Try it, uses it for at least a minute, and writes real feedback (a couple of sentences).</li>
+            <li>Spots nobody fills within {TESTER_GUARANTEE.days} days come back to you automatically.</li>
+            <li>Stop any time to get unused spots back right away.</li>
+          </ul>
+        </div>
         <div className="mt-3 flex flex-wrap gap-2">
           {TESTER_PACKS.map((n) => {
             const cost = n * CREDITS.perTester;

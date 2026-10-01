@@ -614,18 +614,26 @@ async function loadFeedback(
 const RANK_ORDER: string[] = TESTER_RANKS.map((r) => r.slug);
 
 function openRequest(row: TestRequest | null | undefined): TestRequest | null {
-  return row ? { slots_total: row.slots_total, slots_filled: row.slots_filled } : null;
+  return row ? { slots_total: row.slots_total, slots_filled: row.slots_filled, expires_at: row.expires_at ?? null } : null;
 }
+
+// Gives builders back the tester spots nobody filled in time. Cheap and safe
+// to run on any page that shows the queue, an app's feedback or credits; it
+// only ever refunds expired spots, once. Once per request.
+const settleTesterSpots = cache(async (): Promise<void> => {
+  if (!isSupabaseConfigured) return;
+  const { error } = await (await createClient()).rpc("expire_test_requests");
+  // Before the guarantee update the function doesn't exist yet; nothing to do.
+  if (error && error.code !== "PGRST202" && error.code !== "42883") console.error("expire_test_requests failed", error.code, error.message);
+});
 
 export async function getFeedbackPanel(app: App, viewer: Viewer | null): Promise<FeedbackPanel> {
   if (!isSupabaseConfigured) return { mode: "demo", request: demoTestRequests[app.id] ?? null };
 
+  await settleTesterSpots();
   const supabase = await createClient();
-  const { data: req } = await supabase
-    .from("test_requests")
-    .select("slots_total, slots_filled")
-    .eq("app_id", app.id)
-    .maybeSingle();
+  // "*" so expires_at comes along once the guarantee update is run.
+  const { data: req } = await supabase.from("test_requests").select("*").eq("app_id", app.id).maybeSingle();
   const request = openRequest(req);
 
   if (!viewer) return { mode: "signed-out", request };
@@ -660,6 +668,7 @@ export async function getTestQueue(viewer: Viewer | null): Promise<QueueItem[]> 
       .filter((a) => a.spots_left > 0);
   }
 
+  await settleTesterSpots();
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("test_requests")
@@ -695,6 +704,7 @@ export async function getTestQueue(viewer: Viewer | null): Promise<QueueItem[]> 
 }
 
 export async function getCreditHistory(viewer: Viewer): Promise<CreditEvent[]> {
+  await settleTesterSpots();
   const supabase = await createClient();
   const { data } = await supabase
     .from("credit_events")

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { BuyCredits } from "@/components/Earn";
-import { CREDITS, CREDIT_REASONS, SPOTLIGHT, STREAK_BONUS } from "@/lib/constants";
+import { CREDITS, CREDIT_REASONS, SPOTLIGHT, STREAK_BONUS, TESTER_GUARANTEE } from "@/lib/constants";
 import { getCreditHistory, getViewer } from "@/lib/data";
 import { timeAgo } from "@/lib/format";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
@@ -56,11 +56,15 @@ export default async function CreditsPage({ searchParams }: PageProps<"/credits"
       <ul className="mt-2 flex flex-col gap-1.5 text-sm text-ink/90">
         <li>• Everyone starts with <Coin />{CREDITS.welcome}.</li>
         <li>
-          • Try an app in <Link href="/test" className="text-accent hover:underline">Test &amp; earn</Link> and give feedback:
-          earn <Coin />{CREDITS.feedbackReward}.
+          • Try an app in <Link href="/test" className="text-accent hover:underline">Test &amp; earn</Link> for at least a minute
+          and write real feedback ({TESTER_GUARANTEE.minChars}+ characters): earn <Coin />{CREDITS.feedbackReward}.
         </li>
         <li>• When a builder marks your feedback helpful: +<Coin />{CREDITS.helpfulBonus}.</li>
-        <li>• Spend <Coin />{CREDITS.perTester} per tester to put your own app in the queue. Unused spots are refunded if you stop.</li>
+        <li>
+          • Spend <Coin />{CREDITS.perTester} per tester to put your own app in the queue. Your credits are held, not spent: they&apos;re
+          only used when a real tester gives feedback, and spots nobody fills in {TESTER_GUARANTEE.days} days come back to you
+          automatically (or stop any time).
+        </li>
         <li>• You can earn from up to {CREDITS.dailyPaidFeedback} feedbacks a day, so the queue stays fair.</li>
         <li>
           • Tester Passport perks: Testers earn <Coin />3 per paid feedback, Pro Testers can earn from 20 a day, and{" "}

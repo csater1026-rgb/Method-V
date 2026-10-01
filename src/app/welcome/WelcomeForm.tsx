@@ -93,7 +93,7 @@ export function WelcomeForm({ suggestion, name, next, children }: { suggestion: 
       </label>
 
       <label className="flex flex-col gap-1.5">
-        <span className="text-sm font-medium">Your name</span>
+        <span className="text-sm font-medium">Display name</span>
         <input
           id="welcome-name"
           name="display_name"
@@ -101,10 +101,13 @@ export function WelcomeForm({ suggestion, name, next, children }: { suggestion: 
           onChange={(e) => setDisplayName(e.target.value)}
           maxLength={60}
           autoComplete="name"
-          placeholder="Maya Chen"
+          placeholder="Acme Studio"
           className="rounded-lg border border-line bg-surface px-3 py-2.5 outline-none focus:border-accent"
         />
-        <span className="text-sm text-muted">Optional. Shown above your username.</span>
+        <span className="text-sm text-muted">
+          Building for a company or brand? Put the <strong className="text-ink">company name</strong> here (like &ldquo;Acme Studio&rdquo;).
+          Otherwise use your own name. It shows above your username on your apps and profile.
+        </span>
       </label>
 
       {children}

@@ -130,6 +130,8 @@ export type Viewer = {
 export type TestRequest = {
   slots_total: number;
   slots_filled: number;
+  // When unfilled spots go back to the builder (null before the guarantee update).
+  expires_at?: string | null;
 };
 
 export type Feedback = {

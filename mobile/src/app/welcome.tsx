@@ -137,16 +137,19 @@ export default function WelcomeScreen() {
         {check.text}
       </Body>
 
-      <Mono>Your name · optional</Mono>
+      <Mono>Display name · optional</Mono>
       <TextInput
         value={displayName}
         onChangeText={setDisplayName}
         maxLength={60}
-        placeholder="Maya Chen"
+        placeholder="Acme Studio"
         placeholderTextColor={t.muted}
-        accessibilityLabel="Your name"
+        accessibilityLabel="Display name"
         style={[input, { fontFamily: fonts.body }]}
       />
+      <Body muted size={13}>
+        Building for a company or brand? Put the company name here (like &ldquo;Acme Studio&rdquo;). Otherwise use your own name.
+      </Body>
 
       {pushSupported && (
         <Card style={{ gap: 8 }}>

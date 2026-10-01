@@ -17,7 +17,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
         <Field label="Username" hint="Lowercase letters, numbers and _">
           <input name="username" defaultValue={profile.username} required pattern="[a-z0-9_]{3,24}" className="field" />
         </Field>
-        <Field label="Display name">
+        <Field label="Display name" hint="Your company name, or your own name">
           <input name="display_name" defaultValue={profile.display_name} maxLength={60} className="field" />
         </Field>
       </div>

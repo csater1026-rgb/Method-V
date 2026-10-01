@@ -442,7 +442,7 @@ function AboutCard() {
         value={form.display_name}
         onChangeText={set("display_name")}
         maxLength={60}
-        placeholder="Your name"
+        placeholder="Company or your name"
         placeholderTextColor={t.muted}
         accessibilityLabel="Display name"
         style={{ borderWidth: 1, borderColor: t.line, backgroundColor: t.bg, color: t.ink, borderRadius: 8, paddingHorizontal: 12, minHeight: 44, fontFamily: fonts.body, fontSize: 16 }}

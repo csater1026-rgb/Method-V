@@ -40,7 +40,7 @@ export default async function TestPage() {
             </>
           }
         >
-          Spend {CREDITS.perTester} V Coin per tester to put your own app in this queue. Helpful feedback earns a bonus.
+          Use the app for at least a minute, then write a couple of sentences about what worked. Helpful feedback earns a bonus.
         </Step>
       </ol>
 

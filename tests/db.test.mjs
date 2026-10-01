@@ -13,7 +13,7 @@ const migrationsDir = new URL("../supabase/migrations/", import.meta.url);
 const LATE = ["20261008000000_sponsor_packages.sql", "20261009000000_review_fixes.sql"];
 // Newer files that redefine what the LATE ones set (the notification kinds),
 // so they have to come after them, as they do on a real database.
-const AFTER_LATE = ["20261014000000_feedback_replies.sql"];
+const AFTER_LATE = ["20261014000000_feedback_replies.sql", "20261015000000_tester_guarantee.sql"];
 const migrations = readdirSync(migrationsDir)
   .filter((f) => f.endsWith(".sql") && !LATE.includes(f) && !AFTER_LATE.includes(f))
   .sort()
@@ -1201,7 +1201,7 @@ ok(!!(await fails("anon", null, "insert into public.sponsorships (sponsor_brand,
 {
   for (const f of AFTER_LATE) await db.exec(readFileSync(new URL(f, migrationsDir), "utf8"));
   const again = await runAgain(AFTER_LATE);
-  ok(again.length === 0, `the feedback replies update is safe to run twice (${again.join("; ") || "clean"})`);
+  ok(again.length === 0, `the feedback replies and tester guarantee updates are safe to run twice (${again.join("; ") || "clean"})`);
   // Builders reply to feedback on their own apps; the tester is told once.
   ok(!!(await fails("authenticated", B, "select public.reply_to_feedback($1, 'Thanks!')", [fbCId])), "only the builder can reply to feedback");
   ok(!!(await fails("authenticated", C, "update public.feedback set reply = 'x' where id = $1", [fbCId])), "nobody writes replies directly");
@@ -1219,6 +1219,44 @@ ok(!!(await fails("anon", null, "insert into public.sponsorships (sponsor_brand,
   await as("authenticated", A, "select public.reply_to_feedback($1, '')", [fbCId]);
   replyRow = (await db.query("select reply, replied_at from public.feedback where id = $1", [fbCId])).rows[0];
   ok(replyRow.reply === "" && replyRow.replied_at === null, "an empty reply removes it");
+
+  // Testers are guaranteed or the credits come back (20261015000000_tester_guarantee.sql).
+  const R = "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"; // builder
+  const [T1, T2, T3, T4] = ["f1", "f2", "f3", "f4"].map((x) => `${x}${x}${x}${x}-0000-0000-0000-000000000000`);
+  await db.exec(`insert into auth.users (id) values ('${R}'), ('${T1}'), ('${T2}'), ('${T3}'), ('${T4}')`);
+  const gApp = await makeApp(R, "guaranteed");
+  await as("authenticated", R, "select public.request_testers($1, 3)", [gApp]);
+  let gReq = (await db.query("select slots_total, slots_filled, expires_at > now() + interval '6 days' as week from public.test_requests where app_id = $1", [gApp])).rows[0];
+  ok(gReq.slots_total === 3 && gReq.week, "asking for testers holds the spots for 7 days");
+  ok((await credits(R)) === 4, "…and holds 6 credits for them");
+  const tryAt = async (who, minutesAgo) => {
+    await as("authenticated", who, "insert into public.try_clicks (app_id, user_id) values ($1, $2)", [gApp, who]);
+    await db.query("update public.try_clicks set created_at = now() - make_interval(mins => $3) where app_id = $1 and user_id = $2", [gApp, who, minutesAgo]);
+  };
+  const real = "The receipt scan worked first time and splitting by person was really clear.";
+  const give = (who, worked) => as("authenticated", who, "insert into public.feedback (app_id, user_id, would_use, rating, worked) values ($1, $2, 'yes', 4, $3) returning earned", [gApp, who, worked]);
+  await tryAt(T1, 0);
+  ok((await give(T1, real)).rows[0].earned === 0, "feedback right after opening the app doesn't use a paid spot");
+  await tryAt(T2, 5);
+  ok((await give(T2, "Looks nice, works.")).rows[0].earned === 0, "a one-line answer doesn't use a paid spot");
+  await tryAt(T3, 5);
+  ok((await give(T3, real)).rows[0].earned === 2, "a real try (a minute or more) and a real answer earns the tester");
+  gReq = (await db.query("select slots_total, slots_filled from public.test_requests where app_id = $1", [gApp])).rows[0];
+  ok(gReq.slots_filled === 1, "…and only that one used up a spot");
+  ok((await db.query("select feedback_count from public.apps where id = $1", [gApp])).rows[0].feedback_count === 3, "all three still reached the builder");
+
+  ok((await as("anon", null, "select public.expire_test_requests() as n")).rows[0].n === 0, "nothing is refunded before the 7 days are up");
+  await db.query("update public.test_requests set expires_at = now() - interval '1 minute' where app_id = $1", [gApp]);
+  ok((await as("anon", null, "select public.expire_test_requests() as n")).rows[0].n === 1, "after 7 days, unfilled spots are refunded (anyone's visit can trigger it)");
+  ok((await credits(R)) === 8, "…the 2 unused spots come back as 4 credits");
+  ok((await as("authenticated", T4, "select public.expire_test_requests() as n")).rows[0].n === 0, "…and only once");
+  gReq = (await db.query("select slots_total, slots_filled from public.test_requests where app_id = $1", [gApp])).rows[0];
+  ok(gReq.slots_total === 1 && gReq.slots_filled === 1, "the request closes at what was filled");
+  await tryAt(T4, 5);
+  ok((await give(T4, real)).rows[0].earned === 0, "feedback after it closed doesn't earn");
+  await as("authenticated", R, "select public.request_testers($1, 2)", [gApp]);
+  gReq = (await db.query("select slots_total, slots_filled, expires_at > now() + interval '6 days' as week from public.test_requests where app_id = $1", [gApp])).rows[0];
+  ok(gReq.slots_total === 3 && gReq.slots_filled === 1 && gReq.week, "asking again opens 2 new spots with a fresh 7 days");
 }
 
 // Security hardening (20261011000000_security_hardening.sql).

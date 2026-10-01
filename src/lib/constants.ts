@@ -38,6 +38,12 @@ export const CREDITS = {
 
 export const TESTER_PACKS = [3, 5, 10] as const;
 
+// Testers are guaranteed or the credits come back (mirrors
+// 20261015000000_tester_guarantee.sql): a paid spot is only used by someone who
+// opened the app with Try it at least a minute earlier and wrote a real
+// answer to "What worked?". Spots nobody fills in `days` are refunded.
+export const TESTER_GUARANTEE = { days: 7, minChars: 40, minTrySeconds: 60 } as const;
+
 export const WOULD_USE = [
   { slug: "yes", label: "Yes" },
   { slug: "maybe", label: "Maybe" },
