@@ -57,9 +57,11 @@ await run("home (phone)", phone, async (page) => {
   const tabs = page.getByRole("navigation", { name: "Main" });
   ok((await tabs.getByRole("link").first().textContent()) === "Home", "first tab is Home");
   ok((await tabs.getByRole("link", { name: "Home" }).getAttribute("aria-current")) === "page", "Home tab is active");
-  const featured = page.getByRole("region", { name: "Featured apps" });
-  ok((await featured.locator("article").count()) === 4, "Featured row: 2 picked apps, then launch day and boosted");
-  ok((await featured.locator("article").first().getAttribute("class")).includes("snap-start"), "Featured row swipes sideways");
+  const featured = page.getByRole("region", { name: "In the Spotlight" });
+  ok((await featured.locator("article").count()) === 4, "the Spotlight stage has 4 apps: 1 on top, 3 under it");
+  ok((await featured.locator("article").first().textContent()).includes("QuizPop"), "the paid Spotlight takes the top spot");
+  ok((await featured.locator("article").nth(1).getAttribute("class")).includes("snap-start"), "the 3 under it swipe sideways on phones");
+  ok((await featured.locator(".stage-beam").count()) === 4, "a light shines on each of them");
   ok(await page.getByRole("region", { name: "Builders like you" }).isVisible(), "Home shows builders to follow");
   const justPosted = page.getByRole("region", { name: "Just posted" });
   const newest = await justPosted.locator("article a.font-semibold").allTextContents();
@@ -67,7 +69,7 @@ await run("home (phone)", phone, async (page) => {
   ok((await justPosted.locator("article").first().getAttribute("class")).includes("snap-start"), "Just posted swipes sideways too");
   ok((await justPosted.locator("article .tag-accent").count()) === 0, "Just posted cards have no Featured-style labels");
   const order = await page.locator("main section[aria-label]").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
-  ok(order.join(" > ") === "Challenge > Show off your app > Featured apps > Builders like you > Just posted > Top builders > Top testers", `Home order: ${order.join(" > ")}`);
+  ok(order.join(" > ") === "Challenge > Show off your app > In the Spotlight > Builders like you > Just posted > Top builders > Top testers", `Home order: ${order.join(" > ")}`);
   const pitch = page.getByRole("region", { name: "Show off your app" });
   ok((await pitch.getByRole("link", { name: "Post your app →" }).getAttribute("href")) === "/submit", "Home invites you to show off your app");
   const builders = await page.getByRole("region", { name: "Top builders" }).locator("li a").allTextContents();
@@ -136,7 +138,7 @@ await run("feed (phone)", phone, async (page) => {
   const page = await ctx.newPage();
   await go(page, "/");
   ok((await bgOf(page)) === "rgb(255, 255, 255)", "light phone setting → white background");
-  const featuredBg = await bgOf(page, "[aria-label='Featured apps'] article [class*='@container']");
+  const featuredBg = await bgOf(page, "[aria-label='In the Spotlight'] article [class*='@container']");
   ok(featuredBg === "rgb(15, 32, 49)", `featured poster stays dark in light mode (${featuredBg})`);
   await page.getByRole("button", { name: "Switch between light and dark" }).click();
   ok((await page.evaluate(() => document.documentElement.dataset.theme)) === "dark", "toggle switches to dark");
@@ -416,9 +418,9 @@ await run("manage an app", desktop, async (page) => {
 
 await run("launch days + boosts", desktop, async (page) => {
   await go(page, "/");
-  const featured = page.getByRole("region", { name: "Featured apps" });
+  const featured = page.getByRole("region", { name: "In the Spotlight" });
   const labels = await featured.locator("article .tag-accent").allTextContents();
-  ok(labels.some((l) => l.startsWith("Launch day")) && labels.some((l) => l.startsWith("Spotlight")), `Featured row includes launch-day and Spotlight apps (${labels.join(" | ")})`);
+  ok(labels.some((l) => l.includes("Launch day")) && labels.some((l) => l.includes("Spotlight")), `Featured row includes launch-day and Spotlight apps (${labels.join(" | ")})`);
   await go(page, "/browse");
   const soon = page.getByRole("region", { name: "Upcoming launches" });
   ok((await soon.locator("li").count()) === 1 && (await soon.textContent()).includes("QuizPop"), "Launching soon lists QuizPop");

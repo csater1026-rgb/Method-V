@@ -377,3 +377,44 @@ body {
     transform: scaleX(1);
   }
 }
+
+/* The Spotlight stage on Home (components/SpotlightStage.tsx): a dark stage,
+   warm light falling from the lamps, and pools of light under each app. */
+.stage {
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 0%, rgb(255 231 168 / 0.14), transparent 70%),
+    radial-gradient(ellipse at 50% 100%, #0d1826 0%, #060b13 70%);
+}
+.stage-beam {
+  pointer-events: none;
+  background: linear-gradient(to bottom, rgb(255 238 196 / 0.5), rgb(255 238 196 / 0.14) 45%, rgb(255 238 196 / 0) 100%);
+  clip-path: polygon(40% 0, 60% 0, 100% 100%, 0 100%);
+  mix-blend-mode: screen;
+  opacity: 0.55;
+}
+.stage-beam-wide {
+  clip-path: polygon(44% 0, 56% 0, 100% 100%, 0 100%);
+  opacity: 0.45;
+}
+.stage-pool {
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, rgb(255 231 168 / 0.32), transparent 70%);
+  filter: blur(4px);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .stage-beam {
+    animation: stage-flicker 7s ease-in-out infinite;
+  }
+}
+@keyframes stage-flicker {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  48% {
+    opacity: 0.42;
+  }
+  52% {
+    opacity: 0.6;
+  }
+}

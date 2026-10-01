@@ -21,6 +21,7 @@ import {
   demoUpdates,
 } from "./demo";
 import { SIGNALS, bumpInterest, mergeInterests, rankFeed, rankQuestions, type Interests } from "./interests";
+import { STAGE_SPOTS, dailyPicks, paidOrder, stageDay, stageOrder } from "./spotlight-stage";
 import { SUGGESTION_LIMIT, setUpFirst, topUpSuggestions } from "./suggest";
 import { FEEDBACK_BUCKET, isSupabaseConfigured, publicFileUrl } from "./supabase/env";
 import { createClient } from "./supabase/server";
@@ -831,39 +832,49 @@ export async function getFeatured(): Promise<{ apps: FeaturedApp[]; curated: boo
   let picked: AppCard[];
   let launching: AppCard[];
   let boosted: AppCard[];
+  let pool: AppCard[] = [];
+  // Today's picks fill empty Spotlight spots while the team has them on.
+  const fill = Boolean(await getPromotion("spotlight_fill"));
 
   if (!isSupabaseConfigured) {
     const cards = demoCards();
     picked = demoFeaturedIds.map((id) => cards.find((a) => a.id === id)!);
     launching = cards.filter((a) => isLaunchLive(a, now));
     boosted = cards.filter((a) => inSpotlight(a, now));
+    pool = cards;
   } else {
     const supabase = await createClient();
     const nowIso = new Date(now).toISOString();
     const base = () => supabase.from("apps").select(CARD_SELECT()).not("link_checked_at", "is", null);
-    const [p, l, b] = await Promise.all([
+    const [p, l, b, everyone] = await Promise.all([
       base().gt("featured_until", nowIso).order("featured_until", { ascending: false }).limit(8),
       base().lte("launch_at", nowIso).gt("launch_at", new Date(now - DAY_MS).toISOString()).order("launch_at").limit(8),
       base().gt("boosted_until", nowIso).order("boosted_until", { ascending: true }).limit(8),
+      fill ? base().order("created_at", { ascending: false }).limit(300) : Promise.resolve({ data: [] }),
     ]);
     picked = (p.data ?? []).map(toCard);
     launching = (l.data ?? []).map(toCard);
     // Booked Spotlights that are still waiting in line aren't on yet.
     boosted = (b.data ?? []).map(toCard).filter((a) => inSpotlight(a, now));
+    pool = (everyone.data ?? []).map(toCard);
   }
 
-  const seen = new Set<string>();
-  const apps: FeaturedApp[] = [];
-  const add = (list: AppCard[], reason: FeaturedApp["reason"]) => {
-    for (const a of list) {
-      if (seen.has(a.id) || apps.length >= 12) continue;
-      seen.add(a.id);
-      apps.push({ ...a, reason });
-    }
-  };
-  add(picked, "featured");
-  add(launching, "launch");
-  add(boosted, "boosted");
+  // Paid Spotlights first (the earliest keeps the top spot), then the team's
+  // picks and launch days.
+  const apps: FeaturedApp[] = stageOrder<AppCard, FeaturedApp["reason"]>([
+    { apps: paidOrder(boosted), reason: "boosted" },
+    { apps: picked, reason: "featured" },
+    { apps: launching, reason: "launch" },
+  ]);
+  if (fill && apps.length < STAGE_SPOTS) {
+    const taken = new Set(apps.map((a) => a.id));
+    const open = pool.filter((a) => !taken.has(a.id));
+    // Apps with a picture look best on the stage; use the rest only if needed.
+    const pictured = open.filter((a) => a.poster_url);
+    const need = STAGE_SPOTS - apps.length;
+    const picks = dailyPicks(pictured.length >= need ? pictured : open, need, stageDay(now));
+    apps.push(...picks.map((a) => ({ ...a, reason: "pick" as const })));
+  }
   if (apps.length > 0) return { apps, curated: true };
 
   const supabase = await createClient();

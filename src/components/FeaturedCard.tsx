@@ -7,10 +7,11 @@ import { DropPlaceholder } from "./DropVideo";
 import { Handle } from "./Handle";
 import { TryCount } from "./TryCount";
 
-const LABELS: Record<FeaturedApp["reason"], string> = {
+export const FEATURED_LABELS: Record<FeaturedApp["reason"], string> = {
   featured: "Featured",
   launch: "Launch day",
   boosted: "Spotlight",
+  pick: "Today's pick",
   hot: "Hot",
 };
 
@@ -18,10 +19,10 @@ const LABELS: Record<FeaturedApp["reason"], string> = {
 // thumbnail, then the name, tagline, builder and a Try button. Several fit
 // side by side, and the next one peeks in on phones so it's clear the row
 // swipes. A Featured app says why it's there unless it was simply picked.
-export function FeaturedCard({ app, rank }: { app: AppCard & { reason?: FeaturedApp["reason"] }; rank: number }) {
+export function FeaturedCard({ app, rank, fill = false }: { app: AppCard & { reason?: FeaturedApp["reason"] }; rank: number; fill?: boolean }) {
   return (
     <article
-      className="rise flex w-[68vw] max-w-[260px] shrink-0 snap-start flex-col overflow-hidden rounded-xl border border-line bg-surface"
+      className={`rise flex shrink-0 snap-start flex-col overflow-hidden rounded-xl border border-line bg-surface ${fill ? "w-full" : "w-[68vw] max-w-[260px]"}`}
       style={{ "--i": rank } as React.CSSProperties}
     >
       <Link href={`/apps/${app.slug}`} className="media-dark relative block aspect-video overflow-hidden" aria-label={app.name}>
@@ -37,7 +38,7 @@ export function FeaturedCard({ app, rank }: { app: AppCard & { reason?: Featured
           </>
         )}
         {/* Under the Featured heading, only say why when it's something else. */}
-        {app.reason && app.reason !== "featured" && <span className="tag-accent absolute top-2 left-2">{LABELS[app.reason]}</span>}
+        {app.reason && app.reason !== "featured" && <span className="tag-accent absolute top-2 left-2">{FEATURED_LABELS[app.reason]}</span>}
       </Link>
 
       <div className="flex flex-1 flex-col gap-2 p-3">

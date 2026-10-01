@@ -287,7 +287,8 @@ export type QuestionCard = Question & {
 
 export type Suggestion = ProfileSummary & { shared_categories: string[]; shared_skills: string[] };
 
-export type FeaturedReason = "featured" | "launch" | "boosted" | "hot";
+// "pick": one of Today's picks, filling an empty Spotlight spot (see spotlight-stage.ts).
+export type FeaturedReason = "featured" | "launch" | "boosted" | "pick" | "hot";
 export type FeaturedApp = AppCard & { reason: FeaturedReason };
 
 export type ActionResult = { ok: true } | { ok: false; error: string };

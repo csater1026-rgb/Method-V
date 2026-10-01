@@ -13,7 +13,7 @@ const migrationsDir = new URL("../supabase/migrations/", import.meta.url);
 const LATE = ["20261008000000_sponsor_packages.sql", "20261009000000_review_fixes.sql"];
 // Newer files that redefine what the LATE ones set (the notification kinds),
 // so they have to come after them, as they do on a real database.
-const AFTER_LATE = ["20261014000000_feedback_replies.sql", "20261015000000_tester_guarantee.sql", "20261016000000_drop_bonus.sql"];
+const AFTER_LATE = ["20261014000000_feedback_replies.sql", "20261015000000_tester_guarantee.sql", "20261016000000_drop_bonus.sql", "20261017000000_spotlight_fill.sql"];
 const migrations = readdirSync(migrationsDir)
   .filter((f) => f.endsWith(".sql") && !LATE.includes(f) && !AFTER_LATE.includes(f))
   .sort()

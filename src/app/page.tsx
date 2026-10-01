@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { ChallengeBanner } from "@/components/ChallengeBanner";
 import { DropBonusBanner } from "@/components/DropBonus";
 import { FeaturedCard } from "@/components/FeaturedCard";
+import { SpotlightStage } from "@/components/SpotlightStage";
+import { STAGE_SPOTS } from "@/lib/spotlight-stage";
 import { TopBuilders, TopTesters } from "@/components/Passport";
 import { Suggestions } from "@/components/Suggestions";
 import { getApps, getFeatured, getMyApps, getPromotion, getRunningChallenge, getSuggestions, getTopBuilders, getTopTesters, getViewer } from "@/lib/data";
@@ -65,7 +67,17 @@ export default async function HomePage() {
       </section>
 
       <header className="flex items-center justify-between gap-3 px-4">
-        <h1 className="display text-3xl">{featured.curated ? "Featured" : "Hot right now"}</h1>
+        <div>
+          <h1 className="display text-3xl">{featured.curated ? "In the Spotlight" : "Hot right now"}</h1>
+          {featured.curated && (
+            <p className="text-xs text-muted">
+              Featured on Method V.{" "}
+              <Link href={latestApp ? `/apps/${latestApp.slug}#spotlight` : "/submit"} className="text-accent hover:underline">
+                Get your app here →
+              </Link>
+            </p>
+          )}
+        </div>
         <Link href="/browse" className="btn-ghost shrink-0 px-3" aria-label="Search apps">
           <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
             <circle cx="11" cy="11" r="7" />
@@ -75,7 +87,19 @@ export default async function HomePage() {
         </Link>
       </header>
 
-      {featured.apps.length > 0 ? (
+      {featured.curated && featured.apps.length > 0 ? (
+        <>
+          <SpotlightStage apps={featured.apps} bookHref={latestApp ? `/apps/${latestApp.slug}#spotlight` : "/submit"} />
+          {/* More than fit on the stage (launch days, team picks). */}
+          {featured.apps.length > STAGE_SPOTS && (
+            <section aria-label="Also featured" className="no-scrollbar mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-2">
+              {featured.apps.slice(STAGE_SPOTS).map((app, i) => (
+                <FeaturedCard key={app.id} app={app} rank={i} />
+              ))}
+            </section>
+          )}
+        </>
+      ) : featured.apps.length > 0 ? (
         <section aria-label="Featured apps" data-tour="featured" className="no-scrollbar mt-3 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-2">
           {featured.apps.map((app, i) => (
             <FeaturedCard key={app.id} app={app} rank={i} />

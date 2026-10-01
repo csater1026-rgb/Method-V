@@ -25,6 +25,8 @@ import type {
   AppCard,
   AppDetail,
   Drop,
+  FeaturedApp,
+  FeaturedReason,
   FeedItem,
   Profile,
   ProfileDrop,
@@ -39,6 +41,7 @@ import type {
 import { PROFILE_COLUMNS } from "@shared/types";
 
 import { SIGNALS, bumpInterest, mergeInterests, rankFeed, rankQuestions, type Interests } from "@shared/interests";
+import { STAGE_SPOTS, dailyPicks, paidOrder, stageDay, stageOrder } from "@shared/spotlight-stage";
 import { SUGGESTION_LIMIT, setUpFirst, topUpSuggestions } from "@shared/suggest";
 
 import { DEMO_MESSAGE, DROPS_BUCKET, SITE_URL, SUPABASE_KEY, SUPABASE_URL, fileUrl } from "./config";
@@ -83,6 +86,7 @@ function toApp(row: any): App {
     rating_sum: row.rating_sum ?? 0,
     launch_at: row.launch_at ?? null,
     boosted_until: row.boosted_until ?? null,
+    boosted_from: row.boosted_from ?? null,
     backer_count: row.backer_count ?? 0,
     cover_path: row.cover_path ?? null,
     created_at: row.created_at,
@@ -152,12 +156,12 @@ async function likedIds(viewerId: string | null, dropIds: string[]): Promise<Set
 // Everything else is on Browse.
 export async function getHome(
   viewerId: string | null,
-): Promise<{ featured: AppCard[]; suggestions: Suggestion[]; newest: AppCard[]; builders: TopBuilder[]; testers: TopTester[] }> {
+): Promise<{ featured: FeaturedApp[]; suggestions: Suggestion[]; newest: AppCard[]; builders: TopBuilder[]; testers: TopTester[] }> {
   if (!supabase) {
     const cards = demoCards();
     return {
       ...demoLeaderboards(),
-      featured: demoFeaturedIds.map((id) => cards.find((c) => c.id === id)!).filter(Boolean),
+      featured: demoFeaturedIds.map((id) => ({ ...cards.find((c) => c.id === id)!, reason: "featured" as const })).filter((a) => a.id),
       newest: [...cards].sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 10),
       suggestions: [
         { ...toSummary(demoProfile("demo-june")), shared_categories: ["design"], shared_skills: ["React"] },
@@ -165,24 +169,36 @@ export async function getHome(
       ],
     };
   }
-  const now = new Date().toISOString();
-  const [featured, suggested, newest] = await Promise.all([
-    supabase
-      .from("apps")
-      .select(CARD_SELECT)
-      .not("link_checked_at", "is", null)
-      .or(`featured_until.gt.${now},boosted_until.gt.${now}`)
-      // Hand-picked first, then Spotlights ending soonest (the ones on now),
-      // so bookings still waiting in line don't take the 10 places.
-      .order("boosted_until", { ascending: true, nullsFirst: true })
-      .limit(10),
+  const nowMs = Date.now();
+  const now = new Date(nowMs).toISOString();
+  // The Spotlight stage, same rules as the website (src/lib/spotlight-stage.ts):
+  // paid Spotlights first, then the team's picks and launch days, then
+  // Today's picks while the team has them on.
+  const fill = Boolean(await getPromotion("spotlight_fill"));
+  const base = () => supabase!.from("apps").select(CARD_SELECT).not("link_checked_at", "is", null);
+  const [team, launching, boosted, everyone, suggested, newest] = await Promise.all([
+    base().gt("featured_until", now).order("featured_until", { ascending: false }).limit(8),
+    base().lte("launch_at", now).gt("launch_at", new Date(nowMs - DAY).toISOString()).order("launch_at").limit(8),
+    base().gt("boosted_until", now).order("boosted_until", { ascending: true }).limit(8),
+    fill ? base().order("created_at", { ascending: false }).limit(300) : Promise.resolve({ data: [] }),
     viewerId ? supabase.rpc("suggest_builders", { p_limit: SUGGESTION_LIMIT }) : Promise.resolve({ data: [] }),
     supabase.from("apps").select(CARD_SELECT).not("link_checked_at", "is", null).order("created_at", { ascending: false }).limit(10),
   ]);
   // A Spotlight booked for later (waiting in line) isn't on yet.
   const at = (t: string | null) => (t ? new Date(t).getTime() : 0);
-  const onNow = (r: any) => at(r.featured_until) > Date.now() || !r.boosted_from || at(r.boosted_from) <= Date.now();
-  let top = (featured.data ?? []).filter(onNow).map(toCard);
+  const paid = (boosted.data ?? []).filter((r: any) => !r.boosted_from || at(r.boosted_from) <= nowMs);
+  let top: FeaturedApp[] = stageOrder<AppCard, FeaturedReason>([
+    { apps: paidOrder(paid.map(toCard)), reason: "boosted" },
+    { apps: (team.data ?? []).map(toCard), reason: "featured" },
+    { apps: (launching.data ?? []).map(toCard), reason: "launch" },
+  ]);
+  if (fill && top.length < STAGE_SPOTS) {
+    const taken = new Set(top.map((a) => a.id));
+    const open = (everyone.data ?? []).map(toCard).filter((a) => !taken.has(a.id));
+    const pictured = open.filter((a) => a.poster_url);
+    const need = STAGE_SPOTS - top.length;
+    top = [...top, ...dailyPicks(pictured.length >= need ? pictured : open, need, stageDay(nowMs)).map((a) => ({ ...a, reason: "pick" as const }))];
+  }
   if (top.length === 0) {
     const since = new Date(Date.now() - 30 * DAY).toISOString();
     const { data } = await supabase
@@ -192,7 +208,7 @@ export async function getHome(
       .gt("created_at", since)
       .order("try_count", { ascending: false })
       .limit(6);
-    top = (data ?? []).map(toCard);
+    top = (data ?? []).map((r) => ({ ...toCard(r), reason: "hot" as const }));
   }
   // suggest_builders doesn't return photos: look them up.
   const suggestedRows = (suggested.data ?? []) as any[];

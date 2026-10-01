@@ -12,6 +12,8 @@ import { isLive } from "@/lib/config";
 import { getHome } from "@/lib/data";
 import { useLoad } from "@/lib/useLoad";
 import { useTheme } from "@/theme";
+import { SpotlightStage } from "@/components/SpotlightStage";
+import { STAGE_SPOTS } from "@shared/spotlight-stage";
 
 // Home: Featured, builders to follow, the newest projects, then this month's
 // top builders and top testers. Everything else is on Browse.
@@ -43,9 +45,21 @@ export default function HomeScreen() {
       <ErrorText>{error}</ErrorText>
       <View style={{ paddingHorizontal: 16 }}>
         <Eyebrow>What builders shipped</Eyebrow>
-        <Display size={52}>Featured</Display>
+        <Display size={52}>{featured[0]?.reason === "hot" ? "Hot right now" : "In the Spotlight"}</Display>
       </View>
-      {featured.length > 0 ? (
+      {featured.length > 0 && featured[0].reason !== "hot" ? (
+        <>
+          <SpotlightStage apps={featured} />
+          {/* More than fit on the stage (launch days, team picks). */}
+          {featured.length > STAGE_SPOTS && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingHorizontal: 16, paddingTop: 12 }}>
+              {featured.slice(STAGE_SPOTS).map((app) => (
+                <AppCard key={app.id} app={app} wide />
+              ))}
+            </ScrollView>
+          )}
+        </>
+      ) : featured.length > 0 ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingHorizontal: 16 }}>
           {featured.map((app) => (
             <AppCard key={app.id} app={app} wide />

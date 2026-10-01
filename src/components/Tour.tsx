@@ -149,13 +149,20 @@ export function Tour({ userId }: { userId: string | null }) {
   const last = step === STEPS.length - 1;
   const hole = current.target && rect ? rect : null;
 
-  // The card sits under the highlight, or above it when there's no room.
+  // The card sits under the highlight, or above it when there's no room, or
+  // at the bottom of the screen when the highlight is taller than the screen.
   const cardW = Math.min(360, view.w - 32);
   let cardStyle: React.CSSProperties = { width: cardW, left: "50%", top: "50%", transform: "translate(-50%, -50%)" };
   if (hole) {
     const left = Math.min(Math.max(hole.left + hole.width / 2 - cardW / 2, 16), view.w - cardW - 16);
     const below = hole.bottom + PAD + 12;
-    cardStyle = view.h - below > 230 ? { width: cardW, left, top: below } : { width: cardW, left, bottom: view.h - hole.top + PAD + 12 };
+    const above = hole.top - PAD - 12;
+    cardStyle =
+      view.h - below > 230
+        ? { width: cardW, left, top: below }
+        : above > 230
+          ? { width: cardW, left, bottom: view.h - above }
+          : { width: cardW, left, bottom: 16 };
   }
 
   return (

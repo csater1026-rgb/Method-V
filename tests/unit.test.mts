@@ -23,6 +23,7 @@ import { confirmMatches } from "../src/lib/account.ts";
 import { describeDatabaseError, loggingFetch } from "../src/lib/supabase/log.ts";
 import { dbMessage, withVCoin } from "../src/lib/db-errors.ts";
 import { USERNAME_PATTERN, isDefaultUsername, suggestUsername } from "../src/lib/username.ts";
+import { dailyPicks, paidOrder, stageOrder } from "../src/lib/spotlight-stage.ts";
 
 let failures = 0;
 const ok = (cond: boolean, msg: string) => {
@@ -404,6 +405,30 @@ ok(!confirmMatches("ada", "ada_builds") && !confirmMatches("", "ada_builds") && 
   ok(play.name === "HabitPal" && play.tagline === "Build habits that stick.", `Google Play link: no "Apps on Google Play" (${play.name} / ${play.tagline})`);
   const site = sitePreview(`<title>NoteFlow — Meeting notes that turn into to-dos</title>`, "https://noteflow.app");
   ok(site.name === "NoteFlow" && site.tagline === "Meeting notes that turn into to-dos", "ordinary sites work as before");
+}
+
+// The Spotlight stage: paid first, then Today's picks taking turns.
+{
+  const pool = Array.from({ length: 10 }, (_, i) => ({ id: `app-${i}` }));
+  const day1 = dailyPicks(pool, 3, 20000).map((a) => a.id);
+  const day2 = dailyPicks(pool, 3, 20001).map((a) => a.id);
+  ok(day1.length === 3 && new Set(day1).size === 3, "3 different picks a day");
+  ok(day1.every((id) => !day2.includes(id)), `the next day picks 3 others (${day1} → ${day2})`);
+  const seen = new Set<string>();
+  for (let d = 0; d < 4; d++) for (const a of dailyPicks(pool, 3, 30000 + d)) seen.add(a.id);
+  ok(seen.size === 10, "everyone gets a turn before anyone repeats");
+  ok(JSON.stringify(dailyPicks(pool, 3, 20000)) === JSON.stringify(dailyPicks(pool, 3, 20000)), "everyone sees the same picks that day");
+  ok(dailyPicks([], 3, 1).length === 0 && dailyPicks(pool.slice(0, 2), 3, 1).length === 2, "small pools just use what there is");
+  const paid = paidOrder([
+    { id: "late", boosted_from: "2026-10-02T00:00:00Z" },
+    { id: "early", boosted_from: "2026-10-01T00:00:00Z" },
+  ]).map((a) => a.id);
+  ok(paid.join() === "early,late", "the earliest paid Spotlight keeps the top spot");
+  const stage = stageOrder([
+    { apps: [{ id: "a" }], reason: "boosted" },
+    { apps: [{ id: "a" }, { id: "b" }], reason: "featured" },
+  ]);
+  ok(stage.map((a) => `${a.id}:${a.reason}`).join() === "a:boosted,b:featured", "paid comes first and nothing shows twice");
 }
 
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");
