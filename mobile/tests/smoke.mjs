@@ -47,7 +47,7 @@ async function visit(path, shot) {
 }
 
 await visit("/", "home");
-ok(await page.getByText("Featured", { exact: true }).isVisible(), "Home shows Featured");
+ok(await page.getByText("In the Spotlight", { exact: true }).first().isVisible(), "Home shows the Spotlight stage");
 ok((await page.getByText("NoteFlow").count()) > 0, "Home lists the sample apps");
 ok(await page.getByText("Builders like you").isVisible(), "Home suggests builders to follow");
 ok(await page.getByText("In common: Design · React").isVisible(), "suggestions say what you have in common");
