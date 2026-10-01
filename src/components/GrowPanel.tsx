@@ -107,8 +107,8 @@ export function GrowPanel({ app, status, credits, spotlightCost, nextSpotlight, 
           {launchState === "done" && <p className="mt-1 text-sm text-muted">{app.name} has had its launch day.</p>}
         </div>
 
-        <div className="rounded-lg border border-line bg-bg/50 p-4">
-          <h3 className="display text-2xl">Spotlight</h3>
+        <div id="spotlight" className="scroll-mt-24 rounded-lg border border-accent/50 bg-bg/50 p-4">
+          <h3 className="display text-2xl">⭐ Spotlight: get on Featured</h3>
           {spotlightUntil ? (
             <p className="mt-1 text-sm">
               {app.name} is in the Spotlight for another{" "}

@@ -39,6 +39,7 @@ import type {
   SponsorPackage,
   AppDetail,
   ManageApp,
+  Promotion,
   ProfileDrop,
   Conversation,
   ConnectionRequest,
@@ -497,6 +498,38 @@ export async function getManageApp(slug: string, viewer: Viewer | null): Promise
     supabase.from("feedback").select("id", { count: "exact", head: true }).eq("app_id", row.id).eq("reply", ""),
   ]);
   return { app: toApp(row), drops: (dropRows ?? []).map(toDrop), unreplied: unanswered.error ? null : (unanswered.count ?? 0) };
+}
+
+// A promotion that's running right now, or null. In demo mode, a sample one.
+export const getPromotion = cache(async (slug: string): Promise<Promotion | null> => {
+  if (!isSupabaseConfigured) return slug === "drop_bonus" ? { slug, amount: 10, ends_at: "2026-11-01T06:59:59Z", per_day: 3 } : null;
+  const supabase = await createClient();
+  const now = new Date().toISOString();
+  const { data, error } = await supabase
+    .from("promotions")
+    .select("slug, amount, ends_at, per_day")
+    .eq("slug", slug)
+    .lte("starts_at", now)
+    .gt("ends_at", now)
+    .maybeSingle();
+  // Before the promotions update the table doesn't exist: no promotion.
+  if (error) return null;
+  return (data as Promotion | null) ?? null;
+});
+
+// Whether this builder got the Drop bonus for this app (to say so after posting).
+export async function gotDropBonus(appId: string, viewer: Viewer | null): Promise<number> {
+  if (!viewer || !isSupabaseConfigured) return 0;
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("credit_events")
+    .select("delta")
+    .eq("user_id", viewer.id)
+    .eq("app_id", appId)
+    .eq("reason", "drop_bonus")
+    .limit(1)
+    .maybeSingle();
+  return Number(data?.delta ?? 0);
 }
 
 export async function isFollowing(viewer: Viewer | null, profileId: string): Promise<boolean> {

@@ -11,7 +11,8 @@ import { CATEGORIES, DROP_VIDEO_TYPES, MAX_DROP_BYTES, MAX_DROP_MB, MAX_DROP_SEC
 import { Body, Button, Card, Display, ErrorText, Mono, tap } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import { isLive } from "@/lib/config";
-import { postDrop, previewLink } from "@/lib/data";
+import { getPromotion, postDrop, previewLink } from "@/lib/data";
+import { useLoad } from "@/lib/useLoad";
 import { fonts, media, useTheme, type Palette } from "@/theme";
 
 type Video = { uri: string; mimeType: string; seconds: number };
@@ -116,6 +117,7 @@ export default function PostScreen() {
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1, backgroundColor: t.bg }}>
       <ScrollView contentContainerStyle={{ paddingTop: insets.top + 12, padding: 16, gap: 18, paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
         <Display size={52}>Post a Drop</Display>
+        <DropBonus />
         <Pressable accessibilityRole="link" onPress={() => router.push("/ask")} hitSlop={8} style={{ marginTop: -10, alignSelf: "flex-start" }}>
           <Body bold size={14} style={{ color: t.accent }}>
             Or ask a question about your app →
@@ -305,5 +307,21 @@ function Field({ t, label, hint, ...props }: React.ComponentProps<typeof TextInp
         </Body>
       )}
     </View>
+  );
+}
+
+// "Post a Drop, get +10 V Coin" while the promotion runs (same as the website).
+function DropBonus() {
+  const t = useTheme();
+  const { data: promo } = useLoad(() => getPromotion("drop_bonus"), []);
+  if (!promo) return null;
+  const ends = new Date(promo.ends_at).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/Los_Angeles" });
+  return (
+    <Card style={{ gap: 4, borderColor: t.accent }}>
+      <Body bold>🎉 Post a Drop, get +{promo.amount} V Coin</Body>
+      <Body muted size={13}>
+        Until {ends}: one bonus per app, up to {promo.per_day} a day. Spend it on testers or a Spotlight on Featured.
+      </Body>
+    </Card>
   );
 }

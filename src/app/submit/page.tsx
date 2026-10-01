@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { getViewer } from "@/lib/data";
+import { DropBonusBanner } from "@/components/DropBonus";
+import { getPromotion, getViewer } from "@/lib/data";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
 import { SubmitForm } from "./SubmitForm";
@@ -36,6 +37,7 @@ export default async function SubmitPage() {
           </Link>
         </p>
       )}
+      <DropBonusBanner promo={await getPromotion("drop_bonus")} className="mt-4" />
       <SubmitForm userId={viewer?.id ?? null} />
     </div>
   );

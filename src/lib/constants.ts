@@ -60,6 +60,7 @@ export const CREDIT_REASONS: Record<string, string> = {
   boost: "Boosted an app",
   spotlight: "Booked the Spotlight",
   credit_pack: "Bought V Coin",
+  drop_bonus: "Bonus for posting a Drop",
 };
 
 // Tester Passport ranks. Must match public.tester_rank() in

@@ -21,6 +21,7 @@ import { ShareKit } from "@/components/ShareKit";
 import { TeamUp } from "@/components/Swaps";
 import { TryCount } from "@/components/TryCount";
 import { CategoryChip, Chip, PricingStage, RoleTags, StatusBadge, primaryStatus } from "@/components/Tags";
+import { Coin } from "@/components/Coin";
 import {
   appStatus,
   getApp,
@@ -34,6 +35,7 @@ import {
   getSpotlightNextStart,
   getSwapPartners,
   getUpdates,
+  gotDropBonus,
   getViewer,
   isFollowing,
   isPro,
@@ -82,6 +84,7 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
       : [null, null];
   // The builder sees every package to edit; visitors see the ones switched on.
   const packages = await getSponsorPackages(app.id, isOwner);
+  const bonus = posted && isOwner ? await gotDropBonus(app.id, viewer) : 0;
   const nextSpotlight = nextSpotlightAt
     ? { at: nextSpotlightAt, waits: new Date(nextSpotlightAt).getTime() - nowMs() > 60_000 }
     : null;
@@ -119,6 +122,15 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
         {posted && isOwner && (
           <p className="rounded-xl border border-accent/40 bg-accent/10 px-4 py-3 text-sm">
             Your Drop is live. Share the link and watch the tries come in.
+            {bonus > 0 && (
+              <>
+                {" "}
+                <strong>
+                  You got +<Coin />
+                  {bonus} V Coin for posting it.
+                </strong>
+              </>
+            )}
           </p>
         )}
 
@@ -154,9 +166,14 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
           )}
           <ShareButton path={`/apps/${app.slug}`} title={`${app.name} on Method V`} layout="inline" />
           {isOwner && (
-            <Link href={`/apps/${app.slug}/manage`} className="btn-ghost">
-              ✎ Manage
-            </Link>
+            <>
+              <Link href={`/apps/${app.slug}/manage`} className="btn-ghost">
+                ✎ Manage
+              </Link>
+              <a href="#spotlight" className="btn-ghost">
+                ⭐ Spotlight
+              </a>
+            </>
           )}
           {!isOwner && <BackButton app={{ id: app.id, slug: app.slug, name: app.name }} signedIn={Boolean(viewer) || !isSupabaseConfigured} />}
           {/* Jumps down to the builder's sponsorship packages (only when they offer some). */}
@@ -166,6 +183,22 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
             </a>
           )}
         </div>
+
+        {isOwner && !status.boostedUntil && (
+          <a
+            href="#spotlight"
+            className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-accent/60 bg-accent/10 px-4 py-3 text-sm transition hover:border-accent"
+          >
+            <span>
+              <strong>⭐ Get {app.name} on Featured.</strong>{" "}
+              <span className="text-muted">
+                The Spotlight puts it at the top of Home for {SPOTLIGHT.days} days for <Coin />
+                {isPro(ownProfile) ? SPOTLIGHT.proCost : SPOTLIGHT.cost} V Coin.
+              </span>
+            </span>
+            <span className="font-semibold text-accent">Book it →</span>
+          </a>
+        )}
 
         {app.sponsor && <SponsoredBy sponsor={app.sponsor} />}
 

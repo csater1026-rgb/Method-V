@@ -3,10 +3,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { ChallengeBanner } from "@/components/ChallengeBanner";
+import { DropBonusBanner } from "@/components/DropBonus";
 import { FeaturedCard } from "@/components/FeaturedCard";
 import { TopBuilders, TopTesters } from "@/components/Passport";
 import { Suggestions } from "@/components/Suggestions";
-import { getApps, getFeatured, getMyApps, getRunningChallenge, getSuggestions, getTopBuilders, getTopTesters, getViewer } from "@/lib/data";
+import { getApps, getFeatured, getMyApps, getPromotion, getRunningChallenge, getSuggestions, getTopBuilders, getTopTesters, getViewer } from "@/lib/data";
 import { PROFILE_LATER_COOKIE, isDefaultUsername } from "@/lib/username";
 
 // Home: a running challenge (only while one is on), a nudge to show off your
@@ -28,6 +29,7 @@ export default async function HomePage() {
     getMyApps(viewer),
   ]);
   const latestApp = myApps[0];
+  const dropBonus = await getPromotion("drop_bonus");
 
   return (
     <div className="mx-auto w-full max-w-6xl py-6">
@@ -36,16 +38,17 @@ export default async function HomePage() {
           <ChallengeBanner challenge={challenge} />
         </div>
       )}
+      <DropBonusBanner promo={dropBonus} cta className="mx-4 mb-4" />
       {/* What Method V is for: show off your app, get feedback, get traction. */}
       <section aria-label="Show off your app" className="mx-4 mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-accent/40 bg-accent/10 p-4">
         {latestApp ? (
           <>
             <div className="min-w-0">
               <p className="font-semibold">Get more eyes on {latestApp.name}</p>
-              <p className="text-sm text-muted">Ask for testers, book the Spotlight, or ask people a question about it.</p>
+              <p className="text-sm text-muted">Put it on Featured with the Spotlight, ask for testers, or ask people a question about it.</p>
             </div>
-            <Link href={`/apps/${latestApp.slug}#grow`} className="btn-accent shrink-0">
-              Grow your app →
+            <Link href={`/apps/${latestApp.slug}#spotlight`} className="btn-accent shrink-0">
+              ⭐ Get on Featured →
             </Link>
           </>
         ) : (

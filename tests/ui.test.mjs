@@ -376,6 +376,15 @@ await run("open the feed on one Drop", phone, async (page) => {
   ok((await page.locator("article").count()) === 4, "…with the rest of the feed after it, no repeats");
 });
 
+await run("drop bonus + spotlight", desktop, async (page) => {
+  await go(page, "/");
+  ok(await page.getByText(/Post a Drop, get \+/).isVisible(), "Home shows the post-a-Drop bonus while it runs");
+  await go(page, "/submit");
+  ok(await page.getByText(/Post a Drop, get \+/).isVisible(), "…and so does the Post screen");
+  await go(page, "/apps/noteflow");
+  ok(await page.locator("#spotlight").getByRole("heading", { name: /Spotlight: get on Featured/ }).isVisible(), "the Spotlight box says what it's for and can be linked to");
+});
+
 await run("manage an app", desktop, async (page) => {
   await go(page, "/apps/noteflow/manage");
   for (const h of ["Drops", "Details", "Link", "Card image", "Delete this app"]) {

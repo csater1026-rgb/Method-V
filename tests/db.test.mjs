@@ -13,7 +13,7 @@ const migrationsDir = new URL("../supabase/migrations/", import.meta.url);
 const LATE = ["20261008000000_sponsor_packages.sql", "20261009000000_review_fixes.sql"];
 // Newer files that redefine what the LATE ones set (the notification kinds),
 // so they have to come after them, as they do on a real database.
-const AFTER_LATE = ["20261014000000_feedback_replies.sql", "20261015000000_tester_guarantee.sql"];
+const AFTER_LATE = ["20261014000000_feedback_replies.sql", "20261015000000_tester_guarantee.sql", "20261016000000_drop_bonus.sql"];
 const migrations = readdirSync(migrationsDir)
   .filter((f) => f.endsWith(".sql") && !LATE.includes(f) && !AFTER_LATE.includes(f))
   .sort()
@@ -1257,6 +1257,28 @@ ok(!!(await fails("anon", null, "insert into public.sponsorships (sponsor_brand,
   await as("authenticated", R, "select public.request_testers($1, 2)", [gApp]);
   gReq = (await db.query("select slots_total, slots_filled, expires_at > now() + interval '6 days' as week from public.test_requests where app_id = $1", [gApp])).rows[0];
   ok(gReq.slots_total === 3 && gReq.slots_filled === 1 && gReq.week, "asking again opens 2 new spots with a fresh 7 days");
+
+  // Promotion: post a Drop, get 10 V Coin (20261016000000_drop_bonus.sql).
+  const P2 = "abababab-0000-0000-0000-000000000000";
+  await db.exec(`insert into auth.users (id) values ('${P2}')`);
+  const postDrop = (appId, n) =>
+    as("authenticated", P2, "insert into public.drops (app_id, owner_id, video_path, duration_seconds) values ($1, $2, $3, 30)", [appId, P2, `${P2}/b${n}.mp4`]);
+  const start = await credits(P2);
+  const b1 = await makeApp(P2, "bonus-1");
+  await postDrop(b1, 1);
+  ok((await credits(P2)) === start + 10, "posting a Drop adds 10 V Coin while the promotion runs");
+  await postDrop(b1, 2);
+  ok((await credits(P2)) === start + 10, "…once per app, not per Drop");
+  for (const n of [2, 3, 4]) await postDrop(await makeApp(P2, `bonus-${n}`), 10 + n);
+  ok((await credits(P2)) === start + 30, "…and at most 3 bonuses a day per person");
+  ok(!!(await fails("authenticated", P2, "update public.promotions set amount = 100")), "people can't change promotions");
+  ok(!!(await fails("authenticated", P2, "insert into public.credit_events (user_id, delta, reason) values ($1, 10, 'drop_bonus')", [P2])), "…or give themselves the bonus");
+  ok((await as("anon", null, "select amount from public.promotions where slug = 'drop_bonus'")).rows[0]?.amount === 10, "anyone can see the promotion (for the banner)");
+  await db.query("update public.promotions set ends_at = now() - interval '1 minute' where slug = 'drop_bonus'");
+  await db.query("delete from public.credit_events where user_id = $1 and reason = 'drop_bonus'", [P2]).catch(() => {});
+  const before = await credits(P2);
+  await postDrop(await makeApp(P2, "bonus-late"), 99);
+  ok((await credits(P2)) === before, "once it ends, Drops don't earn the bonus");
 }
 
 // Security hardening (20261011000000_security_hardening.sql).

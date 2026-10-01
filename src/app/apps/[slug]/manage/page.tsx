@@ -3,7 +3,8 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { AppCoverEditor } from "@/components/AppCover";
-import { getManageApp, getViewer } from "@/lib/data";
+import { DropBonusBanner } from "@/components/DropBonus";
+import { getManageApp, getPromotion, getViewer } from "@/lib/data";
 import { isSupabaseConfigured, publicFileUrl } from "@/lib/supabase/env";
 
 import { AppDetailsForm, AppLinkForm, DeleteAppForm, ManageDrops } from "./ManageApp";
@@ -61,6 +62,7 @@ export default async function ManageAppPage({ params }: PageProps<"/apps/[slug]/
         </Link>
       )}
 
+      <DropBonusBanner promo={await getPromotion("drop_bonus")} className="mt-6" />
       <ManageDrops appId={app.id} appSlug={app.slug} appName={app.name} userId={userId} drops={drops} />
       <AppDetailsForm app={app} />
       <AppLinkForm appId={app.id} url={app.url} />

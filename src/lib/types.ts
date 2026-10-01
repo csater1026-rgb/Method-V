@@ -127,6 +127,9 @@ export type Viewer = {
   avatar_url?: string | null;
 };
 
+// A running promotion (public.promotions), e.g. "post a Drop, get 10 V Coin".
+export type Promotion = { slug: string; amount: number; ends_at: string; per_day: number };
+
 export type TestRequest = {
   slots_total: number;
   slots_filled: number;

@@ -28,6 +28,7 @@ import type {
   FeedItem,
   Profile,
   ProfileDrop,
+  Promotion,
   ProfileSummary,
   QuestionCard,
   SponsorCard,
@@ -966,6 +967,20 @@ export type NewDrop = {
 
 // Uploads the video straight to storage (into your own folder, streamed from
 // disk), then asks the website to check the link and publish the app.
+// A promotion that's running right now (public.promotions), or null.
+export async function getPromotion(slug: string): Promise<Promotion | null> {
+  if (!supabase) return slug === "drop_bonus" ? { slug, amount: 10, ends_at: "2026-11-01T06:59:59Z", per_day: 3 } : null;
+  const now = new Date().toISOString();
+  const { data, error } = await supabase
+    .from("promotions")
+    .select("slug, amount, ends_at, per_day")
+    .eq("slug", slug)
+    .lte("starts_at", now)
+    .gt("ends_at", now)
+    .maybeSingle();
+  return error ? null : ((data as Promotion | null) ?? null);
+}
+
 export async function postDrop(input: NewDrop, onProgress?: (fraction: number) => void): Promise<Result<{ slug: string }>> {
   const auth = await signedIn();
   if (!auth.ok) return auth;
