@@ -103,19 +103,28 @@ function Lamp({ big = false }: { big?: boolean }) {
   );
 }
 
-// Warm light falling on a card (doesn't catch taps).
+// Warm light covering the whole card (doesn't catch taps): a glow over all of
+// it, plus two cones from the lamp (a wide faint one and a narrower bright
+// one) so the edges of the light look soft.
 function Beam() {
   return (
     <View pointerEvents="none" style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}>
       <Svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
         <Defs>
+          <RadialGradient id="glow" cx="50%" cy="0%" rx="85%" ry="100%" fx="50%" fy="0%">
+            <Stop offset="0" stopColor="#ffecba" stopOpacity={0.26} />
+            <Stop offset="0.6" stopColor="#ffecba" stopOpacity={0.1} />
+            <Stop offset="1" stopColor="#ffecba" stopOpacity={0.02} />
+          </RadialGradient>
           <LinearGradient id="beam" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor="#ffeec4" stopOpacity={0.35} />
-            <Stop offset="0.5" stopColor="#ffeec4" stopOpacity={0.08} />
-            <Stop offset="1" stopColor="#ffeec4" stopOpacity={0} />
+            <Stop offset="0" stopColor="#ffecba" stopOpacity={0.3} />
+            <Stop offset="0.45" stopColor="#ffecba" stopOpacity={0.16} />
+            <Stop offset="1" stopColor="#ffecba" stopOpacity={0.08} />
           </LinearGradient>
         </Defs>
-        <Polygon points="40,0 60,0 100,100 0,100" fill="url(#beam)" />
+        <Rect width={100} height={100} fill="url(#glow)" />
+        <Polygon points="28,0 72,0 100,100 0,100" fill="url(#beam)" opacity={0.6} />
+        <Polygon points="36,0 64,0 92,100 8,100" fill="url(#beam)" />
       </Svg>
     </View>
   );

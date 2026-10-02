@@ -31,8 +31,9 @@ export function SpotlightStage({ apps, bookHref }: { apps: FeaturedApp[]; bookHr
         <div className="relative mx-auto max-w-3xl">
           <Lamp big className="absolute -top-[74px] left-1/2 -translate-x-1/2 sm:-top-[90px]" />
           <HeroCard app={top} />
-          <span aria-hidden className="stage-beam stage-beam-wide absolute -inset-x-[8%] -top-8 bottom-0 z-10" />
-          <span aria-hidden className="stage-pool absolute -bottom-5 left-1/2 h-8 w-4/5 -translate-x-1/2" />
+          <span aria-hidden className="stage-lit absolute inset-0 z-10 rounded-xl" />
+          <span aria-hidden className="stage-beam stage-beam-wide absolute -inset-x-[14%] -top-8 -bottom-4 z-10" />
+          <span aria-hidden className="stage-pool absolute -bottom-6 left-1/2 h-10 w-[110%] -translate-x-1/2" />
         </div>
       ) : (
         <OpenSpot href={bookHref} big />
@@ -43,8 +44,9 @@ export function SpotlightStage({ apps, bookHref }: { apps: FeaturedApp[]; bookHr
           <div key={app.id} className="relative w-[72vw] max-w-[300px] shrink-0 snap-start pt-10 sm:w-auto sm:max-w-none">
             <Lamp className="absolute top-0 left-1/2 -translate-x-1/2" />
             <FeaturedCard app={app} rank={i + 1} fill />
-            <span aria-hidden className="stage-beam absolute -inset-x-[6%] top-5 bottom-0 z-10" />
-            <span aria-hidden className="stage-pool absolute -bottom-4 left-1/2 h-6 w-4/5 -translate-x-1/2" />
+            <span aria-hidden className="stage-lit absolute inset-x-0 top-10 bottom-0 z-10 rounded-xl" />
+            <span aria-hidden className="stage-beam absolute -inset-x-[12%] top-6 -bottom-3 z-10" />
+            <span aria-hidden className="stage-pool absolute -bottom-5 left-1/2 h-8 w-[110%] -translate-x-1/2" />
           </div>
         ))}
         {Array.from({ length: top ? open : 0 }, (_, i) => (

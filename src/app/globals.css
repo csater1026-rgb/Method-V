@@ -387,18 +387,29 @@ body {
 }
 .stage-beam {
   pointer-events: none;
-  background: linear-gradient(to bottom, rgb(255 238 196 / 0.5), rgb(255 238 196 / 0.14) 45%, rgb(255 238 196 / 0) 100%);
-  clip-path: polygon(40% 0, 60% 0, 100% 100%, 0 100%);
+  /* A cone of warm light from the lamp: bright at the top, still lit at the
+     bottom, wider than the card so it covers all of it, with soft edges (a
+     blurred cone used as a mask). */
+  background: linear-gradient(to bottom, rgb(255 236 186 / 0.75), rgb(255 236 186 / 0.4) 45%, rgb(255 236 186 / 0.26) 82%, rgb(255 236 186 / 0) 100%);
+  --cone: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cfilter id='b'%3E%3CfeGaussianBlur stdDeviation='3'/%3E%3C/filter%3E%3Cpolygon points='36,0 64,0 100,100 0,100' fill='white' filter='url(%23b)'/%3E%3C/svg%3E");
+  -webkit-mask: var(--cone) center / 100% 100% no-repeat;
+  mask: var(--cone) center / 100% 100% no-repeat;
   mix-blend-mode: screen;
-  opacity: 0.55;
+  opacity: 0.6;
 }
 .stage-beam-wide {
-  clip-path: polygon(44% 0, 56% 0, 100% 100%, 0 100%);
-  opacity: 0.45;
+  --cone: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cfilter id='b'%3E%3CfeGaussianBlur stdDeviation='3'/%3E%3C/filter%3E%3Cpolygon points='41,0 59,0 100,100 0,100' fill='white' filter='url(%23b)'/%3E%3C/svg%3E");
+  opacity: 0.5;
+}
+/* The glow on the app itself, so the whole card reads as lit. */
+.stage-lit {
+  pointer-events: none;
+  background: radial-gradient(ellipse 85% 95% at 50% 0%, rgb(255 236 186 / 0.22), rgb(255 236 186 / 0.08) 60%, transparent 100%);
+  mix-blend-mode: screen;
 }
 .stage-pool {
   pointer-events: none;
-  background: radial-gradient(ellipse at center, rgb(255 231 168 / 0.32), transparent 70%);
+  background: radial-gradient(ellipse at center, rgb(255 231 168 / 0.45), transparent 70%);
   filter: blur(4px);
 }
 @media (prefers-reduced-motion: no-preference) {
@@ -409,12 +420,12 @@ body {
 @keyframes stage-flicker {
   0%,
   100% {
-    opacity: 0.55;
+    opacity: 0.62;
   }
   48% {
-    opacity: 0.42;
+    opacity: 0.52;
   }
   52% {
-    opacity: 0.6;
+    opacity: 0.68;
   }
 }
