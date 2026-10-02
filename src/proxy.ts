@@ -1,12 +1,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-import { agreeUrl, isOpenPath, mustAgree, previewFor, welcomeUrl } from "@/lib/gate";
+import { agreeUrl, isOpenPath, landingFor, mustAgree, previewFor, welcomeUrl } from "@/lib/gate";
 import { isSupabaseConfigured, supabasePublishableKey, supabaseUrl } from "@/lib/supabase/env";
 
-// Refreshes the Supabase session cookie before each page renders, sends
-// signed-out visitors to the welcome page first, and signed-in people who
-// haven't agreed to the Terms yet to /agree (see src/lib/gate.ts).
+// Refreshes the Supabase session cookie before each page renders, shows
+// signed-out visitors what Method V is at "/" (the welcome page anywhere
+// else), and sends signed-in people who haven't agreed to the Terms yet to
+// /agree (see src/lib/gate.ts).
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
   if (!isSupabaseConfigured) return response;
@@ -31,6 +32,13 @@ export async function proxy(request: NextRequest) {
   // A link-preview bot asking for an app's page gets the app's preview card.
   const preview = claims ? null : previewFor(pathname, request.headers.get("user-agent"));
   if (preview) return NextResponse.rewrite(new URL(preview, request.url));
+  // methodv.app signed out: the page that explains Method V, at the same address.
+  const landing = claims ? null : landingFor(pathname);
+  if (landing) {
+    const rewrite = NextResponse.rewrite(new URL(landing + search, request.url));
+    for (const cookie of response.cookies.getAll()) rewrite.cookies.set(cookie);
+    return rewrite;
+  }
   const target = !claims
     ? isOpenPath(pathname)
       ? null

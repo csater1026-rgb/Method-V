@@ -19,7 +19,7 @@ const OPEN_PREFIXES = [
 ];
 
 // ...and exactly these pages and files.
-const OPEN_EXACT = ["/login", "/terms", "/privacy", "/offline", "/app", "/sw.js", "/manifest.webmanifest", "/robots.txt", "/apple-icon", "/icon.svg", "/favicon.ico", "/opengraph-image"];
+const OPEN_EXACT = ["/login", "/about", "/terms", "/privacy", "/offline", "/app", "/sw.js", "/manifest.webmanifest", "/robots.txt", "/apple-icon", "/icon.svg", "/favicon.ico", "/opengraph-image"];
 
 export function isOpenPath(pathname: string): boolean {
   return OPEN_EXACT.includes(pathname) || OPEN_PREFIXES.some((p) => pathname.startsWith(p));
@@ -51,6 +51,12 @@ export function previewFor(pathname: string, userAgent: string | null | undefine
   if (!isPreviewBot(userAgent)) return null;
   const app = /^\/apps\/([a-z0-9-]{1,60})\/?$/.exec(pathname);
   return app ? `/preview/apps/${app[1]}` : null;
+}
+
+// A signed-out visitor opening the home page sees what Method V is first
+// (/about, shown at "/"), not the sign-in form.
+export function landingFor(pathname: string): string | null {
+  return pathname === "/" ? "/about" : null;
 }
 
 // Where to send a signed-out visitor: the welcome page, then back here.

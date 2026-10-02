@@ -39,7 +39,12 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
           Method V is where builders post their apps, get honest feedback from real people, and get traction.
         </p>
         <h2 className="mt-6 text-lg font-semibold">Log in or create an account</h2>
-        <p className="mt-1 text-sm text-muted">Method V is for members. Join free in a minute.</p>
+        <p className="mt-1 text-sm text-muted">
+          Join free in a minute.{" "}
+          <Link href="/about" className="text-accent hover:underline">
+            New here? See what Method V is →
+          </Link>
+        </p>
         {params.deleted === "1" && (
           <p className="mt-4 rounded-lg border border-accent/40 bg-accent/10 px-3 py-2 text-sm">Your account has been deleted. Thanks for being part of Method V.</p>
         )}
@@ -55,7 +60,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
           </p>
         )}
         <ProviderButtons next={safeNext} />
-        <LoginForm next={safeNext} disabled={!isSupabaseConfigured} />
+        <LoginForm next={safeNext} disabled={!isSupabaseConfigured} startWith={params.mode === "signup" ? "signup" : "signin"} />
         <p className="mt-4 text-xs text-muted">
           By signing in or creating an account, you agree to our{" "}
           <Link href="/terms" className="text-accent hover:underline">

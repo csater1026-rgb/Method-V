@@ -10,8 +10,8 @@ type Mode = "signin" | "signup" | "link";
 
 // Email + password (sign in or create an account), with an emailed sign-in
 // link for anyone who'd rather not use a password or forgot theirs.
-export function LoginForm({ next, disabled }: { next: string; disabled: boolean }) {
-  const [mode, setMode] = useState<Mode>("signin");
+export function LoginForm({ next, disabled, startWith = "signin" }: { next: string; disabled: boolean; startWith?: "signin" | "signup" }) {
+  const [mode, setMode] = useState<Mode>(startWith);
   const [passwordState, passwordAction, passwordPending] = useActionState<SignInState, FormData>(passwordAuth, { status: "idle" });
   const [linkState, linkAction, linkPending] = useActionState<SignInState, FormData>(signIn, { status: "idle" });
   const [showPassword, setShowPassword] = useState(false);

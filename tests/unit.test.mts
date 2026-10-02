@@ -18,7 +18,7 @@ import { pushTarget } from "../src/lib/push-route.ts";
 import { bumpInterest, mergeInterests, parseInterests, rankFeed, serializeInterests } from "../src/lib/interests.ts";
 import { setUpFirst, topUpSuggestions } from "../src/lib/suggest.ts";
 import { EMAIL_TEMPLATES } from "../src/lib/email-templates.ts";
-import { agreeUrl, hasAgreedToTerms, isOpenPath, isPreviewBot, mustAgree, previewFor, safeNextPath, welcomeUrl } from "../src/lib/gate.ts";
+import { agreeUrl, hasAgreedToTerms, isOpenPath, isPreviewBot, landingFor, mustAgree, previewFor, safeNextPath, welcomeUrl } from "../src/lib/gate.ts";
 import { confirmMatches } from "../src/lib/account.ts";
 import { describeDatabaseError, loggingFetch } from "../src/lib/supabase/log.ts";
 import { dbMessage, withVCoin } from "../src/lib/db-errors.ts";
@@ -233,9 +233,10 @@ ok(JSON.stringify(pushTarget("https://evil.example")) === '{"screen":"/"}' && JS
 // an account stays open.
 {
   const gated = ["/", "/drops", "/browse", "/apps/noteflow", "/u/methodv", "/q/abc", "/credits", "/challenges", "/settings", "/loginx", "/api", "/termsx"];
-  const open = ["/login", "/auth/callback", "/api/push/send", "/api/stripe/webhook", "/api/health", "/embed/noteflow", "/badge/noteflow", "/try/noteflow", "/go/noteflow", "/sw.js", "/manifest.webmanifest", "/app-icon/192", "/setup/emails", "/offline", "/terms", "/privacy", "/opengraph-image", "/_vercel/insights/view", "/_vercel/insights/script.js"];
+  const open = ["/login", "/auth/callback", "/api/push/send", "/api/stripe/webhook", "/api/health", "/embed/noteflow", "/badge/noteflow", "/try/noteflow", "/go/noteflow", "/sw.js", "/manifest.webmanifest", "/app-icon/192", "/setup/emails", "/offline", "/about", "/terms", "/privacy", "/opengraph-image", "/_vercel/insights/view", "/_vercel/insights/script.js"];
   ok(gated.every((p) => !isOpenPath(p)), `the site itself needs an account (${gated.filter(isOpenPath).join(", ") || "all gated"})`);
   ok(open.every(isOpenPath), `sign-in, webhooks, embeds and icons still work signed out (${open.filter((p) => !isOpenPath(p)).join(", ") || "all open"})`);
+  ok(landingFor("/") === "/about" && landingFor("/drops") === null && !isOpenPath("/"), "signed out, the home page explains Method V first (only the home page)");
   ok(welcomeUrl("/", "") === "/login" && welcomeUrl("/apps/noteflow", "?tab=qa") === "/login?next=%2Fapps%2Fnoteflow%3Ftab%3Dqa", "after signing in you land where you were going");
   // Agreeing to the Terms once: Google/Apple/GitHub sign-ups (and older accounts) go to /agree first.
   ok(!hasAgreedToTerms({}) && !hasAgreedToTerms(null) && !hasAgreedToTerms({ agreed_to_terms: "" }), "no agreement saved means not agreed");

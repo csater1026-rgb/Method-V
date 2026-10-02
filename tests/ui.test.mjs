@@ -628,7 +628,31 @@ await run("login", phone, async (page) => {
   await noSideScroll(page, "login");
   await go(page, "/browse");
   ok(await page.locator("header").getByRole("link", { name: "Sign in" }).isVisible(), "other pages still have Sign in up top");
+  await go(page, "/login?mode=signup");
+  ok((await page.getByRole("tab", { name: "Create account" }).getAttribute("aria-selected")) === "true", "?mode=signup opens on Create account");
+  ok(await page.getByRole("link", { name: /New here\? See what Method V is/ }).isVisible(), "sign-in page links to what Method V is");
 });
+
+for (const [label, size] of [
+  ["phone", phone],
+  ["desktop", desktop],
+]) {
+  await run(`landing page (${label})`, size, async (page) => {
+    await go(page, "/about");
+    ok(await page.getByRole("heading", { level: 1, name: "Show off what you built. Get real people to try it." }).isVisible(), "explains what it is first");
+    const join = page.getByRole("link", { name: "Join free" }).first();
+    ok((await join.getAttribute("href")) === "/login?mode=signup", "Join free goes to Create account");
+    await page.getByRole("link", { name: "See how it works ↓" }).click();
+    const how = page.getByRole("region", { name: "Three steps to your first real users" });
+    ok((await how.locator("li").count()) === 3, "how it works in three steps");
+    ok(await page.getByRole("region", { name: "In the Spotlight" }).first().isVisible(), "shows real apps in the Spotlight");
+    const faq = page.getByRole("region", { name: "Questions" });
+    await faq.getByText("Is it free?").click();
+    ok(await faq.getByText(/Posting your app, trying apps/).isVisible(), "FAQ answers open");
+    await noSideScroll(page, `landing ${label}`);
+    await page.screenshot({ path: `${OUT}landing-${label}.png`, fullPage: true });
+  });
+}
 
 await run("followers and following", phone, async (page) => {
   await go(page, "/u/ada_builds");
