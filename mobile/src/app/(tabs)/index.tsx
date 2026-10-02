@@ -3,6 +3,7 @@ import { Pressable, RefreshControl, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppCard } from "@/components/AppCard";
+import { DropBonusPopup } from "@/components/DropBonusPopup";
 import { Leaderboard, builderStat, testerStat } from "@/components/Leaderboard";
 import { Loading } from "@/components/Loading";
 import { Suggestions } from "@/components/Suggestions";
@@ -36,6 +37,7 @@ export default function HomeScreen() {
       contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: 32, gap: 14 }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={reload} tintColor={t.muted} />}
     >
+      <DropBonusPopup />
       <View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 16 }}>
         <Wordmark size={22} />
       </View>
@@ -50,7 +52,7 @@ export default function HomeScreen() {
       {featured.length > 0 && featured[0].reason !== "hot" ? (
         <>
           <SpotlightStage apps={featured} />
-          {/* More than fit on the stage (launch days, team picks). */}
+          {/* More paid Spotlights than fit on the stage. */}
           {featured.length > STAGE_SPOTS && (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingHorizontal: 16, paddingTop: 12 }}>
               {featured.slice(STAGE_SPOTS).map((app) => (

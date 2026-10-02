@@ -25,8 +25,21 @@ const ok = (cond, msg) => {
 
 const browser = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {});
 
-async function run(name, viewport, fn) {
+// The "Post a Drop, get +10 V Coin" pop-up on Home (demo promotion) would
+// cover the page in every test, so it starts closed unless a test asks for it.
+const DEMO_BONUS_ENDS = "2026-11-01T06:59:59Z";
+const bonusSeen = (ctx) =>
+  ctx.addInitScript((ends) => {
+    try {
+      localStorage.setItem("method-v-promo-seen:drop_bonus", ends);
+    } catch {
+      // Sandboxed previews (the email templates) have no storage.
+    }
+  }, DEMO_BONUS_ENDS);
+
+async function run(name, viewport, fn, { popups = false } = {}) {
   const ctx = await browser.newContext({ viewport });
+  if (!popups) await bonusSeen(ctx);
   const page = await ctx.newPage();
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
@@ -135,6 +148,7 @@ await run("feed (phone)", phone, async (page) => {
 {
   const bgOf = (page, sel = "body") => page.evaluate((s) => getComputedStyle(document.querySelector(s)).backgroundColor, sel);
   const ctx = await browser.newContext({ viewport: phone, colorScheme: "light" });
+  await bonusSeen(ctx);
   const page = await ctx.newPage();
   await go(page, "/");
   ok((await bgOf(page)) === "rgb(255, 255, 255)", "light phone setting → white background");
@@ -379,10 +393,8 @@ await run("open the feed on one Drop", phone, async (page) => {
 });
 
 await run("drop bonus + spotlight", desktop, async (page) => {
-  await go(page, "/");
-  ok(await page.getByText(/Post a Drop, get \+/).isVisible(), "Home shows the post-a-Drop bonus while it runs");
   await go(page, "/submit");
-  ok(await page.getByText(/Post a Drop, get \+/).isVisible(), "…and so does the Post screen");
+  ok(await page.getByText(/Post a Drop, get \+/).isVisible(), "the Post screen shows the post-a-Drop bonus while it runs (Home pops it up)");
   await go(page, "/apps/noteflow");
   ok(await page.locator("#spotlight").getByRole("heading", { name: /Spotlight: get on Featured/ }).isVisible(), "the Spotlight box says what it's for and can be linked to");
 });
@@ -408,6 +420,7 @@ await run("manage an app", desktop, async (page) => {
 
 {
   const ctx = await browser.newContext();
+  await bonusSeen(ctx);
   const page = await ctx.newPage();
   const res = await go(page, "/u/nobody_here");
   ok(res.status() === 404, "unknown profile is 404");
@@ -419,8 +432,9 @@ await run("manage an app", desktop, async (page) => {
 await run("launch days + boosts", desktop, async (page) => {
   await go(page, "/");
   const featured = page.getByRole("region", { name: "In the Spotlight" });
-  const labels = await featured.locator("article .tag-accent").allTextContents();
-  ok(labels.some((l) => l.includes("Launch day")) && labels.some((l) => l.includes("Spotlight")), `Featured row includes launch-day and Spotlight apps (${labels.join(" | ")})`);
+  const labels = (await featured.locator("article .tag-accent").allTextContents()).filter((l) => /Spotlight|pick|Launch/.test(l));
+  ok(labels[0]?.includes("Spotlight"), `the paid Spotlight app has the top spot (${labels.join(" | ")})`);
+  ok(labels.slice(1).length === 3 && labels.slice(1).every((l) => l.includes("Today's pick")), `the other spots are random daily picks (${labels.join(" | ")})`);
   await go(page, "/browse");
   const soon = page.getByRole("region", { name: "Upcoming launches" });
   ok((await soon.locator("li").count()) === 1 && (await soon.textContent()).includes("QuizPop"), "Launching soon lists QuizPop");
@@ -547,6 +561,7 @@ await run("pixel coder", phone, async (page) => {
 
 {
   const ctx = await browser.newContext({ viewport: phone, reducedMotion: "reduce" });
+  await bonusSeen(ctx);
   const page = await ctx.newPage();
   await go(page, "/");
   const count = await page.locator("footer .pc-dust").first().evaluate((el) => getComputedStyle(el).animationIterationCount);
@@ -927,6 +942,42 @@ await run("email templates page", desktop, async (page) => {
   ok((await page.locator('iframe[title="Magic link preview"]').count()) === 1, "each one has a preview");
   ok((await page.locator('meta[name="robots"]').getAttribute("content"))?.includes("noindex"), "setup page isn't indexed");
 });
+
+await run(
+  "drop bonus pop-up (phone)",
+  phone,
+  async (page) => {
+    await go(page, "/");
+    const pop = page.getByRole("dialog", { name: "Post a Drop, get +10 V Coin" });
+    await pop.waitFor({ timeout: 5000 });
+    ok(true, "the Drop bonus pops up on Home");
+    ok((await page.getByText("🎉 Post a Drop", { exact: false }).count()) === 0, "no banner on Home any more");
+    ok((await pop.getByRole("link", { name: "Post a Drop →" }).getAttribute("href")) === "/submit", "its button goes to the post page");
+    await noSideScroll(page, "drop bonus pop-up");
+    await page.screenshot({ path: `${OUT}drop-bonus-popup.png` });
+    await pop.getByRole("button", { name: "Close" }).click();
+    ok((await pop.count()) === 0, "✕ closes it");
+    await page.reload();
+    await page.waitForTimeout(1200);
+    ok((await pop.count()) === 0, "and it stays closed");
+    await page.evaluate(() => localStorage.clear());
+    await go(page, "/?tour=1");
+    const tour = page.getByRole("dialog", { name: "Tour" });
+    await tour.waitFor({ timeout: 5000 });
+    await page.waitForTimeout(1200);
+    ok((await pop.count()) === 0, "never on top of the tour");
+    await tour.getByRole("button", { name: "Skip tour" }).click();
+    await pop.waitFor({ timeout: 5000 });
+    ok(true, "shows once the tour is done");
+    await pop.getByRole("link", { name: "Post a Drop →" }).click();
+    await page.waitForURL("**/submit");
+    ok(true, "Post a Drop opens the post page");
+    await go(page, "/");
+    await page.waitForTimeout(1200);
+    ok((await pop.count()) === 0, "not again after posting from it");
+  },
+  { popups: true },
+);
 
 await run("first-time tour", desktop, async (page) => {
   await go(page, "/");

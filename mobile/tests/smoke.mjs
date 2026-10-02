@@ -46,8 +46,17 @@ async function visit(path, shot) {
   if (shot) await page.screenshot({ path: `${OUT}${shot}.png` });
 }
 
+// The post-a-Drop bonus pops up on Home the first time (demo promotion).
+await visit("/", "drop-bonus-popup");
+ok(await page.getByText("Post a Drop, get +10 V Coin").isVisible(), "the Drop bonus pops up on Home");
+ok(await page.getByRole("button", { name: "Post a Drop →" }).isVisible(), "with a button to post a Drop");
+await page.getByRole("button", { name: "Close" }).click();
+await page.waitForTimeout(400);
+ok((await page.getByText("Post a Drop, get +10 V Coin").count()) === 0, "✕ closes it");
 await visit("/", "home");
+ok((await page.getByText("Post a Drop, get +10 V Coin").count()) === 0, "and it stays closed");
 ok(await page.getByText("In the Spotlight", { exact: true }).first().isVisible(), "Home shows the Spotlight stage");
+ok((await page.getByText("Today's pick", { exact: true }).count()) > 0, "empty Spotlight spots get Today's picks");
 ok((await page.getByText("NoteFlow").count()) > 0, "Home lists the sample apps");
 ok(await page.getByText("Builders like you").isVisible(), "Home suggests builders to follow");
 ok(await page.getByText("In common: Design · React").isVisible(), "suggestions say what you have in common");
@@ -209,7 +218,7 @@ await page.getByRole("button", { name: "Take the tour" }).click();
 await page.getByText("Welcome to Method V").waitFor({ timeout: 5000 });
 ok(new URL(page.url()).pathname === "/", "the tour starts on Home");
 await page.getByRole("button", { name: "Start the tour" }).click();
-ok(await page.getByText("Hand-picked apps, launches", { exact: false }).isVisible(), "step 1: Featured");
+ok(await page.getByText("apps whose builders booked it with V Coin", { exact: false }).isVisible(), "step 1: Featured");
 await page.getByRole("button", { name: "Next" }).click();
 await page.waitForTimeout(600);
 ok(new URL(page.url()).pathname === "/drops" && (await page.getByText("Swipe through 60-second demos", { exact: false }).isVisible()), "step 2 opens the Drops tab");

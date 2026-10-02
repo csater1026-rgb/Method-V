@@ -41,7 +41,7 @@ import type {
 import { PROFILE_COLUMNS } from "@shared/types";
 
 import { SIGNALS, bumpInterest, mergeInterests, rankFeed, rankQuestions, type Interests } from "@shared/interests";
-import { STAGE_SPOTS, dailyPicks, paidOrder, stageDay, stageOrder } from "@shared/spotlight-stage";
+import { RANDOM_STAGE, buildStage, stageDay } from "@shared/spotlight-stage";
 import { SUGGESTION_LIMIT, setUpFirst, topUpSuggestions } from "@shared/suggest";
 
 import { DEMO_MESSAGE, DROPS_BUCKET, SITE_URL, SUPABASE_KEY, SUPABASE_URL, fileUrl } from "./config";
@@ -161,7 +161,14 @@ export async function getHome(
     const cards = demoCards();
     return {
       ...demoLeaderboards(),
-      featured: demoFeaturedIds.map((id) => ({ ...cards.find((c) => c.id === id)!, reason: "featured" as const })).filter((a) => a.id),
+      featured: buildStage({
+        paid: cards.filter((c) => c.boosted_until && new Date(c.boosted_until).getTime() > Date.now()),
+        team: demoFeaturedIds.map((id) => cards.find((c) => c.id === id)!).filter(Boolean),
+        launching: [],
+        pool: cards,
+        fill: true,
+        day: stageDay(),
+      }),
       newest: [...cards].sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 10),
       suggestions: [
         { ...toSummary(demoProfile("demo-june")), shared_categories: ["design"], shared_skills: ["React"] },
@@ -172,33 +179,29 @@ export async function getHome(
   const nowMs = Date.now();
   const now = new Date(nowMs).toISOString();
   // The Spotlight stage, same rules as the website (src/lib/spotlight-stage.ts):
-  // paid Spotlights first, then the team's picks and launch days, then
-  // Today's picks while the team has them on.
-  const fill = Boolean(await getPromotion("spotlight_fill"));
+  // paid Spotlights first, then Today's picks (random apps, new every 24 hours).
+  const fill = RANDOM_STAGE || Boolean(await getPromotion("spotlight_fill"));
+  const none = Promise.resolve({ data: [] });
   const base = () => supabase!.from("apps").select(CARD_SELECT).not("link_checked_at", "is", null);
   const [team, launching, boosted, everyone, suggested, newest] = await Promise.all([
-    base().gt("featured_until", now).order("featured_until", { ascending: false }).limit(8),
-    base().lte("launch_at", now).gt("launch_at", new Date(nowMs - DAY).toISOString()).order("launch_at").limit(8),
+    RANDOM_STAGE ? none : base().gt("featured_until", now).order("featured_until", { ascending: false }).limit(8),
+    RANDOM_STAGE ? none : base().lte("launch_at", now).gt("launch_at", new Date(nowMs - DAY).toISOString()).order("launch_at").limit(8),
     base().gt("boosted_until", now).order("boosted_until", { ascending: true }).limit(8),
-    fill ? base().order("created_at", { ascending: false }).limit(300) : Promise.resolve({ data: [] }),
+    fill ? base().order("created_at", { ascending: false }).limit(300) : none,
     viewerId ? supabase.rpc("suggest_builders", { p_limit: SUGGESTION_LIMIT }) : Promise.resolve({ data: [] }),
     supabase.from("apps").select(CARD_SELECT).not("link_checked_at", "is", null).order("created_at", { ascending: false }).limit(10),
   ]);
   // A Spotlight booked for later (waiting in line) isn't on yet.
   const at = (t: string | null) => (t ? new Date(t).getTime() : 0);
   const paid = (boosted.data ?? []).filter((r: any) => !r.boosted_from || at(r.boosted_from) <= nowMs);
-  let top: FeaturedApp[] = stageOrder<AppCard, FeaturedReason>([
-    { apps: paidOrder(paid.map(toCard)), reason: "boosted" },
-    { apps: (team.data ?? []).map(toCard), reason: "featured" },
-    { apps: (launching.data ?? []).map(toCard), reason: "launch" },
-  ]);
-  if (fill && top.length < STAGE_SPOTS) {
-    const taken = new Set(top.map((a) => a.id));
-    const open = (everyone.data ?? []).map(toCard).filter((a) => !taken.has(a.id));
-    const pictured = open.filter((a) => a.poster_url);
-    const need = STAGE_SPOTS - top.length;
-    top = [...top, ...dailyPicks(pictured.length >= need ? pictured : open, need, stageDay(nowMs)).map((a) => ({ ...a, reason: "pick" as const }))];
-  }
+  let top: FeaturedApp[] = buildStage({
+    paid: paid.map(toCard),
+    team: (team.data ?? []).map(toCard),
+    launching: (launching.data ?? []).map(toCard),
+    pool: (everyone.data ?? []).map(toCard),
+    fill,
+    day: stageDay(nowMs),
+  });
   if (top.length === 0) {
     const since = new Date(Date.now() - 30 * DAY).toISOString();
     const { data } = await supabase

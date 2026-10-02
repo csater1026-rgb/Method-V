@@ -18,7 +18,7 @@ const STEPS: Step[] = [
   },
   {
     title: "Featured",
-    body: "Hand-picked apps, launches and Spotlight apps sit up top. Tap any card to open the app, try it and leave feedback.",
+    body: "The Spotlight sits up top: apps whose builders booked it with V Coin, plus new random picks every day. Tap any card to open the app, try it and leave feedback.",
     target: ["featured"],
   },
   {
@@ -58,7 +58,10 @@ const STEPS: Step[] = [
 ];
 
 const PAD = 6;
-const doneKey = (userId: string | null) => `method-v-tour-done:${userId ?? "guest"}`;
+export const tourDoneKey = (userId: string | null) => `method-v-tour-done:${userId ?? "guest"}`;
+// Fired when the tour closes, so anything waiting for it (the Drop bonus
+// pop-up) can show next instead of on top of it.
+export const TOUR_DONE_EVENT = "method-v:tour-done";
 
 // The first matching element that's actually on screen (phones and computers
 // show different menus).
@@ -86,7 +89,7 @@ export function Tour({ userId }: { userId: string | null }) {
     const replay = new URLSearchParams(window.location.search).get("tour") === "1";
     let done = false;
     try {
-      done = localStorage.getItem(doneKey(userId)) === "1";
+      done = localStorage.getItem(tourDoneKey(userId)) === "1";
     } catch {
       // Private browsing: show it, just don't remember.
     }
@@ -100,12 +103,13 @@ export function Tour({ userId }: { userId: string | null }) {
 
   const finish = useCallback(() => {
     try {
-      localStorage.setItem(doneKey(userId), "1");
+      localStorage.setItem(tourDoneKey(userId), "1");
     } catch {
       // Nothing to remember it in.
     }
     if (new URLSearchParams(window.location.search).has("tour")) window.history.replaceState(null, "", "/");
     setStep(null);
+    window.dispatchEvent(new Event(TOUR_DONE_EVENT));
   }, [userId]);
 
   const current = step === null ? null : STEPS[step];

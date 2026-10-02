@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { ChallengeBanner } from "@/components/ChallengeBanner";
-import { DropBonusBanner } from "@/components/DropBonus";
+import { DropBonusPopup } from "@/components/DropBonusPopup";
 import { FeaturedCard } from "@/components/FeaturedCard";
 import { SpotlightStage } from "@/components/SpotlightStage";
 import { STAGE_SPOTS } from "@/lib/spotlight-stage";
@@ -40,7 +40,7 @@ export default async function HomePage() {
           <ChallengeBanner challenge={challenge} />
         </div>
       )}
-      <DropBonusBanner promo={dropBonus} cta className="mx-4 mb-4" />
+      <DropBonusPopup promo={dropBonus} userId={viewer?.id ?? null} />
       {/* What Method V is for: show off your app, get feedback, get traction. */}
       <section aria-label="Show off your app" className="mx-4 mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-accent/40 bg-accent/10 p-4">
         {latestApp ? (

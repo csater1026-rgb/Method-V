@@ -3,15 +3,20 @@
 //   1. Paid Spotlights (booked with V Coin), first come first served: the
 //      earliest booking that's on now takes the top spot, until its time runs
 //      out.
-//   2. Apps the Method V team featured, then apps having their launch day.
-//   3. While the "spotlight_fill" promotion is on (public.promotions), any
-//      spots still empty go to "Today's picks": different unpaid apps every
-//      day, taking turns, so everyone gets seen.
+//   2. Every spot still empty goes to "Today's picks": random apps that change
+//      every 24 hours (at midnight US Pacific), taking turns so everyone gets
+//      seen.
 // Anything past four shows in a row under the stage.
+//
+// While RANDOM_STAGE is on (the owner's choice, until they say otherwise),
+// that's all: the team's picks and launch days stay off the stage. Turn it
+// off to bring them back after the paid ones, with Today's picks only while
+// the "spotlight_fill" promotion is on (public.promotions).
 //
 // Plain functions, no server code: the phone app imports this too.
 
 export const STAGE_SPOTS = 4;
+export const RANDOM_STAGE = true;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 // Days since 1970 in US Pacific time, so the picks change at midnight there.
@@ -66,4 +71,37 @@ export function stageOrder<T extends { id: string }, R extends string>(groups: {
     }
   }
   return out;
+}
+
+export type StageReason = "boosted" | "featured" | "launch" | "pick";
+
+// The whole stage from its ingredients. `paid` must only hold Spotlights that
+// are on now; `fill` is whether the spotlight_fill promotion is on.
+export function buildStage<T extends { id: string; poster_url?: string | null; boosted_from?: string | null; boosted_until?: string | null }>(o: {
+  paid: T[];
+  team: T[];
+  launching: T[];
+  pool: T[];
+  fill: boolean;
+  day: number;
+}): (T & { reason: StageReason })[] {
+  const apps = stageOrder<T, StageReason>([
+    { apps: paidOrder(o.paid), reason: "boosted" },
+    ...(RANDOM_STAGE
+      ? []
+      : [
+          { apps: o.team, reason: "featured" as const },
+          { apps: o.launching, reason: "launch" as const },
+        ]),
+  ]);
+  if ((RANDOM_STAGE || o.fill) && apps.length < STAGE_SPOTS) {
+    const taken = new Set(apps.map((a) => a.id));
+    const open = o.pool.filter((a) => !taken.has(a.id));
+    // Apps with a picture look best on the stage; use the rest only if needed.
+    const pictured = open.filter((a) => a.poster_url);
+    const need = STAGE_SPOTS - apps.length;
+    const picks = dailyPicks(pictured.length >= need ? pictured : open, need, o.day);
+    apps.push(...picks.map((a) => ({ ...a, reason: "pick" as const })));
+  }
+  return apps;
 }

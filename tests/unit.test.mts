@@ -23,7 +23,7 @@ import { confirmMatches } from "../src/lib/account.ts";
 import { describeDatabaseError, loggingFetch } from "../src/lib/supabase/log.ts";
 import { dbMessage, withVCoin } from "../src/lib/db-errors.ts";
 import { USERNAME_PATTERN, isDefaultUsername, suggestUsername } from "../src/lib/username.ts";
-import { dailyPicks, paidOrder, stageOrder } from "../src/lib/spotlight-stage.ts";
+import { RANDOM_STAGE, STAGE_SPOTS, buildStage, dailyPicks, paidOrder, stageOrder } from "../src/lib/spotlight-stage.ts";
 
 let failures = 0;
 const ok = (cond: boolean, msg: string) => {
@@ -430,6 +430,12 @@ ok(!confirmMatches("ada", "ada_builds") && !confirmMatches("", "ada_builds") && 
     { apps: [{ id: "a" }, { id: "b" }], reason: "featured" },
   ]);
   ok(stage.map((a) => `${a.id}:${a.reason}`).join() === "a:boosted,b:featured", "paid comes first and nothing shows twice");
+  if (RANDOM_STAGE) {
+    const built = buildStage({ paid: [{ id: "app-1", boosted_from: "2026-10-01T00:00:00Z" }], team: [{ id: "team" }], launching: [{ id: "launch" }], pool, fill: false, day: 20000 });
+    ok(built.length === STAGE_SPOTS && built[0].id === "app-1" && built[0].reason === "boosted", "a paid app takes the top spot");
+    ok(built.slice(1).every((a) => a.reason === "pick" && a.id !== "app-1"), "random picks fill the rest, no promotion needed");
+    ok(!built.some((a) => a.id === "team" || a.id === "launch"), "no team picks or launch days on the stage for now");
+  }
 }
 
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");

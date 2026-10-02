@@ -18,7 +18,7 @@ type Step = { title: string; body: string; route?: "/" | "/drops" | "/browse" | 
 
 const STEPS: Step[] = [
   { title: "Welcome to Method V", body: "The place to show off what you've built, get honest feedback from real people, and get traction. Here's a quick look around. It takes about 30 seconds.", route: "/" },
-  { title: "Featured", body: "Hand-picked apps, launches and Spotlight apps sit up top on Home. Tap any card to open the app, try it and leave feedback.", route: "/", tab: 0 },
+  { title: "Featured", body: "The Spotlight sits up top: apps whose builders booked it with V Coin, plus new random picks every day. Tap any card to open the app, try it and leave feedback.", route: "/", tab: 0 },
   { title: "Drops", body: "Swipe through 60-second demos. For you learns what you like, and Questions is where builders ask the community.", route: "/drops", tab: 1 },
   { title: "Post your app", body: "Tap + to share what you built with a 60-second Drop and get honest feedback from real testers.", tab: 2 },
   { title: "Browse", body: "Search every app, filter by category or tech stack, and find people by name.", route: "/browse", tab: 3 },
@@ -30,7 +30,9 @@ const TABS = 5;
 const TAB_BAR = 68;
 const doneKey = (id: string) => `method-v-tour-done:${id}`;
 
-const TourContext = createContext<{ start: () => void }>({ start: () => {} });
+// `busy` is true while the tour is showing, or before we know whether it will
+// (so pop-ups like the Drop bonus wait their turn).
+const TourContext = createContext<{ start: () => void; busy: boolean }>({ start: () => {}, busy: false });
 export const useTour = () => useContext(TourContext);
 
 export function TourProvider({ children }: { children: React.ReactNode }) {
@@ -41,6 +43,7 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
   const { viewer } = useAuth();
   const [step, setStep] = useState<number | null>(null);
   const viewerId = viewer?.id ?? null;
+  const [checking, setChecking] = useState(true);
   // Checked once per account per launch, so a profile refresh can't restart it.
   const checked = useRef<string | null>(null);
 
@@ -55,11 +58,17 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
 
   // The first time this account opens the app on this phone.
   useEffect(() => {
-    if (!viewerId || checked.current === viewerId) return;
+    if (!viewerId) {
+      setChecking(false);
+      return;
+    }
+    if (checked.current === viewerId) return;
     checked.current = viewerId;
-    void AsyncStorage.getItem(doneKey(viewerId)).then((done) => {
-      if (done !== "1") go(0);
-    });
+    void AsyncStorage.getItem(doneKey(viewerId))
+      .then((done) => {
+        if (done !== "1") go(0);
+      })
+      .finally(() => setChecking(false));
   }, [viewerId, go]);
 
   const finish = useCallback(() => {
@@ -67,7 +76,7 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
     setStep(null);
   }, [viewerId]);
 
-  const value = useMemo(() => ({ start: () => go(0) }), [go]);
+  const value = useMemo(() => ({ start: () => go(0), busy: checking || step !== null }), [go, checking, step]);
   const current = step === null ? null : STEPS[step];
   const last = step === STEPS.length - 1;
   const barHeight = TAB_BAR + insets.bottom;
