@@ -1,3 +1,4 @@
+import { Image } from "expo-image";
 import { useIsFocused, useRouter } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -20,6 +21,7 @@ import { getFeed, getQuestionFeed, setLike } from "@/lib/data";
 import { learn, loadInterests } from "@/lib/interests";
 import { tryApp } from "@/lib/tryApp";
 import { useLoad } from "@/lib/useLoad";
+import { useIsWide } from "@/lib/videoShape";
 import { media, useTheme } from "@/theme";
 
 // The Drops feed, "For you": one full-screen Drop at a time. The one on
@@ -176,6 +178,8 @@ function DropPage({
   const { viewer } = useAuth();
   const [liked, setLiked] = useState(item.liked);
   const [likes, setLikes] = useState(item.like_count);
+  // A horizontal (16:9) Drop shows whole over its blurred thumbnail, not cropped.
+  const wide = useIsWide(item.poster_url);
   const player = useVideoPlayer(item.video_url ? { uri: item.video_url } : null, (p) => {
     p.loop = true;
     p.muted = true;
@@ -228,7 +232,12 @@ function DropPage({
     <View style={{ height, backgroundColor: media.bg }}>
       <Pressable accessibilityLabel={muted ? "Turn sound on" : "Turn sound off"} onPress={onToggleSound} style={{ flex: 1 }}>
         {item.video_url ? (
-          <VideoView player={player} style={{ flex: 1 }} contentFit="cover" nativeControls={false} />
+          <>
+            {wide && item.poster_url && (
+              <Image source={{ uri: item.poster_url }} blurRadius={30} contentFit="cover" style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, opacity: 0.6 }} />
+            )}
+            <VideoView player={player} style={{ flex: 1, backgroundColor: "transparent" }} contentFit={wide ? "contain" : "cover"} nativeControls={false} />
+          </>
         ) : (
           <DropPlaceholder name={item.app.name} />
         )}

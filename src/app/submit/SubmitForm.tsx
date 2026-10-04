@@ -200,7 +200,7 @@ export function SubmitForm({ userId }: { userId: string | null }) {
             <div className="mt-3 flex items-end gap-4">
               <video
                 src={video.url}
-                className="aspect-[9/16] w-28 rounded-lg border border-line bg-black object-cover"
+                className={`${video.landscape ? "aspect-video w-48" : "aspect-[9/16] w-28"} rounded-lg border border-line bg-black object-contain`}
                 muted
                 playsInline
                 autoPlay
@@ -221,7 +221,8 @@ export function SubmitForm({ userId }: { userId: string | null }) {
             </div>
           )}
           <p className="mt-2 text-xs text-muted">
-            Up to {MAX_DROP_SECONDS} seconds · MP4, WebM or MOV · {MAX_DROP_MB} MB max. A quick screen recording of your app is perfect.
+            Up to {MAX_DROP_SECONDS} seconds · MP4, WebM or MOV · {MAX_DROP_MB} MB max · vertical (9:16) or horizontal (16:9). A quick screen
+            recording of your app is perfect.
           </p>
           {!video && (
             <p className="mt-1 text-xs text-muted">

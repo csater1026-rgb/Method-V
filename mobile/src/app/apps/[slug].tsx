@@ -16,6 +16,7 @@ import { SITE_URL } from "@/lib/config";
 import { getAppDetail, getAppQuestions, setLike } from "@/lib/data";
 import { tryApp } from "@/lib/tryApp";
 import { useLoad } from "@/lib/useLoad";
+import { useIsWide } from "@/lib/videoShape";
 import { fonts, media, useTheme } from "@/theme";
 
 export default function AppScreen() {
@@ -33,6 +34,8 @@ export default function AppScreen() {
     async () => (data?.app ? getAppQuestions(data.app.id, viewer?.id ?? null) : null),
     [data?.app?.id, viewer?.id],
   );
+  // A horizontal (16:9) Drop gets a 16:9 player.
+  const wide = useIsWide(data?.app.drop?.poster_url);
 
   if (data === null && !error) return <Loading />;
   if (!data) {
@@ -64,7 +67,7 @@ export default function AppScreen() {
       keyboardShouldPersistTaps="handled"
     >
       <Stack.Screen options={{ title: app.name }} />
-      <View style={{ aspectRatio: 9 / 16, maxHeight: 520, borderRadius: 12, overflow: "hidden", backgroundColor: media.bg, alignSelf: "center", width: "100%" }}>
+      <View style={{ aspectRatio: wide ? 16 / 9 : 9 / 16, maxHeight: 520, borderRadius: 12, overflow: "hidden", backgroundColor: media.bg, alignSelf: "center", width: "100%" }}>
         {app.drop?.video_url ? <Player uri={app.drop.video_url} /> : <DropPlaceholder name={app.name} />}
       </View>
 

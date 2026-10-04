@@ -9,6 +9,7 @@ import { AppCoverEditor } from "@/components/AppCover";
 import { PackageEditor, SponsorPackages } from "@/components/Packages";
 import { SponsoredBy } from "@/components/Sponsored";
 import { Countdown } from "@/components/Countdown";
+import { DropFrame } from "@/components/DropFrame";
 import { DropPlaceholder } from "@/components/DropVideo";
 import { FeedbackPanel } from "@/components/FeedbackPanel";
 import { FollowButton } from "@/components/FollowButton";
@@ -92,17 +93,8 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
   return (
     <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-8 lg:grid-cols-[minmax(0,360px)_1fr]">
       <div className="mx-auto w-full max-w-[360px]">
-        <div className="media-dark relative aspect-[9/16] overflow-hidden rounded-xl border border-line bg-surface">
-          {app.drop?.video_url ? (
-            <video
-              src={app.drop.video_url}
-              poster={app.drop.poster_url ?? undefined}
-              controls
-              playsInline
-              preload="metadata"
-              className="h-full w-full bg-black object-contain"
-            />
-          ) : app.cover_path ? (
+        <DropFrame videoUrl={app.drop?.video_url ?? null} posterUrl={app.drop?.poster_url ?? null}>
+          {app.drop?.video_url ? null : app.cover_path ? (
             // No Drop yet: the builder's cover image.
             // eslint-disable-next-line @next/next/no-img-element
             <img src={publicFileUrl(app.cover_path) ?? ""} alt="" className="h-full w-full bg-black object-contain" />
@@ -114,7 +106,7 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
               {formatDuration(app.drop.duration_seconds)}
             </span>
           )}
-        </div>
+        </DropFrame>
         {app.drop?.caption && <p className="mt-3 text-sm text-ink/85">{app.drop.caption}</p>}
       </div>
 

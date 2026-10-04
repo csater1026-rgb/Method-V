@@ -88,7 +88,7 @@ function AddDrop({ appId, userId }: { appId: string; userId: string }) {
     <div className="mt-4 rounded-xl border border-line bg-surface p-4">
       {video ? (
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-          <video src={video.url} muted playsInline controls className="aspect-[9/16] w-28 shrink-0 rounded-lg border border-line bg-black object-cover" />
+          <video src={video.url} muted playsInline controls className={`${video.landscape ? "aspect-video w-48" : "aspect-[9/16] w-28"} shrink-0 rounded-lg border border-line bg-black object-contain`} />
           <div className="flex flex-1 flex-col gap-2">
             <p className="text-sm text-muted">{formatDuration(video.duration)} · ready to post</p>
             <label className="flex flex-col gap-1.5">

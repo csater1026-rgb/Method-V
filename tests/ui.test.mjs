@@ -747,6 +747,11 @@ await run("submit", desktop, async (page) => {
   await input.setInputFiles(CLIPS + "clip-62s.webm");
   await page.getByText(/Drops can be up to 60 seconds/).waitFor({ timeout: 15000 });
   ok(true, "62-second video is rejected");
+  await input.setInputFiles(CLIPS + "clip-landscape.webm");
+  await page.getByText(/^0:0\d ·/).waitFor({ timeout: 15000 });
+  const wideBox = await page.getByLabel("Your Drop", { exact: true }).boundingBox();
+  ok(wideBox.width > wideBox.height, `a horizontal (16:9) video is accepted and previews wide (${Math.round(wideBox.width)}×${Math.round(wideBox.height)})`);
+  ok(await page.getByText(/vertical \(9:16\) or horizontal \(16:9\)/).isVisible(), "the post page says both shapes work");
   await input.setInputFiles(CLIPS + "clip-20s.webm");
   await page.getByText(/^0:20 ·/).waitFor({ timeout: 15000 });
   ok(true, "20-second video is accepted and shows 0:20");

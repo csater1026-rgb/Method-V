@@ -70,6 +70,13 @@ function DropSlide({ item, first, signedIn, muted, onToggleSound }: SlideProps) 
   const slideRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [active, setActive] = useState(first);
+  // A horizontal (16:9) Drop shows whole, not cropped to the tall frame.
+  const [wide, setWide] = useState(false);
+  useEffect(() => {
+    // Its size may already be known before the page came alive.
+    const v = videoRef.current;
+    if (v && v.readyState >= 1) setWide(v.videoWidth > v.videoHeight);
+  }, []);
   const category = item.app.category;
 
   useEffect(() => {
@@ -129,17 +136,25 @@ function DropSlide({ item, first, signedIn, muted, onToggleSound }: SlideProps) 
     >
       <div className="media-dark relative aspect-[9/16] h-full max-w-full overflow-hidden bg-surface sm:rounded-xl sm:border sm:border-line">
         {item.video_url ? (
-          <video
-            ref={videoRef}
-            src={item.video_url}
-            poster={item.poster_url ?? undefined}
-            className="h-full w-full cursor-pointer object-cover"
-            loop
-            muted
-            playsInline
-            preload="metadata"
-            onClick={onToggleSound}
-          />
+          <>
+            {/* Behind a horizontal video: its own thumbnail, blurred, so the frame isn't empty. */}
+            {wide && item.poster_url && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={item.poster_url} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-125 object-cover opacity-60 blur-2xl" />
+            )}
+            <video
+              ref={videoRef}
+              src={item.video_url}
+              poster={item.poster_url ?? undefined}
+              className={`relative h-full w-full cursor-pointer ${wide ? "object-contain" : "object-cover"}`}
+              loop
+              muted
+              playsInline
+              preload="metadata"
+              onClick={onToggleSound}
+              onLoadedMetadata={(e) => setWide(e.currentTarget.videoWidth > e.currentTarget.videoHeight)}
+            />
+          </>
         ) : (
           <DropPlaceholder name={app.name} category={app.category} variant="feed" />
         )}

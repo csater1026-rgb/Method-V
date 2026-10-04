@@ -9,7 +9,9 @@ import { createClient } from "./supabase/client";
 // Recorders often land a hair over a round number, so allow half a second.
 const DURATION_GRACE = 0.5;
 
-export type DropVideo = { file: File; url: string; duration: number; poster: Blob | null };
+// `landscape`: wider than tall (a 16:9 screen recording). Both shapes work;
+// the previews use it to show the video whole.
+export type DropVideo = { file: File; url: string; duration: number; poster: Blob | null; landscape: boolean };
 
 // Checks a picked file and reads it. The caller revokes `url` when done.
 export async function readDropVideo(file: File): Promise<{ ok: true; video: DropVideo } | { ok: false; error: string }> {
@@ -19,7 +21,7 @@ export async function readDropVideo(file: File): Promise<{ ok: true; video: Drop
   }
   const url = URL.createObjectURL(file);
   try {
-    const { duration, poster } = await inspectVideo(url);
+    const { duration, poster, landscape } = await inspectVideo(url);
     if (duration > MAX_DROP_SECONDS + DURATION_GRACE) {
       URL.revokeObjectURL(url);
       return {
@@ -27,7 +29,7 @@ export async function readDropVideo(file: File): Promise<{ ok: true; video: Drop
         error: `That video is ${Math.round(duration)} seconds. Drops can be up to ${MAX_DROP_SECONDS} seconds — trim it and try again.`,
       };
     }
-    return { ok: true, video: { file, url, duration: Math.min(duration, MAX_DROP_SECONDS), poster } };
+    return { ok: true, video: { file, url, duration: Math.min(duration, MAX_DROP_SECONDS), poster, landscape } };
   } catch {
     URL.revokeObjectURL(url);
     return { ok: false, error: "We couldn't read that video. Try exporting it again as MP4." };
@@ -62,8 +64,8 @@ export async function uploadDropVideo(
   return { ok: true, videoPath, posterPath };
 }
 
-// Reads the real duration and grabs a frame to use as the thumbnail.
-export function inspectVideo(url: string): Promise<{ duration: number; poster: Blob | null }> {
+// Reads the real duration and shape, and grabs a frame to use as the thumbnail.
+export function inspectVideo(url: string): Promise<{ duration: number; poster: Blob | null; landscape: boolean }> {
   return new Promise((resolve, reject) => {
     const el = document.createElement("video");
     el.preload = "metadata";
@@ -96,17 +98,18 @@ export function inspectVideo(url: string): Promise<{ duration: number; poster: B
         return;
       }
       clearTimeout(timer);
+      const landscape = el.videoWidth > el.videoHeight;
       const scale = Math.min(1, 720 / (el.videoWidth || 720));
       const canvas = document.createElement("canvas");
       canvas.width = Math.round((el.videoWidth || 720) * scale);
       canvas.height = Math.round((el.videoHeight || 1280) * scale);
       const ctx = canvas.getContext("2d");
       if (!ctx) {
-        resolve({ duration, poster: null });
+        resolve({ duration, poster: null, landscape });
         return;
       }
       ctx.drawImage(el, 0, 0, canvas.width, canvas.height);
-      canvas.toBlob((blob) => resolve({ duration, poster: blob }), "image/jpeg", 0.8);
+      canvas.toBlob((blob) => resolve({ duration, poster: blob, landscape }), "image/jpeg", 0.8);
     };
   });
 }
