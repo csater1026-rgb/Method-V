@@ -253,7 +253,7 @@ await run("menu: Profile, no jobs board", desktop, async (page) => {
   await go(page, "/");
   const nav = page.locator("header nav").first();
   const links = (await nav.getByRole("link").allTextContents()).join(",");
-  ok(links === "Home,Drops,Browse,Earn,Profile", `top menu: ${links}`);
+  ok(links === "Home,Drops,Browse,V Store,Profile", `top menu: ${links}`);
   ok((await nav.getByRole("link", { name: "Profile" }).getAttribute("href")) === "/login", "Profile asks you to sign in first when signed out");
   await go(page, "/jobs");
   ok(new URL(page.url()).pathname === "/browse", "the old jobs board sends people to Browse");
@@ -894,9 +894,30 @@ await run("drops feed sponsor (phone)", phone, async (page) => {
   ok((await sponsored.textContent()).includes("Sponsored"), "the feed card is labeled Sponsored");
 });
 
-await run("earn + pro (phone)", phone, async (page) => {
+await run("v store (phone)", phone, async (page) => {
   await go(page, "/earn");
-  ok(await page.getByText(/demo mode, so there/).isVisible(), "Earn explains demo mode");
+  ok(new URL(page.url()).pathname === "/store", "old Earn links open the V Store");
+  ok(await page.getByRole("heading", { name: "V Store", level: 1 }).isVisible(), "the V Store has its heading");
+  const featured = page.getByRole("region", { name: "Featured" });
+  const tiles = await featured.getByRole("button").evaluateAll((els) => els.map((el) => el.getAttribute("aria-label")));
+  // Demo mode previews the store as Ada, who has Pro, so the Spotlight is 15.
+  ok(tiles.join(" | ") === "Method V Pro, 50 V Coin | The Spotlight, 15 V Coin | Extra app post, 30 V Coin", `featured items: Pro, Spotlight, extra post (${tiles.join(" | ")})`);
+  ok((await page.getByRole("region", { name: "Spend it on the community" }).getByRole("link").count()) === 4, "4 community tiles");
+  await noSideScroll(page, "v store");
+  await page.screenshot({ path: `${OUT}store-phone.png`, fullPage: true });
+  await featured.getByRole("button", { name: /The Spotlight/ }).click();
+  const dialog = page.getByRole("dialog", { name: "The Spotlight" });
+  ok(await dialog.isVisible(), "tapping a tile opens the item");
+  await dialog.getByRole("button", { name: /Book it/ }).click();
+  await dialog.getByRole("button", { name: "Spend 15 V Coin" }).click();
+  await dialog.getByText(/Add your Supabase keys/).waitFor({ timeout: 10_000 });
+  ok(true, "buying asks to confirm, then explains demo mode");
+  await page.keyboard.press("Escape");
+  ok((await page.getByRole("dialog").count()) === 0, "Escape closes the item");
+  await featured.getByRole("button", { name: /Extra app post/ }).click();
+  ok(await page.getByRole("dialog", { name: "Extra app post" }).getByText(/You have 0 saved/).isVisible(), "the extra post shows how many are saved");
+  await page.getByRole("dialog").getByRole("button", { name: "Close" }).click();
+  ok(await page.getByText(/demo mode, so there/).isVisible(), "earnings below the shop explain demo mode");
   ok((await page.getByRole("region", { name: "Balance" }).textContent()).includes("$0"), "balance shows");
   await go(page, "/pro");
   ok(await page.getByText("Stats for 30 and 90 days").isVisible(), "Pro lists its perks");
@@ -1056,8 +1077,21 @@ await run("challenges (desktop)", desktop, async (page) => {
   await page.screenshot({ path: `${OUT}challenges-desktop.png`, fullPage: true });
 });
 
+await run("v store (desktop)", desktop, async (page) => {
+  await go(page, "/store");
+  const menu = await page.locator("header nav a").allTextContents();
+  ok(menu.includes("V Store") && !menu.includes("Earn"), `the menu has V Store instead of Earn (${menu.join(", ")})`);
+  const pro = await page.getByRole("button", { name: /Method V Pro/ }).boundingBox();
+  const spot = await page.getByRole("button", { name: /The Spotlight/ }).boundingBox();
+  ok(pro.height > spot.height * 1.6 && spot.x > pro.x + pro.width - 2, "Pro is the big featured tile, the upgrades sit beside it");
+  const earnings = await page.getByRole("heading", { name: "Your earnings" }).boundingBox();
+  const community = await page.getByRole("region", { name: "Spend it on the community" }).boundingBox();
+  ok(earnings.y > community.y + community.height, "earnings sit below the store items");
+  await page.screenshot({ path: `${OUT}store-desktop.png`, fullPage: true });
+});
+
 await run("phase 4 pages (phone)", phone, async (page) => {
-  for (const path of ["/earn", "/pro", "/challenges", "/challenges/build-for-teachers", "/apps/quizpop"]) {
+  for (const path of ["/store", "/pro", "/challenges", "/challenges/build-for-teachers", "/apps/quizpop"]) {
     await go(page, path);
     await noSideScroll(page, path);
   }

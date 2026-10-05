@@ -7,7 +7,7 @@ import { Pressable, ScrollView, Share, Switch, TextInput, View } from "react-nat
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { confirmMatches } from "@shared/account";
-import { BOUNTIES, REFERRALS, ROLES } from "@shared/constants";
+import { BOUNTIES, REFERRALS, ROLES, V_STORE } from "@shared/constants";
 
 import { Avatar, Body, Button, Card, Coin, Display, ErrorText, Handle, Mono, StatusBadge, tap } from "@/components/ui";
 import { useTour } from "@/components/Tour";
@@ -49,7 +49,7 @@ export default function MeScreen() {
 
   const links: [string, string][] = [
     ["Stats", "/dashboard"],
-    ["Earn", "/earn"],
+    ["V Store", "/store"],
     ["V Coin credits", "/credits"],
     ["Inbox", "/inbox"],
     ["Edit profile", "/settings"],
@@ -81,6 +81,16 @@ export default function MeScreen() {
         <Mono muted={false}>{viewer.credits} V Coin</Mono>
       </View>
       <Button label="View your profile" onPress={() => router.push(`/u/${viewer.username}`)} />
+      {/* The V Store (spending V Coin on upgrades) is on the website, like buying V Coin. */}
+      {SITE_URL ? (
+        <Card style={{ gap: 10 }}>
+          <Body bold>V Store</Body>
+          <Body muted size={13}>
+            Spend your V Coin on upgrades: Pro for {V_STORE.pro.cost} V Coin, an extra app post for {V_STORE.appPost.cost}, or a spot in the Spotlight.
+          </Body>
+          <Button label="Open the V Store ↗" onPress={() => web("/store")} />
+        </Card>
+      ) : null}
       {/* More ways to earn and spend V Coin (bounties and perks live on the website). */}
       {SITE_URL ? (
         <Card style={{ gap: 10 }}>
@@ -111,7 +121,7 @@ export default function MeScreen() {
           <Body muted size={13}>
             Head to the website to set up payouts, price your sponsorship packages and manage your deals and tips.
           </Body>
-          <Button label="Set up on the website ↗" onPress={() => web("/earn")} />
+          <Button label="Set up on the website ↗" onPress={() => web("/store#earnings")} />
         </Card>
       ) : null}
       {SITE_URL ? (

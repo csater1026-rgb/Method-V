@@ -130,7 +130,7 @@ export default async function ProfilePage({ params }: PageProps<"/u/[username]">
                   <Link href="/dashboard" className="btn-ghost">
                     Stats
                   </Link>
-                  <Link href="/earn" className="btn-ghost">
+                  <Link href="/store#earnings" className="btn-ghost">
                     Earn
                   </Link>
                   <SignOutButton />

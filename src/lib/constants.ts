@@ -71,6 +71,8 @@ export const CREDIT_REASONS: Record<string, string> = {
   tip_sent: "Sent a tip",
   tip_received: "Got a tip",
   referral_bonus: "Invited a friend",
+  store_pro: "Pro from the V Store",
+  store_app_post: "Extra app post from the V Store",
 };
 
 // More to do with V Coin. Must match supabase/migrations/20261019000000_v_coin_economy.sql.
@@ -78,6 +80,13 @@ export const PERKS = { minCost: 5, maxCost: 500, perApp: 3 } as const;
 export const BOUNTIES = { minReward: 5, maxReward: 200, perApp: 3, days: 14, minDays: 3, maxDays: 30, minAnswer: 20 } as const;
 export const TIPS = { max: 50, perDay: 100, amounts: [2, 5, 10, 25] } as const;
 export const REFERRALS = { bonus: 10, perMonth: 20 } as const;
+
+// The V Store: upgrades bought with V Coin (V Coin is spend-only, never
+// money). Must match buy_store_item() in supabase/migrations/20261021000000_v_store.sql.
+export const V_STORE = {
+  pro: { cost: 50, days: 30 },
+  appPost: { cost: 30, perWindow: 2, days: 30 },
+} as const;
 
 // V Coin for 1st, 2nd and 3rd on each monthly leaderboard (top builders and
 // top testers), paid when the month ends. Must match settle_leaderboards()

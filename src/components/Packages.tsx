@@ -215,7 +215,7 @@ export function SponsorPackages({
 }
 
 // ---------------------------------------------------------------------------
-// A deal, on /earn
+// A deal, on the V Store page (/store, under Your earnings)
 // ---------------------------------------------------------------------------
 
 const STATUS: Record<string, string> = {

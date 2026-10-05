@@ -76,7 +76,13 @@ export async function publishApp(
     .select("created_at")
     .eq("owner_id", viewerId)
     .gt("created_at", new Date(Date.now() - APP_LIMIT.days * 24 * 60 * 60 * 1000).toISOString());
-  const limit = appLimit((mine ?? []).map((a) => a.created_at as string));
+  const { data: store } = await supabase.rpc("my_store");
+  const extra = Number((Array.isArray(store) ? store[0] : store)?.extra_app_posts ?? 0);
+  const limit = appLimit(
+    (mine ?? []).map((a) => a.created_at as string),
+    Date.now(),
+    extra,
+  );
   if (limit.nextAt) return { ok: false, error: limitMessage(limit.nextAt) };
 
   const link = await checkLink(input.url);

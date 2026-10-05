@@ -41,7 +41,7 @@ export default async function BrandPage({ params }: PageProps<"/brands/[slug]">)
             <p>
               You&apos;re verified. Open any app and tap <strong>Make an offer</strong>, then pick {brand.name}. Deals show up
               on{" "}
-              <Link href="/earn" className="text-accent hover:underline">
+              <Link href="/store#earnings" className="text-accent hover:underline">
                 Earn
               </Link>
               .

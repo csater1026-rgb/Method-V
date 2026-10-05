@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { BuyPro, PinApp } from "@/components/Earn";
 import { Wordmark } from "@/components/Wordmark";
-import { EARN, SPOTLIGHT, formatCents } from "@/lib/constants";
+import { EARN, SPOTLIGHT, V_STORE, formatCents } from "@/lib/constants";
 import { getMyApps, getOwnProfile, getViewer, isPro } from "@/lib/data";
 import { demoApps, demoProfiles } from "@/lib/demo";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
@@ -73,6 +73,12 @@ export default async function ProPage({ searchParams }: PageProps<"/pro">) {
         ) : (
           <BuyPro label={pro ? `Add ${EARN.pro.days} days · ${formatCents(EARN.pro.price)}` : `Get Pro · ${formatCents(EARN.pro.price)}`} />
         )}
+        <p className="mt-3 text-sm text-muted">
+          Or pay with V Coin:{" "}
+          <Link href="/store" className="text-accent hover:underline">
+            {V_STORE.pro.cost} V Coin in the V Store →
+          </Link>
+        </p>
       </div>
 
       {pro && (

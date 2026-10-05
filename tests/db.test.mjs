@@ -21,6 +21,7 @@ const AFTER_LATE = [
   "20261018000000_leaderboard_prizes.sql",
   "20261019000000_v_coin_economy.sql",
   "20261020000000_app_limit.sql",
+  "20261021000000_v_store.sql",
 ];
 const migrations = readdirSync(migrationsDir)
   .filter((f) => f.endsWith(".sql") && !LATE.includes(f) && !AFTER_LATE.includes(f))
@@ -1453,6 +1454,44 @@ ok(!!(await fails("anon", null, "insert into public.sponsorships (sponsor_brand,
   const expected = (await db.query("select to_char((now() + interval '20 days') at time zone 'America/Los_Angeles', 'FMMon FMDD') d")).rows[0].d;
   const overMsg = (await fails("authenticated", OVER, "insert into public.apps (owner_id, slug, name, tagline, url, category) values ($1, 'over-6', 'x', 'x', 'https://example.com', 'games')", [OVER])) ?? "";
   ok(overMsg.includes(`opens on ${expected}.`), `with 5 apps this month, the next opens when their 3rd newest turns 30 days old (${overMsg})`);
+
+  // The V Store (20261021000000_v_store.sql): Pro and extra app posts for V Coin.
+  ok(overMsg.includes("extra app post in the V Store"), "the limit message points to the V Store");
+  const SHOP = "aeaeaeae-0000-0000-0000-000000000000";
+  await db.exec(`insert into auth.users (id) values ('${SHOP}')`);
+  // "" when it worked, otherwise the error.
+  const shopBuy = async (item) => (await fails("authenticated", SHOP, "select public.buy_store_item($1)", [item])) || "";
+  await db.query("update public.profiles set credits = 0 where id = $1", [SHOP]);
+  ok((await shopBuy("pro")).includes("need 50 V Coin"), "you can't buy Pro without 50 V Coin");
+  await fund(SHOP, 200);
+  ok((await shopBuy("pro")) === "", "Pro costs 50 V Coin");
+  const pro1 = (await db.query("select pro_until from public.profiles where id = $1", [SHOP])).rows[0].pro_until;
+  ok(pro1 && new Date(pro1).getTime() > Date.now() + 29 * 864e5, "…and switches Pro on for 30 days");
+  await shopBuy("pro");
+  const pro2 = (await db.query("select pro_until from public.profiles where id = $1", [SHOP])).rows[0].pro_until;
+  ok(Math.round((new Date(pro2) - new Date(pro1)) / 864e5) === 30, "buying again adds 30 more days");
+  ok((await credits(SHOP)) === 100, "two Pro passes took 100 V Coin");
+  ok((await shopBuy("hat")).includes("isn't in the V Store"), "only real items can be bought");
+  ok(!!(await fails("anon", null, "select public.buy_store_item('pro')")), "signed out, nothing can be bought");
+  ok(!!(await fails("authenticated", SHOP, "update public.profiles set extra_app_posts = 9 where id = $1", [SHOP])), "nobody gives themselves extra app posts");
+  ok(!!(await fails("authenticated", C, "select extra_app_posts from public.profiles where id = $1", [SHOP])), "saved posts are private");
+  ok(!!(await fails("authenticated", SHOP, "insert into public.store_purchases (user_id, item, cost) values ($1, 'pro', 1)", [SHOP])), "nobody writes purchases directly");
+
+  // Extra app posts: saved until you're at 3, then used; 2 a month at most.
+  for (const n of [1, 2, 3]) await as("authenticated", SHOP, "insert into public.apps (owner_id, slug, name, tagline, url, category) values ($1, $2, $2, 'x', 'https://example.com', 'games')", [SHOP, `shop-${n}`]);
+  const postShop = async (n) =>
+    (await fails("authenticated", SHOP, "insert into public.apps (owner_id, slug, name, tagline, url, category) values ($1, $2, $2, 'x', 'https://example.com', 'games') returning id", [SHOP, `shop-${n}`])) || "";
+  ok((await postShop(4)).includes("3 apps every 30 days"), "at the limit without an extra post, a 4th app is refused");
+  ok((await shopBuy("app_post")) === "" && (await shopBuy("app_post")) === "", "an extra app post costs 30 V Coin");
+  ok((await shopBuy("app_post")).includes("2 extra app posts every 30 days"), "only 2 extra posts can be bought every 30 days");
+  ok((await credits(SHOP)) === 40, "two extra posts took 60 V Coin");
+  let store = (await as("authenticated", SHOP, "select * from public.my_store()")).rows[0];
+  ok(store.extra_app_posts === 2 && store.app_posts_bought === 2, "my_store() shows 2 saved and 2 bought");
+  ok((await postShop(4)) === "" && (await postShop(5)) === "", "the saved posts let you post a 4th and 5th app");
+  ok((await postShop(6)).includes("3 apps every 30 days"), "then the limit is back");
+  store = (await as("authenticated", SHOP, "select * from public.my_store()")).rows[0];
+  ok(store.extra_app_posts === 0, "both saved posts were used");
+  ok((await as("authenticated", C, "select * from public.store_purchases where user_id = $1", [SHOP])).rows.length === 0, "people can't see each other's purchases");
 }
 
 // Security hardening (20261011000000_security_hardening.sql).

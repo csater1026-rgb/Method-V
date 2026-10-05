@@ -3,7 +3,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { DropBonusBanner } from "@/components/DropBonus";
+import { Coin } from "@/components/Coin";
 import { APP_LIMIT, limitMessage } from "@/lib/app-limit";
+import { V_STORE } from "@/lib/constants";
 import { getMyAppLimit, getPromotion, getViewer } from "@/lib/data";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
@@ -46,7 +48,11 @@ export default async function SubmitPage() {
           <h2 className="display text-4xl">You&apos;ve posted {APP_LIMIT.perWindow} apps this month</h2>
           <p className="mt-1 text-sm">{limitMessage(limit.nextAt)}</p>
           <p className="mt-3 flex flex-wrap gap-2">
-            <Link href={viewer ? `/u/${viewer.username}` : "/"} className="btn-accent">
+            <Link href="/store" className="btn-accent">
+              Get an extra post · <Coin />
+              {V_STORE.appPost.cost}
+            </Link>
+            <Link href={viewer ? `/u/${viewer.username}` : "/"} className="btn-ghost">
               Add a Drop to one of your apps
             </Link>
             <Link href="/test" className="btn-ghost">

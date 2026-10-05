@@ -1054,10 +1054,19 @@ export async function postDrop(input: NewDrop, onProgress?: (fraction: number) =
 // and when the next one opens if you can't right now.
 export async function getMyAppLimit(viewerId: string | null): Promise<{ left: number; nextAt: string | null }> {
   if (!supabase || !viewerId) return { left: APP_LIMIT.perWindow, nextAt: null };
-  const { data } = await supabase
-    .from("apps")
-    .select("created_at")
-    .eq("owner_id", viewerId)
-    .gt("created_at", new Date(Date.now() - APP_LIMIT.days * 24 * 60 * 60 * 1000).toISOString());
-  return appLimit(((data ?? []) as { created_at: string }[]).map((a) => a.created_at));
+  const [{ data }, store] = await Promise.all([
+    supabase
+      .from("apps")
+      .select("created_at")
+      .eq("owner_id", viewerId)
+      .gt("created_at", new Date(Date.now() - APP_LIMIT.days * 24 * 60 * 60 * 1000).toISOString()),
+    // Extra app posts bought in the V Store (0 before its SQL is run).
+    supabase.rpc("my_store"),
+  ]);
+  const row = (Array.isArray(store.data) ? store.data[0] : store.data) as { extra_app_posts?: number } | null;
+  return appLimit(
+    ((data ?? []) as { created_at: string }[]).map((a) => a.created_at),
+    Date.now(),
+    Number(row?.extra_app_posts ?? 0),
+  );
 }

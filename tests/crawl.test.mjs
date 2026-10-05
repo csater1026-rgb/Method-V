@@ -23,7 +23,7 @@ const MAX_PAGES = 400;
 // through links (demo apps, people, questions, challenges, brands).
 const SEEDS = [
   "/", "/login", "/terms", "/privacy", "/offline", "/app", "/agree", "/drops", "/drops?tab=questions", "/browse", "/test",
-  "/earn", "/pro", "/credits", "/challenges", "/swaps", "/brands", "/brands/new", "/submit", "/ask", "/settings", "/inbox",
+  "/store", "/earn", "/pro", "/credits", "/challenges", "/swaps", "/brands", "/brands/new", "/submit", "/ask", "/settings", "/inbox",
   "/dashboard", "/developers", "/setup/emails", "/setup/push-keys", "/stats", "/welcome",
 ];
 // Routes that answer with a redirect or a file rather than a page.

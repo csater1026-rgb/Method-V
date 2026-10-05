@@ -2130,14 +2130,36 @@ export async function getMyInvites(viewer: Viewer | null): Promise<{ joined: num
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
-// How many more apps you can post (APP_LIMIT: 3 every 30 days), and when the
-// next one opens if you can't right now.
+// How many more apps you can post (APP_LIMIT: 3 every 30 days, plus extra
+// posts bought in the V Store), and when the next one opens if you can't
+// right now.
 export async function getMyAppLimit(viewer: Viewer | null): Promise<{ left: number; nextAt: string | null }> {
   if (!isSupabaseConfigured || !viewer) return { left: APP_LIMIT.perWindow, nextAt: null };
-  const { data } = await (await createClient())
-    .from("apps")
-    .select("created_at")
-    .eq("owner_id", viewer.id)
-    .gt("created_at", new Date(Date.now() - APP_LIMIT.days * 24 * 60 * 60 * 1000).toISOString());
-  return appLimit((data ?? []).map((a) => a.created_at as string));
+  const [{ data }, store] = await Promise.all([
+    (await createClient())
+      .from("apps")
+      .select("created_at")
+      .eq("owner_id", viewer.id)
+      .gt("created_at", new Date(Date.now() - APP_LIMIT.days * 24 * 60 * 60 * 1000).toISOString()),
+    getMyStore(viewer),
+  ]);
+  return appLimit(
+    (data ?? []).map((a) => a.created_at as string),
+    Date.now(),
+    store?.extraAppPosts ?? 0,
+  );
+}
+
+// Your V Store state: extra app posts saved, and how many you bought in the
+// last 30 days. null when signed out or before the V Store SQL is run.
+export async function getMyStore(viewer: Viewer | null): Promise<{ extraAppPosts: number; appPostsBought: number } | null> {
+  if (!isSupabaseConfigured) return { extraAppPosts: 0, appPostsBought: 0 };
+  if (!viewer) return null;
+  const { data, error } = await (await createClient()).rpc("my_store");
+  if (error) {
+    console.error("my_store failed", error.code, error.message);
+    return null;
+  }
+  const row = (Array.isArray(data) ? data[0] : data) as { extra_app_posts: number; app_posts_bought: number } | undefined;
+  return { extraAppPosts: Number(row?.extra_app_posts ?? 0), appPostsBought: Number(row?.app_posts_bought ?? 0) };
 }

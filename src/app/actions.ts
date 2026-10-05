@@ -1143,13 +1143,13 @@ export async function sponsorPackage(
     p_brief: brief.trim(),
   });
   if (error || !dealId) return { ok: false, error: rpcError(error?.message, "Couldn't start the sponsorship.") };
-  return startCheckout({ kind: "package", ref: dealId as string, amount: null }, `${pkg.label} on ${hostName.slice(0, 60)}`, "/earn");
+  return startCheckout({ kind: "package", ref: dealId as string, amount: null }, `${pkg.label} on ${hostName.slice(0, 60)}`, "/store");
 }
 
 // Finish paying for a package you picked but didn't pay for.
 export async function payPackage(dealId: string): Promise<CheckoutResult> {
   if (!UUID.test(dealId)) return { ok: false, error: "Unknown sponsorship." };
-  return startCheckout({ kind: "package", ref: dealId, amount: null }, "Method V sponsorship", "/earn");
+  return startCheckout({ kind: "package", ref: dealId, amount: null }, "Method V sponsorship", "/store");
 }
 
 // Runs a package step; any payment it marks for refund is refunded straight away.
@@ -1162,7 +1162,7 @@ async function packageStep(fn: string, args: Record<string, unknown>, fallback: 
   if (error) return { ok: false, error: rpcError(error.message, fallback) };
   const admin = createAdminClient();
   if (typeof data === "string" && admin) await settleRefunds(admin, { paymentId: data });
-  revalidatePath("/earn");
+  revalidatePath("/store");
   return { ok: true };
 }
 
@@ -1201,7 +1201,7 @@ export async function fundSponsorship(id: string): Promise<CheckoutResult> {
   const auth = await requireViewer();
   if ("error" in auth) return { ok: false, error: auth.error };
   if (!UUID.test(id)) return { ok: false, error: "Unknown deal." };
-  return startCheckout({ kind: "sponsorship", ref: id, amount: null }, "Boost Exchange sponsorship budget", "/earn");
+  return startCheckout({ kind: "sponsorship", ref: id, amount: null }, "Boost Exchange sponsorship budget", "/store");
 }
 
 // ---------------------------------------------------------------------------
@@ -1227,7 +1227,7 @@ export async function setUpPayouts(): Promise<CheckoutResult> {
       if (error) return { ok: false, error: "Couldn't save your payout account." };
     }
     const origin = await siteOrigin();
-    const link = await createOnboardingLink(accountId, `${origin}/earn?setup=retry`, `${origin}/earn?setup=done`);
+    const link = await createOnboardingLink(accountId, `${origin}/store?setup=retry`, `${origin}/store?setup=done`);
     return { ok: true, url: link.url };
   } catch (e) {
     return { ok: false, error: e instanceof StripeError ? e.message : "Couldn't reach the payment service." };
@@ -1254,7 +1254,7 @@ export async function cashOut(): Promise<ActionResult & { amount?: number }> {
     }
   }
   await admin.rpc("finish_payout", { p_id: payout.payout_id, p_transfer: transferId });
-  revalidatePath("/earn");
+  revalidatePath("/store");
   if (!transferId) return { ok: false, error: "The transfer didn't go through, so your balance is back. Try again later." };
   return { ok: true, amount: payout.amount_cents };
 }
@@ -1264,7 +1264,7 @@ export async function cashOut(): Promise<ActionResult & { amount?: number }> {
 // ---------------------------------------------------------------------------
 
 export async function respondSponsorship(id: string, accept: boolean): Promise<ActionResult> {
-  return callRpc("respond_sponsorship", { p_id: id, p_accept: accept }, "Couldn't answer the offer.", ["/earn"], UUID.test(id) ? null : "Unknown deal.");
+  return callRpc("respond_sponsorship", { p_id: id, p_accept: accept }, "Couldn't answer the offer.", ["/store"], UUID.test(id) ? null : "Unknown deal.");
 }
 
 export async function endSponsorship(id: string): Promise<ActionResult> {
@@ -1276,7 +1276,7 @@ export async function endSponsorship(id: string): Promise<ActionResult> {
   if (error) return { ok: false, error: rpcError(error.message, "Couldn't end the deal.") };
   const admin = createAdminClient();
   if (refundPayment && admin) await settleRefunds(admin, { paymentId: refundPayment as string });
-  revalidatePath("/earn");
+  revalidatePath("/store");
   revalidatePath("/", "layout");
   return { ok: true };
 }
@@ -1504,4 +1504,13 @@ export async function sendTip(toId: string, amount: number, appId: string | null
     [safeNextPath(path), "/credits"],
     invalid,
   );
+}
+
+// ---------------------------------------------------------------------------
+// The V Store: upgrades bought with V Coin
+// ---------------------------------------------------------------------------
+
+export async function buyStoreItem(item: "pro" | "app_post"): Promise<ActionResult> {
+  const invalid = item === "pro" || item === "app_post" ? null : "That isn't in the V Store.";
+  return callRpc("buy_store_item", { p_item: item }, "Couldn't finish that. Your V Coin wasn't spent.", ["/store", "/pro", "/submit", "/credits"], invalid);
 }

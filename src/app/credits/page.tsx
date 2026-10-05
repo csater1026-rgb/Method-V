@@ -46,9 +46,14 @@ export default async function CreditsPage({ searchParams }: PageProps<"/credits"
             {viewer?.credits ?? 0}
           </p>
         </div>
-        <Link href="/test" className="btn-accent">
-          Earn more in Test &amp; earn
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/store" className="btn-accent">
+            Spend it in the V Store
+          </Link>
+          <Link href="/test" className="btn-ghost">
+            Earn more in Test &amp; earn
+          </Link>
+        </div>
       </div>
 
       {params.paid && (

@@ -3,15 +3,16 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-// "Profile" goes to your profile, or to sign in first. "Earn" is tips,
-// sponsorship deals and payouts.
+// "Profile" goes to your profile, or to sign in first. "V Store" is the item
+// shop where V Coin is spent, with tips, sponsorship deals and payouts (what
+// used to be Earn) below it.
 // Challenges aren't in the menu: a running one shows as a banner on Home.
 function pageLinks(profileHref: string): { href: string; label: string }[] {
   return [
     { href: "/", label: "Home" },
     { href: "/drops", label: "Drops" },
     { href: "/browse", label: "Browse" },
-    { href: "/earn", label: "Earn" },
+    { href: "/store", label: "V Store" },
     { href: profileHref, label: "Profile" },
   ];
 }

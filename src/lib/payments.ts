@@ -34,7 +34,7 @@ export async function settleRefunds(admin: Admin, filter: { paymentId?: string; 
         await admin.rpc("mark_refunded", { p_id: p.id });
         continue;
       }
-      // Otherwise left unmarked and retried the next time someone on the deal opens /earn.
+      // Otherwise left unmarked and retried the next time someone on the deal opens the V Store.
       console.error("Refund failed", p.id, e);
     }
   }

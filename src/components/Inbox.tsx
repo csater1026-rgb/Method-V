@@ -82,27 +82,27 @@ function describe(n: Notification): { text: string; href: string } {
     case "backed":
       return { text: `backed ${app}`, href: `${appHref}#backers` };
     case "sponsor_offer":
-      return { text: `wants to sponsor ${app}`, href: "/earn" };
+      return { text: `wants to sponsor ${app}`, href: "/store#earnings" };
     case "sponsor_accepted":
-      return { text: `accepted your sponsorship. Pay the budget to start.`, href: "/earn" };
+      return { text: `accepted your sponsorship. Pay the budget to start.`, href: "/store#earnings" };
     case "sponsor_started":
-      return { text: `started sponsoring ${app}`, href: "/earn" };
+      return { text: `started sponsoring ${app}`, href: "/store#earnings" };
     case "sponsor_ended":
-      return { text: `ended your sponsorship deal`, href: "/earn" };
+      return { text: `ended your sponsorship deal`, href: "/store#earnings" };
     case "package_request":
-      return { text: `wants to sponsor ${app}. Accept or decline within 3 days.`, href: "/earn" };
+      return { text: `wants to sponsor ${app}. Accept or decline within 3 days.`, href: "/store#earnings" };
     case "package_accepted":
-      return { text: `accepted your sponsorship on ${app}`, href: "/earn" };
+      return { text: `accepted your sponsorship on ${app}`, href: "/store#earnings" };
     case "package_declined":
-      return { text: `declined your sponsorship on ${app}. You've been refunded.`, href: "/earn" };
+      return { text: `declined your sponsorship on ${app}. You've been refunded.`, href: "/store#earnings" };
     case "package_delivered":
-      return { text: `delivered your sponsorship on ${app}. Take a look and approve it.`, href: "/earn" };
+      return { text: `delivered your sponsorship on ${app}. Take a look and approve it.`, href: "/store#earnings" };
     case "package_completed":
-      return { text: `approved the sponsorship on ${app}. You've been paid.`, href: "/earn" };
+      return { text: `approved the sponsorship on ${app}. You've been paid.`, href: "/store#earnings" };
     case "package_refunded":
-      return { text: `didn't go ahead with your sponsorship on ${app}, so you've been refunded.`, href: "/earn" };
+      return { text: `didn't go ahead with your sponsorship on ${app}, so you've been refunded.`, href: "/store#earnings" };
     case "package_problem":
-      return { text: `reported a problem with the sponsorship on ${app}. Method V will look into it.`, href: "/earn" };
+      return { text: `reported a problem with the sponsorship on ${app}. Method V will look into it.`, href: "/store#earnings" };
     case "job_application":
       // From the old jobs board; the post itself is gone.
       return { text: "applied to your post", href: n.actor ? `/u/${n.actor.username}` : "/inbox" };
