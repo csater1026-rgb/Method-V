@@ -73,10 +73,10 @@ export const TIPS = { max: 50, perDay: 100, amounts: [2, 5, 10, 25] } as const;
 export const REFERRALS = { bonus: 10, perMonth: 20 } as const;
 
 // The V Store: upgrades bought with Methodium (Methodium is spend-only, never
-// money). Must match buy_store_item() in supabase/migrations/20261021000000_v_store.sql.
+// money). Must match buy_store_item() in supabase/migrations/20261023000000_app_post_price.sql.
 export const V_STORE = {
   pro: { cost: 50, days: 30 },
-  appPost: { cost: 30, perWindow: 2, days: 30 },
+  appPost: { cost: 15, perWindow: 2, days: 30 },
 } as const;
 
 // Methodium for 1st, 2nd and 3rd on each monthly leaderboard (top builders and

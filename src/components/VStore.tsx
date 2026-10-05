@@ -22,15 +22,14 @@ type Props = {
   spotlightWait: string | null;
 };
 
-type Rarity = "legendary" | "epic" | "rare" | "uncommon";
-
 type Item = {
   id: "pro" | "app_post" | "spotlight";
   name: string;
-  rarity: Rarity;
+  // What it's for, shown above the name.
+  kind: string;
   tag: string;
   cost: number;
-  art: Art;
+  icon: IconName;
   about: React.ReactNode;
   status: React.ReactNode;
   buy: string;
@@ -39,15 +38,14 @@ type Item = {
   action: (appId: string) => Promise<ActionResult>;
 };
 
-const RARITY_LABEL: Record<Rarity, string> = { legendary: "Legendary", epic: "Epic", rare: "Rare", uncommon: "Uncommon" };
-
 // "until January 4" (demo mode's Pro never ends).
 const proUntilText = (iso: string) =>
   new Date(iso).getFullYear() > 2090 ? "forever (demo)" : `until ${new Date(iso).toLocaleDateString("en-US", { month: "long", day: "numeric" })}`;
 
-// The V Store as an item shop: glowing tiles colored by rarity, with pixel
-// art, a slanted name banner and the price. Tapping a tile opens the item
-// with its Buy button (and an app picker for the Spotlight).
+// The V Store as an item shop: tiles in the Spotlight's colors (deep green
+// with a mint glow in dark mode, navy with cyan in light mode) with a smooth
+// icon, the name and the price. Tapping a tile opens the item with its Buy
+// button (and an app picker for the Spotlight).
 export function VStore({ credits, proUntil, store, apps, spotlightCost, spotlightWait }: Props) {
   // proUntil is only passed while Pro is on.
   const pro = proUntil !== null;
@@ -58,10 +56,10 @@ export function VStore({ credits, proUntil, store, apps, spotlightCost, spotligh
     {
       id: "pro",
       name: "Method V Pro",
-      rarity: "legendary",
+      kind: "For your account",
       tag: pro ? `Pro ${proUntilText(proUntil!)}` : `${V_STORE.pro.days} days`,
       cost: V_STORE.pro.cost,
-      art: CROWN,
+      icon: "crown",
       about: (
         <>
           Stats for 30 and 90 days, a pinned app on your profile, a Pro badge, and the Spotlight for {SPOTLIGHT.proCost} Methodium instead of{" "}
@@ -84,10 +82,10 @@ export function VStore({ credits, proUntil, store, apps, spotlightCost, spotligh
     {
       id: "spotlight",
       name: "The Spotlight",
-      rarity: "epic",
+      kind: "For your app",
       tag: spotlightWait ? `Next spot in ${spotlightWait}` : "A spot is free now",
       cost: spotlightCost,
-      art: STAR,
+      icon: "star",
       about: (
         <>
           Put your app on the stage at the top of Home for {SPOTLIGHT.days} days. {SPOTLIGHT.slots} spots, first come, first served.
@@ -103,10 +101,10 @@ export function VStore({ credits, proUntil, store, apps, spotlightCost, spotligh
     {
       id: "app_post",
       name: "Extra app post",
-      rarity: "rare",
+      kind: "For your app",
       tag: `Up to ${V_STORE.appPost.perWindow} a month`,
       cost: V_STORE.appPost.cost,
-      art: WINDOW,
+      icon: "post",
       about: (
         <>
           Post one more app past the limit of {APP_LIMIT.perWindow} every {APP_LIMIT.days} days. It&apos;s saved until you&apos;re at the
@@ -145,16 +143,17 @@ export function VStore({ credits, proUntil, store, apps, spotlightCost, spotligh
 
       <ShopSection title="Spend it on the community">
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {COMMUNITY.map((c) => (
-            <li key={c.title}>
-              <Link href={c.href} className="shop-tile shop-uncommon group relative flex aspect-[4/5] flex-col overflow-hidden rounded-xl">
+          {COMMUNITY.map((c, i) => (
+            // Three tiles: on phones (2 across) the last one takes the full row.
+            <li key={c.title} className={i === COMMUNITY.length - 1 ? "col-span-2 sm:col-span-1" : ""}>
+              <Link href={c.href} className="shop-tile group relative flex h-full min-h-[13rem] flex-col overflow-hidden rounded-2xl">
                 <span className="shop-tag">{c.tag}</span>
-                <span className="flex flex-1 items-center justify-center p-6">
-                  <PixelArt art={c.art} className="shop-art w-[46%]" />
+                <span className="flex flex-1 items-center justify-center px-6 pt-10 pb-2">
+                  <ShopIcon name={c.icon} className="shop-art w-16 sm:w-20" />
                 </span>
                 <span className="shop-banner">
                   <span className="display block text-2xl leading-none sm:text-3xl">{c.title}</span>
-                  <span className="mt-1 block text-xs text-white/80">{c.body}</span>
+                  <span className="mt-1 block text-xs text-white/75">{c.body}</span>
                 </span>
               </Link>
             </li>
@@ -182,16 +181,16 @@ function ShopTile({ item, big = false, className = "", onOpen }: { item: Item; b
       type="button"
       onClick={onOpen}
       aria-label={`${item.name}, ${item.cost} Methodium`}
-      className={`shop-tile shop-${item.rarity} group relative flex flex-col overflow-hidden rounded-xl text-left ${big ? "min-h-[20rem] lg:min-h-[26rem]" : "min-h-[15rem] sm:min-h-[13rem] lg:min-h-[12.5rem]"} ${className}`}
+      className={`shop-tile ${big ? "shop-featured" : ""} group relative flex flex-col overflow-hidden rounded-2xl text-left ${big ? "min-h-[20rem] lg:min-h-[26rem]" : "min-h-[15rem] sm:min-h-[13rem] lg:min-h-[12.5rem]"} ${className}`}
     >
       <span className="shop-tag">{item.tag}</span>
-      <span className={`flex flex-1 items-center justify-center ${big ? "px-10 pt-12 pb-6" : "px-5 pt-10 pb-3"}`}>
-        <PixelArt art={item.art} className={`shop-art ${big ? "w-[34%] lg:w-[44%]" : "w-[40%] sm:w-[30%] lg:w-[24%]"}`} />
+      <span className={`flex flex-1 items-center justify-center ${big ? "px-10 pt-14 pb-4" : "px-5 pt-11 pb-2"}`}>
+        <ShopIcon name={item.icon} className={`shop-art ${big ? "w-24 lg:w-36" : "w-16 lg:w-20"}`} />
       </span>
       <span className="shop-banner">
-        <span className="font-mono text-[10px] tracking-widest text-white/75 uppercase">{RARITY_LABEL[item.rarity]}</span>
-        <span className={`display block leading-none ${big ? "text-5xl sm:text-6xl" : "text-2xl sm:text-4xl"}`}>{item.name}</span>
-        <span className="mt-1.5 inline-flex items-center gap-1 font-mono text-lg font-bold">
+        <span className="font-mono text-[10px] tracking-widest text-white/60 uppercase">{item.kind}</span>
+        <span className={`display mt-0.5 block leading-none ${big ? "text-5xl sm:text-6xl" : "text-2xl sm:text-4xl"}`}>{item.name}</span>
+        <span className="shop-price mt-2">
           <Coin />
           {item.cost}
         </span>
@@ -232,17 +231,17 @@ function ItemDialog({ item, credits, apps, onClose }: { item: Item; credits: num
         aria-modal="true"
         aria-labelledby="shop-item-title"
         onClick={(e) => e.stopPropagation()}
-        className={`rise shop-tile shop-${item.rarity} relative w-full max-w-md overflow-hidden rounded-t-2xl pb-[env(safe-area-inset-bottom)] text-white shadow-2xl sm:rounded-2xl`}
+        className="rise shop-tile shop-featured relative w-full max-w-md overflow-hidden rounded-t-2xl pb-[env(safe-area-inset-bottom)] text-white shadow-2xl sm:rounded-2xl"
       >
         <button type="button" onClick={close} aria-label="Close" className="absolute top-3 right-3 z-10 rounded-lg px-3 py-1.5 text-white/80 hover:bg-white/15 hover:text-white">
           ✕
         </button>
         <div className="flex justify-center px-6 pt-8 pb-4">
-          <PixelArt art={item.art} className="shop-art w-28" />
+          <ShopIcon name={item.icon} className="shop-art w-24" />
         </div>
-        <div className="bg-black/55 p-5">
-          <p className="font-mono text-[10px] tracking-widest text-white/75 uppercase">
-            {RARITY_LABEL[item.rarity]} · {item.tag}
+        <div className="border-t border-white/10 bg-black/30 p-5">
+          <p className="font-mono text-[10px] tracking-widest text-white/60 uppercase">
+            {item.kind} · {item.tag}
           </p>
           <h3 id="shop-item-title" className="display mt-1 text-5xl leading-none">
             {item.name}
@@ -286,7 +285,7 @@ function ItemDialog({ item, credits, apps, onClose }: { item: Item; credits: num
                   <p className="text-xs text-white/85">
                     You have {credits}, so you need {item.cost - credits} more.{" "}
                     <Link href="/test" className="underline">
-                      Earn it testing apps
+                      Earn it with bounties
                     </Link>{" "}
                     or{" "}
                     <Link href="/credits#buy" className="underline">
@@ -310,91 +309,80 @@ function ItemDialog({ item, credits, apps, onClose }: { item: Item; credits: num
 }
 
 // ---------------------------------------------------------------------------
-// Pixel art for the tiles, drawn like the pixel V logo: one letter per pixel.
+// Smooth line icons for the tiles, in the tile's light color (currentColor)
+// with a soft fill.
 // ---------------------------------------------------------------------------
 
-type Art = { rows: string[]; colors: Record<string, string> };
+type IconName = "crown" | "star" | "post" | "target" | "gift" | "heart";
 
-function PixelArt({ art, className = "" }: { art: Art; className?: string }) {
-  const w = art.rows[0].length;
-  const h = art.rows.length;
+function ShopIcon({ name, className = "" }: { name: IconName; className?: string }) {
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} className={className} shapeRendering="crispEdges" aria-hidden>
-      {art.rows.flatMap((row, y) =>
-        [...row].map((c, x) => (art.colors[c] ? <rect key={`${x}-${y}`} x={x} y={y} width={1.02} height={1.02} fill={art.colors[c]} /> : null)),
-      )}
+    <svg
+      viewBox="0 0 48 48"
+      className={`h-auto ${className}`}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2.4}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      {ICON_PATHS[name]}
     </svg>
   );
 }
 
-const CROWN: Art = {
-  rows: [
-    "Y.....Y.....Y",
-    "YY...YYY...YY",
-    "YYY..YYY..YYY",
-    "YYYY.YYY.YYYY",
-    "YYYYYYYYYYYYY",
-    "YHYYYYYYYYYHY",
-    "YYYRYYMYYBYYY",
-    "YYYYYYYYYYYYY",
-    "OOOOOOOOOOOOO",
-    "OOOOOOOOOOOOO",
-  ],
-  colors: { Y: "#ffd84a", H: "#fff3b0", O: "#e08a1e", R: "#ff5a5a", M: "#82ed9d", B: "#40c4ff" },
+const SOFT = { fill: "currentColor", fillOpacity: 0.18 } as const;
+
+const ICON_PATHS: Record<IconName, React.ReactNode> = {
+  crown: (
+    <>
+      <path d="M8 33 6 14l11 9 7-13 7 13 11-9-2 19z" {...SOFT} />
+      <path d="M9 38h30" />
+      <circle cx="24" cy="27" r="2.2" fill="currentColor" />
+      <circle cx="15" cy="28" r="1.4" fill="currentColor" />
+      <circle cx="33" cy="28" r="1.4" fill="currentColor" />
+    </>
+  ),
+  star: (
+    <>
+      <path d="m22 9 4 8.6 9.4 1.1-7 6.4 1.9 9.3L22 29.7l-8.3 4.7 1.9-9.3-7-6.4 9.4-1.1z" {...SOFT} />
+      <path d="M39 7v6M36 10h6M38 33v4M36 35h4" />
+    </>
+  ),
+  post: (
+    <>
+      <rect x="8" y="9" width="32" height="30" rx="5" {...SOFT} />
+      <path d="M8 16h32" />
+      <path d="M24 22v11M18.5 27.5h11" />
+    </>
+  ),
+  target: (
+    <>
+      <circle cx="22" cy="26" r="15" {...SOFT} />
+      <circle cx="22" cy="26" r="9" />
+      <circle cx="22" cy="26" r="3" fill="currentColor" />
+      <path d="m22 26 16-16M33 10h5v5" />
+    </>
+  ),
+  gift: (
+    <>
+      <rect x="9" y="21" width="30" height="18" rx="3" {...SOFT} />
+      <rect x="7" y="15" width="34" height="6" rx="2" />
+      <path d="M24 15v24" />
+      <path d="M24 15c-2-5-9-6-9-2 0 2 4 2 9 2zM24 15c2-5 9-6 9-2 0 2-4 2-9 2z" />
+    </>
+  ),
+  heart: (
+    <>
+      <path d="M24 39S9.5 30.5 9.5 19.5a7.5 7.5 0 0 1 14.5-3 7.5 7.5 0 0 1 14.5 3C38.5 30.5 24 39 24 39z" {...SOFT} />
+      <path d="M36 7v5M33.5 9.5h5" />
+    </>
+  ),
 };
 
-const STAR: Art = {
-  rows: [
-    "......Y......",
-    ".....YYY.....",
-    ".....YYY.....",
-    "....YYHYY....",
-    "YYYYYYHYYYYYY",
-    ".YYYYYYYYYYY.",
-    "..YYYYYYYYY..",
-    "...YYYYYYY...",
-    "...YYYYYYY...",
-    "..YYYY.YYYY..",
-    "..YYY...YYY..",
-    ".YY.......YY.",
-  ],
-  colors: { Y: "#ffe066", H: "#fffbe0" },
-};
-
-const WINDOW: Art = {
-  rows: [
-    "WWWWWWWWWWWWW",
-    "WBBBBBBBBBBBW",
-    "WWWWWWWWWWWWW",
-    "W...........W",
-    "W.....G.....W",
-    "W.....G.....W",
-    "W...GGGGG...W",
-    "W.....G.....W",
-    "W.....G.....W",
-    "W...........W",
-    "WWWWWWWWWWWWW",
-  ],
-  colors: { W: "#ffffff", B: "#40c4ff", G: "#82ed9d", ".": "#0b1b2b" },
-};
-
-const TARGET: Art = {
-  rows: ["..RRRRR..", ".RWWWWWR.", "RWRRRRRWR", "RWRWWWRWR", "RWRWRWRWR", "RWRWWWRWR", "RWRRRRRWR", ".RWWWWWR.", "..RRRRR.."],
-  colors: { R: "#ff5a5a", W: "#ffffff" },
-};
-
-const GIFT: Art = {
-  rows: ["..R...R..", "...R.R...", "YYYYRYYYY", "YYYYRYYYY", ".YYYRYYY.", ".YYYRYYY.", ".YYYRYYY.", ".YYYRYYY."],
-  colors: { R: "#ff5a5a", Y: "#ffd84a" },
-};
-
-const HEART: Art = {
-  rows: [".RR...RR.", "RRRR.RRRR", "RHRRRRRRR", "RRRRRRRRR", ".RRRRRRR.", "..RRRRR..", "...RRR...", "....R...."],
-  colors: { R: "#ff6b8a", H: "#ffd0da" },
-};
-
-const COMMUNITY = [
-  { href: "/test", title: "Bounties", tag: "Earn or post", body: "Pay people to try your app or find bugs.", art: TARGET },
-  { href: "/credits#perks", title: "Perks", tag: "Deals", body: "Deals on other builders' apps.", art: GIFT },
-  { href: "/browse", title: "Tips", tag: "Say thanks", body: "Tip a builder or tester.", art: HEART },
+const COMMUNITY: { href: string; title: string; tag: string; body: string; icon: IconName }[] = [
+  { href: "/test", title: "Bounties", tag: "Earn or post", body: "Pay people to try your app or find bugs.", icon: "target" },
+  { href: "/credits#perks", title: "Perks", tag: "Deals", body: "Deals on other builders' apps.", icon: "gift" },
+  { href: "/browse", title: "Tips", tag: "Say thanks", body: "Tip a builder or tester.", icon: "heart" },
 ];

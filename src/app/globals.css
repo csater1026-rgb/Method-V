@@ -536,93 +536,97 @@ body {
   }
 }
 
-/* The V Store (components/VStore.tsx), styled like a game item shop: each
-   tile is a rarity color with light rays behind pixel art, a slanted dark
-   name banner, and a yellow outline on hover. The tiles are art, so they
-   look the same in light and dark mode. */
+/* The V Store (components/VStore.tsx): item-shop tiles in the Spotlight
+   stage's colors (the --stage-* tokens: deep green with a mint glow in dark
+   mode, navy with cyan in light mode), a smooth line icon glowing in the
+   middle, the name and a price pill. The featured tile glows brighter. */
 .shop-tile {
-  --r1: #36a8ff;
-  --r2: #1846a8;
   color: #fff;
   background:
-    radial-gradient(circle at 50% 36%, rgb(255 255 255 / 0.38), transparent 52%),
-    repeating-conic-gradient(from 0deg at 50% 36%, rgb(255 255 255 / 0.08) 0deg 7deg, transparent 7deg 20deg),
-    linear-gradient(165deg, var(--r1), var(--r2));
-  border: 2px solid rgb(255 255 255 / 0.22);
-  box-shadow: 0 10px 28px -14px var(--r2);
+    radial-gradient(ellipse 80% 60% at 50% 30%, rgb(var(--stage-glow) / 0.2), transparent 70%),
+    linear-gradient(180deg, var(--stage-bg-1), var(--stage-bg-3));
+  border: 1px solid rgb(var(--stage-glow) / 0.22);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.06),
+    0 14px 30px -18px rgb(0 0 0 / 0.6);
   transition:
     transform 0.18s ease,
     border-color 0.18s ease,
     box-shadow 0.18s ease;
 }
-.shop-legendary {
-  --r1: #ffbf3c;
-  --r2: #c2501a;
-}
-.shop-epic {
-  --r1: #c06bff;
-  --r2: #4a1a9c;
-}
-.shop-rare {
-  --r1: #3fb4ff;
-  --r2: #163f9e;
-}
-.shop-uncommon {
-  --r1: #7fe28c;
-  --r2: #17703a;
+.shop-featured {
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 32%, rgb(var(--stage-glow) / 0.34), transparent 72%),
+    radial-gradient(ellipse 60% 40% at 50% 110%, rgb(var(--stage-glow-2) / 0.28), transparent 70%),
+    linear-gradient(180deg, var(--stage-bg-1), var(--stage-bg-3));
+  border-color: rgb(var(--stage-glow) / 0.45);
 }
 a.shop-tile:hover,
 button.shop-tile:hover,
 a.shop-tile:focus-visible,
 button.shop-tile:focus-visible {
-  transform: translateY(-3px);
-  border-color: #ffe95c;
+  transform: translateY(-2px);
+  border-color: rgb(var(--stage-glow) / 0.85);
   box-shadow:
-    0 0 0 2px #ffe95c,
-    0 18px 36px -14px var(--r2);
+    0 0 0 1px rgb(var(--stage-glow) / 0.45),
+    0 18px 40px -16px rgb(var(--stage-glow) / 0.45);
   outline: none;
 }
 .shop-art {
-  height: auto;
-  filter: drop-shadow(0 6px 0 rgb(0 0 0 / 0.25)) drop-shadow(0 0 18px rgb(255 255 255 / 0.35));
+  color: rgb(var(--stage-glow-hi));
+  filter: drop-shadow(0 0 14px rgb(var(--stage-glow) / 0.6));
   transition: transform 0.25s ease;
 }
 .shop-tile:hover .shop-art {
-  transform: scale(1.06) rotate(-2deg);
+  transform: scale(1.06);
 }
 .shop-tag {
   position: absolute;
-  top: 0.6rem;
-  left: 0.6rem;
+  top: 0.7rem;
+  left: 0.7rem;
   z-index: 1;
-  border-radius: 0.35rem;
-  background: rgb(0 0 0 / 0.45);
-  padding: 0.2rem 0.5rem;
+  border: 1px solid rgb(var(--stage-glow) / 0.3);
+  border-radius: 9999px;
+  background: rgb(0 0 0 / 0.3);
+  padding: 0.2rem 0.6rem;
   font-family: var(--font-mono);
   font-size: 10px;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
+  color: rgb(255 255 255 / 0.85);
 }
 .shop-banner {
   position: relative;
   display: block;
-  padding: 1.6rem 0.9rem 0.8rem;
-  background: linear-gradient(to top, rgb(0 0 0 / 0.78), rgb(0 0 0 / 0.55));
-  clip-path: polygon(0 22%, 100% 0, 100% 100%, 0 100%);
+  padding: 0.9rem 1rem 1rem;
+  background: linear-gradient(to top, rgb(0 0 0 / 0.35), transparent);
+}
+.shop-price {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  border: 1px solid rgb(var(--stage-glow) / 0.4);
+  border-radius: 9999px;
+  background: rgb(var(--stage-glow) / 0.14);
+  padding: 0.15rem 0.65rem 0.15rem 0.45rem;
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 700;
+  color: rgb(var(--stage-glow-hi));
 }
 .shop-buy {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
   border-radius: 0.5rem;
-  background: #ffe95c;
+  background: var(--stage-accent);
   padding: 0.65rem 1.1rem;
-  font-weight: 800;
-  color: #2a1a00;
-  box-shadow: 0 3px 0 #b89a10;
+  font-weight: 700;
+  color: var(--stage-accent-ink);
+  box-shadow: 0 3px 0 var(--stage-accent-edge);
 }
 .shop-buy:hover:not(:disabled) {
-  background: #fff17f;
+  filter: brightness(1.08);
 }
 .shop-buy:disabled {
   opacity: 0.55;

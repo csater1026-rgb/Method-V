@@ -144,7 +144,7 @@ export default async function StorePage({ searchParams }: PageProps<"/store">) {
       <p className="mt-4 text-sm text-muted">
         Need more Methodium?{" "}
         <Link href="/test" className="text-accent hover:underline">
-          Earn it testing apps
+          Earn it with bounties
         </Link>{" "}
         or{" "}
         <Link href="/credits#buy" className="text-accent hover:underline">

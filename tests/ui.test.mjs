@@ -903,7 +903,7 @@ await run("v store (phone)", phone, async (page) => {
   const featured = page.getByRole("region", { name: "Featured" });
   const tiles = await featured.getByRole("button").evaluateAll((els) => els.map((el) => el.getAttribute("aria-label")));
   // Demo mode previews the store as Ada, who has Pro, so the Spotlight is 15.
-  ok(tiles.join(" | ") === "Method V Pro, 50 Methodium | The Spotlight, 15 Methodium | Extra app post, 30 Methodium", `featured items: Pro, Spotlight, extra post (${tiles.join(" | ")})`);
+  ok(tiles.join(" | ") === "Method V Pro, 50 Methodium | The Spotlight, 15 Methodium | Extra app post, 15 Methodium", `featured items: Pro, Spotlight, extra post (${tiles.join(" | ")})`);
   const community = await page.getByRole("region", { name: "Spend it on the community" }).getByRole("link").allTextContents();
   ok(community.length === 3 && !community.join(" ").includes("Testers"), `3 community tiles, none selling testers (${community.length})`);
   ok((await page.getByText(/guaranteed testers/i).count()) === 0, "the store never promises testers");

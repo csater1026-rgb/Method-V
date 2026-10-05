@@ -25,7 +25,7 @@ const AFTER_LATE = [
 ];
 // Paying for testers was retired for bounties; applied last, after the tests
 // of the tester spots it refunds.
-const FINAL = ["20261022000000_testers_to_bounties.sql"];
+const FINAL = ["20261022000000_testers_to_bounties.sql", "20261023000000_app_post_price.sql"];
 const migrations = readdirSync(migrationsDir)
   .filter((f) => f.endsWith(".sql") && !LATE.includes(f) && !AFTER_LATE.includes(f) && !FINAL.includes(f))
   .sort()
@@ -1523,6 +1523,17 @@ ok(!!(await fails("anon", null, "insert into public.sponsorships (sponsor_brand,
   const [rf0, rt0] = [await credits(RF), await credits(RT)];
   await as("authenticated", TB, "select public.award_bounty($1)", [rfAnswer]);
   ok((await credits(RF)) === rf0 + 10 && (await credits(RT)) === rt0 + 5 + 10, "a friend's first bounty win earns you both the invite bonus");
+  // Extra app posts now cost 15 (20261023000000_app_post_price.sql); Pro stays 50.
+  const CHEAP = "bdbdbdbd-0000-0000-0000-000000000000";
+  await db.exec(`insert into auth.users (id) values ('${CHEAP}')`);
+  await db.query("update public.profiles set credits = 0 where id = $1", [CHEAP]);
+  await fund(CHEAP, 80);
+  await as("authenticated", CHEAP, "select public.buy_store_item('app_post')");
+  ok((await credits(CHEAP)) === 65, "an extra app post costs 15 Methodium");
+  await as("authenticated", CHEAP, "select public.buy_store_item('pro')");
+  ok((await credits(CHEAP)) === 15, "Pro still costs 50");
+  await as("authenticated", CHEAP, "select public.buy_store_item('app_post')");
+  ok((await shopErr(CHEAP, "select public.buy_store_item('app_post')")).includes("2 extra app posts every 30 days"), "still 2 a month at most");
 }
 
 // Security hardening (20261011000000_security_hardening.sql).
