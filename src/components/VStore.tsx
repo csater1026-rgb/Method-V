@@ -42,9 +42,9 @@ type Item = {
 const proUntilText = (iso: string) =>
   new Date(iso).getFullYear() > 2090 ? "forever (demo)" : `until ${new Date(iso).toLocaleDateString("en-US", { month: "long", day: "numeric" })}`;
 
-// The V Store as an item shop: tiles in the Spotlight's colors (deep green
-// with a mint glow in dark mode, navy with cyan in light mode) with a smooth
-// icon, the name and the price. Tapping a tile opens the item with its Buy
+// The V Store as an item shop: bright mint tiles with dark text, each with a
+// dark badge showing a big mint symbol (PRO, ★, +1…), the name and the price.
+// The same in light and dark mode. Tapping a tile opens the item with its Buy
 // button (and an app picker for the Spotlight).
 export function VStore({ credits, proUntil, store, apps, spotlightCost, spotlightWait }: Props) {
   // proUntil is only passed while Pro is on.
@@ -64,7 +64,7 @@ export function VStore({ credits, proUntil, store, apps, spotlightCost, spotligh
         <>
           Stats for 30 and 90 days, a pinned app on your profile, a Pro badge, and the Spotlight for {SPOTLIGHT.proCost} Methodium instead of{" "}
           {SPOTLIGHT.cost}. Lasts {V_STORE.pro.days} days, no subscription.{" "}
-          <Link href="/pro" className="text-white underline">
+          <Link href="/pro" className="font-semibold underline">
             More about Pro
           </Link>
         </>
@@ -149,11 +149,11 @@ export function VStore({ credits, proUntil, store, apps, spotlightCost, spotligh
               <Link href={c.href} className="shop-tile group relative flex h-full min-h-[13rem] flex-col overflow-hidden rounded-2xl">
                 <span className="shop-tag">{c.tag}</span>
                 <span className="flex flex-1 items-center justify-center px-6 pt-10 pb-2">
-                  <ShopIcon name={c.icon} className="shop-art w-16 sm:w-20" />
+                  <ShopBadge name={c.icon} className="shop-art w-16 sm:w-20" />
                 </span>
                 <span className="shop-banner">
                   <span className="display block text-2xl leading-none sm:text-3xl">{c.title}</span>
-                  <span className="mt-1 block text-xs text-white/75">{c.body}</span>
+                  <span className="mt-1 block text-xs text-[#0b1b12]/70">{c.body}</span>
                 </span>
               </Link>
             </li>
@@ -185,10 +185,10 @@ function ShopTile({ item, big = false, className = "", onOpen }: { item: Item; b
     >
       <span className="shop-tag">{item.tag}</span>
       <span className={`flex flex-1 items-center justify-center ${big ? "px-10 pt-14 pb-4" : "px-5 pt-11 pb-2"}`}>
-        <ShopIcon name={item.icon} className={`shop-art ${big ? "w-24 lg:w-36" : "w-16 lg:w-20"}`} />
+        <ShopBadge name={item.icon} className={`shop-art ${big ? "w-24 lg:w-36" : "w-16 lg:w-20"}`} />
       </span>
       <span className="shop-banner">
-        <span className="font-mono text-[10px] tracking-widest text-white/60 uppercase">{item.kind}</span>
+        <span className="font-mono text-[10px] tracking-widest text-[#0b1b12]/60 uppercase">{item.kind}</span>
         <span className={`display mt-0.5 block leading-none ${big ? "text-5xl sm:text-6xl" : "text-2xl sm:text-4xl"}`}>{item.name}</span>
         <span className="shop-price mt-2">
           <Coin />
@@ -231,31 +231,31 @@ function ItemDialog({ item, credits, apps, onClose }: { item: Item; credits: num
         aria-modal="true"
         aria-labelledby="shop-item-title"
         onClick={(e) => e.stopPropagation()}
-        className="rise shop-tile shop-featured relative w-full max-w-md overflow-hidden rounded-t-2xl pb-[env(safe-area-inset-bottom)] text-white shadow-2xl sm:rounded-2xl"
+        className="rise shop-tile shop-featured relative w-full max-w-md overflow-hidden rounded-t-2xl pb-[env(safe-area-inset-bottom)] shadow-2xl sm:rounded-2xl"
       >
-        <button type="button" onClick={close} aria-label="Close" className="absolute top-3 right-3 z-10 rounded-lg px-3 py-1.5 text-white/80 hover:bg-white/15 hover:text-white">
+        <button type="button" onClick={close} aria-label="Close" className="absolute top-3 right-3 z-10 rounded-lg px-3 py-1.5 text-[#0b1b12]/70 hover:bg-[#0b1b12]/10 hover:text-[#0b1b12]">
           ✕
         </button>
         <div className="flex justify-center px-6 pt-8 pb-4">
-          <ShopIcon name={item.icon} className="shop-art w-24" />
+          <ShopBadge name={item.icon} className="shop-art w-24" />
         </div>
-        <div className="border-t border-white/10 bg-black/30 p-5">
-          <p className="font-mono text-[10px] tracking-widest text-white/60 uppercase">
+        <div className="border-t border-[#0b1b12]/10 bg-white/35 p-5">
+          <p className="font-mono text-[10px] tracking-widest text-[#0b1b12]/60 uppercase">
             {item.kind} · {item.tag}
           </p>
           <h3 id="shop-item-title" className="display mt-1 text-5xl leading-none">
             {item.name}
           </h3>
-          <p className="mt-2 text-sm text-white/85">{item.about}</p>
+          <p className="mt-2 text-sm text-[#0b1b12]/80">{item.about}</p>
           {item.status && <p className="mt-2 text-sm font-semibold">{item.status}</p>}
 
           <div className="mt-4 flex flex-col gap-2">
             {item.off ? (
-              <p className="text-sm text-white/85">{item.off}</p>
+              <p className="text-sm text-[#0b1b12]/80">{item.off}</p>
             ) : (
               <>
                 {item.id === "spotlight" && apps.length > 1 && (
-                  <label className="flex flex-col gap-1 text-xs font-medium text-white/80">
+                  <label className="flex flex-col gap-1 text-xs font-medium text-[#0b1b12]/80">
                     Which app
                     <select className="field py-2 text-sm" value={appId} onChange={(e) => setAppId(e.target.value)}>
                       {apps.map((a) => (
@@ -271,7 +271,7 @@ function ItemDialog({ item, credits, apps, onClose }: { item: Item; credits: num
                     <button type="button" className="shop-buy" disabled={pending} onClick={spend}>
                       {pending ? "Spending…" : `Spend ${item.cost} Methodium`}
                     </button>
-                    <button type="button" className="rounded-lg px-4 py-2.5 text-sm font-semibold text-white/85 hover:bg-white/10" disabled={pending} onClick={() => setConfirming(false)}>
+                    <button type="button" className="rounded-lg px-4 py-2.5 text-sm font-semibold text-[#0b1b12]/80 hover:bg-[#0b1b12]/10" disabled={pending} onClick={() => setConfirming(false)}>
                       Cancel
                     </button>
                   </div>
@@ -282,7 +282,7 @@ function ItemDialog({ item, credits, apps, onClose }: { item: Item; credits: num
                   </button>
                 )}
                 {short && (
-                  <p className="text-xs text-white/85">
+                  <p className="text-xs text-[#0b1b12]/80">
                     You have {credits}, so you need {item.cost - credits} more.{" "}
                     <Link href="/test" className="underline">
                       Earn it with bounties
@@ -297,7 +297,7 @@ function ItemDialog({ item, credits, apps, onClose }: { item: Item; credits: num
               </>
             )}
             {message && (
-              <p aria-live="polite" className={`rounded-md px-3 py-2 text-sm font-semibold ${message.ok ? "bg-white/15" : "bg-black/40 text-[#ffb4a6]"}`}>
+              <p aria-live="polite" className={`rounded-md px-3 py-2 text-sm font-semibold ${message.ok ? "bg-[#0b1b12] text-[#82ed9d]" : "bg-[#0b1b12] text-[#ffb4a6]"}`}>
                 {message.text}
               </p>
             )}
@@ -309,77 +309,34 @@ function ItemDialog({ item, credits, apps, onClose }: { item: Item; credits: num
 }
 
 // ---------------------------------------------------------------------------
-// Smooth line icons for the tiles, in the tile's light color (currentColor)
-// with a soft fill.
+// Badges for the tiles: a dark rounded square with a big mint symbol, no
+// pictures.
 // ---------------------------------------------------------------------------
 
 type IconName = "crown" | "star" | "post" | "target" | "gift" | "heart";
 
-function ShopIcon({ name, className = "" }: { name: IconName; className?: string }) {
+const SYMBOL: Record<IconName, string> = { crown: "PRO", star: "★", post: "+1", target: "◎", gift: "%", heart: "♥" };
+
+function ShopBadge({ name, className = "" }: { name: IconName; className?: string }) {
+  const text = SYMBOL[name];
   return (
-    <svg
-      viewBox="0 0 48 48"
-      className={`h-auto ${className}`}
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2.4}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      {ICON_PATHS[name]}
+    <svg viewBox="0 0 64 64" className={`h-auto ${className}`} aria-hidden>
+      <rect x="2" y="4" width="60" height="60" rx="17" fill="#4fb86a" />
+      <rect x="2" y="2" width="60" height="60" rx="17" fill="#0b1b12" />
+      <text
+        x="32"
+        y={text.length > 2 ? 42 : 45}
+        textAnchor="middle"
+        fill="#82ed9d"
+        fontWeight={800}
+        fontSize={text.length > 2 ? 26 : 36}
+        style={{ fontFamily: "var(--font-display)" }}
+      >
+        {text}
+      </text>
     </svg>
   );
 }
-
-const SOFT = { fill: "currentColor", fillOpacity: 0.18 } as const;
-
-const ICON_PATHS: Record<IconName, React.ReactNode> = {
-  crown: (
-    <>
-      <path d="M8 33 6 14l11 9 7-13 7 13 11-9-2 19z" {...SOFT} />
-      <path d="M9 38h30" />
-      <circle cx="24" cy="27" r="2.2" fill="currentColor" />
-      <circle cx="15" cy="28" r="1.4" fill="currentColor" />
-      <circle cx="33" cy="28" r="1.4" fill="currentColor" />
-    </>
-  ),
-  star: (
-    <>
-      <path d="m22 9 4 8.6 9.4 1.1-7 6.4 1.9 9.3L22 29.7l-8.3 4.7 1.9-9.3-7-6.4 9.4-1.1z" {...SOFT} />
-      <path d="M39 7v6M36 10h6M38 33v4M36 35h4" />
-    </>
-  ),
-  post: (
-    <>
-      <rect x="8" y="9" width="32" height="30" rx="5" {...SOFT} />
-      <path d="M8 16h32" />
-      <path d="M24 22v11M18.5 27.5h11" />
-    </>
-  ),
-  target: (
-    <>
-      <circle cx="22" cy="26" r="15" {...SOFT} />
-      <circle cx="22" cy="26" r="9" />
-      <circle cx="22" cy="26" r="3" fill="currentColor" />
-      <path d="m22 26 16-16M33 10h5v5" />
-    </>
-  ),
-  gift: (
-    <>
-      <rect x="9" y="21" width="30" height="18" rx="3" {...SOFT} />
-      <rect x="7" y="15" width="34" height="6" rx="2" />
-      <path d="M24 15v24" />
-      <path d="M24 15c-2-5-9-6-9-2 0 2 4 2 9 2zM24 15c2-5 9-6 9-2 0 2-4 2-9 2z" />
-    </>
-  ),
-  heart: (
-    <>
-      <path d="M24 39S9.5 30.5 9.5 19.5a7.5 7.5 0 0 1 14.5-3 7.5 7.5 0 0 1 14.5 3C38.5 30.5 24 39 24 39z" {...SOFT} />
-      <path d="M36 7v5M33.5 9.5h5" />
-    </>
-  ),
-};
 
 const COMMUNITY: { href: string; title: string; tag: string; body: string; icon: IconName }[] = [
   { href: "/test", title: "Bounties", tag: "Earn or post", body: "Pay people to try your app or find bugs.", icon: "target" },
