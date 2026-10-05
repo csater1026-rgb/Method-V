@@ -64,7 +64,7 @@ export function VStore({ credits, proUntil, store, apps, spotlightCost, spotligh
       art: CROWN,
       about: (
         <>
-          Stats for 30 and 90 days, a pinned app on your profile, a Pro badge, and the Spotlight for {SPOTLIGHT.proCost} V Coin instead of{" "}
+          Stats for 30 and 90 days, a pinned app on your profile, a Pro badge, and the Spotlight for {SPOTLIGHT.proCost} Methodium instead of{" "}
           {SPOTLIGHT.cost}. Lasts {V_STORE.pro.days} days, no subscription.{" "}
           <Link href="/pro" className="text-white underline">
             More about Pro
@@ -91,7 +91,7 @@ export function VStore({ credits, proUntil, store, apps, spotlightCost, spotligh
       about: (
         <>
           Put your app on the stage at the top of Home for {SPOTLIGHT.days} days. {SPOTLIGHT.slots} spots, first come, first served.
-          {pro ? "" : ` ${SPOTLIGHT.proCost} V Coin with Pro.`}
+          {pro ? "" : ` ${SPOTLIGHT.proCost} Methodium with Pro.`}
         </>
       ),
       status: spotlightWait ? <>All spots are taken right now. Book now and you&apos;re next in line.</> : null,
@@ -181,7 +181,7 @@ function ShopTile({ item, big = false, className = "", onOpen }: { item: Item; b
     <button
       type="button"
       onClick={onOpen}
-      aria-label={`${item.name}, ${item.cost} V Coin`}
+      aria-label={`${item.name}, ${item.cost} Methodium`}
       className={`shop-tile shop-${item.rarity} group relative flex flex-col overflow-hidden rounded-xl text-left ${big ? "min-h-[20rem] lg:min-h-[26rem]" : "min-h-[15rem] sm:min-h-[13rem] lg:min-h-[12.5rem]"} ${className}`}
     >
       <span className="shop-tag">{item.tag}</span>
@@ -270,7 +270,7 @@ function ItemDialog({ item, credits, apps, onClose }: { item: Item; credits: num
                 {confirming ? (
                   <div className="flex flex-wrap gap-2">
                     <button type="button" className="shop-buy" disabled={pending} onClick={spend}>
-                      {pending ? "Spending…" : `Spend ${item.cost} V Coin`}
+                      {pending ? "Spending…" : `Spend ${item.cost} Methodium`}
                     </button>
                     <button type="button" className="rounded-lg px-4 py-2.5 text-sm font-semibold text-white/85 hover:bg-white/10" disabled={pending} onClick={() => setConfirming(false)}>
                       Cancel

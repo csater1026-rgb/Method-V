@@ -6,7 +6,7 @@ function endDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/Los_Angeles" });
 }
 
-// "Post a Drop, get +10 V Coin" while the promotion runs (public.promotions),
+// "Post a Drop, get +10 Methodium" while the promotion runs (public.promotions),
 // on the post and manage pages. Home shows it as a pop-up (DropBonusPopup).
 export function DropBonusBanner({ promo, className = "" }: { promo: Promotion | null; className?: string }) {
   if (!promo) return null;
@@ -15,7 +15,7 @@ export function DropBonusBanner({ promo, className = "" }: { promo: Promotion | 
       <p className="text-sm">
         <strong>
           🎉 Post a Drop, get +<Coin />
-          {promo.amount} V Coin.
+          {promo.amount} Methodium.
         </strong>{" "}
         <span className="text-muted">
           Until {endDate(promo.ends_at)}: one bonus per app, up to {promo.per_day} a day. Spend it on testers or a Spotlight spot.

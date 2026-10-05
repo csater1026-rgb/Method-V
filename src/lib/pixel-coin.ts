@@ -1,29 +1,28 @@
-// V Coin, Method V's credits: a round pixel coin in the logo's mint with the
-// same one-pixel blue drop shadow, stamped with the logo's V in navy. Shown
-// wherever credits are (website and app).
+// Methodium (Mv), Method V's credits: a made-up element, drawn as a
+// periodic-table tile in the logo's mint with the same one-pixel blue drop
+// shadow, its symbol "Mv" in mint on a navy face. Shown wherever credits are
+// (website and app).
 
 import { V_MINT, V_SHADOW, type PixelRect } from "./pixel-v.ts";
 
-// The stamped V: navy, so it stands out on the mint even at text size.
+// The tile's face: navy, so the mint symbol stands out even at text size.
 export const COIN_STAMP = "#0b1b2b";
 
-// "#" is the coin, "v" the stamped V (the logo's V_ROWS).
+// "#" is mint (the tile's edge and the letters), "k" the navy face.
 export const COIN_ROWS = [
-  "...#####...",
-  ".#########.",
-  ".#vv###vv#.",
-  "##vv###vv##",
-  "###vv#vv###",
-  "###vv#vv###",
-  "####vvv####",
-  "#####v#####",
-  ".#########.",
-  ".#########.",
-  "...#####...",
+  "#############",
+  "#kkkkkkkkkkk#",
+  "#k#kkk#kkkkk#",
+  "#k##k##kkkkk#",
+  "#k#k#k#k#k#k#",
+  "#k#kkk#k#k#k#",
+  "#k#kkk#kk#kk#",
+  "#kkkkkkkkkkk#",
+  "#############",
 ];
 
-// Rects for the coin at `cell` units per pixel: the blue shadow first (one
-// pixel down and right), then the mint coin, then the navy V on top.
+// Rects for the tile at `cell` units per pixel: the blue shadow first (one
+// pixel down and right), then the mint tile, then the navy face on top.
 export function pixelCoinRects(cell = 1): PixelRect[] {
   const layer = (dx: number, dy: number, fill: string, match: (ch: string) => boolean) =>
     COIN_ROWS.flatMap((row, r) => {
@@ -42,7 +41,7 @@ export function pixelCoinRects(cell = 1): PixelRect[] {
       return out;
     });
   const solid = (ch: string) => ch !== ".";
-  return [...layer(cell, cell, V_SHADOW, solid), ...layer(0, 0, V_MINT, solid), ...layer(0, 0, COIN_STAMP, (ch) => ch === "v")];
+  return [...layer(cell, cell, V_SHADOW, solid), ...layer(0, 0, V_MINT, solid), ...layer(0, 0, COIN_STAMP, (ch) => ch === "k")];
 }
 
 // Width and height in pixels including the shadow.

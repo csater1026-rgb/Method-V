@@ -9,7 +9,7 @@ import type { Perk, PerkListing } from "@/lib/types";
 
 import { Coin } from "./Coin";
 
-// Perks on an app's page: deals people unlock with V Coin (the V Coin goes to
+// Perks on an app's page: deals people unlock with Methodium (the Methodium goes to
 // the builder). The builder sees every perk with its code and can add or
 // change them; everyone else sees the ones on offer.
 export function PerksSection({
@@ -33,12 +33,12 @@ export function PerksSection({
         <h2 id="perks-title" className="display text-4xl">
           Perks
         </h2>
-        <span className="text-xs text-muted">Unlock with V Coin</span>
+        <span className="text-xs text-muted">Unlock with Methodium</span>
       </div>
       <p className="mt-1 text-sm text-muted">
         {isOwner
-          ? `Offer a deal on ${app.name} (a promo code, a free month, a lifetime deal) that people unlock with V Coin. The V Coin comes to you, to spend on testers or the Spotlight.`
-          : `Deals on ${app.name} from its builder. Unlock one with V Coin you earned testing apps.`}
+          ? `Offer a deal on ${app.name} (a promo code, a free month, a lifetime deal) that people unlock with Methodium. The Methodium comes to you, to spend on testers or the Spotlight.`
+          : `Deals on ${app.name} from its builder. Unlock one with Methodium you earned testing apps.`}
       </p>
 
       {perks.length > 0 && (
@@ -110,7 +110,7 @@ export function PerkCard({ perk, app, isOwner, showApp = false }: { perk: Perk; 
       ) : confirming ? (
         <div className="flex flex-wrap items-center gap-2">
           <button type="button" onClick={unlock} disabled={pending} className="btn-accent">
-            {pending ? "Unlocking…" : `Spend ${perk.cost} V Coin`}
+            {pending ? "Unlocking…" : `Spend ${perk.cost} Methodium`}
           </button>
           <button type="button" onClick={() => setConfirming(false)} className="btn-ghost">
             Cancel
@@ -206,7 +206,7 @@ function PerkForm({ app, perk, onDone }: { app: { id: string; slug: string; name
       </label>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="flex flex-col gap-1 text-sm font-medium">
-          Price in V Coin
+          Price in Methodium
           <input
             className="field"
             type="number"
@@ -247,7 +247,7 @@ function PerkForm({ app, perk, onDone }: { app: { id: string; slug: string; name
   );
 }
 
-// Perks across Method V, on the V Coin page.
+// Perks across Method V, on the Methodium page.
 export function PerkList({ perks }: { perks: PerkListing[] }) {
   return (
     <ul className="mt-4 grid gap-3 sm:grid-cols-2">

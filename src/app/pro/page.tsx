@@ -13,7 +13,7 @@ export const metadata: Metadata = { title: "Pro" };
 const PERKS = [
   { title: "Stats for 30 and 90 days", body: "Tries, likes and feedback per day, where tries come from, and CSV export." },
   { title: "A pinned app", body: "Put your best app first on your profile, with a Pinned label." },
-  { title: "A cheaper Spotlight", body: `Book the Spotlight for ${SPOTLIGHT.proCost} V Coin instead of ${SPOTLIGHT.cost}.` },
+  { title: "A cheaper Spotlight", body: `Book the Spotlight for ${SPOTLIGHT.proCost} Methodium instead of ${SPOTLIGHT.cost}.` },
   { title: "A Pro badge", body: "Next to your name on your profile." },
 ];
 
@@ -74,9 +74,9 @@ export default async function ProPage({ searchParams }: PageProps<"/pro">) {
           <BuyPro label={pro ? `Add ${EARN.pro.days} days · ${formatCents(EARN.pro.price)}` : `Get Pro · ${formatCents(EARN.pro.price)}`} />
         )}
         <p className="mt-3 text-sm text-muted">
-          Or pay with V Coin:{" "}
+          Or pay with Methodium:{" "}
           <Link href="/store" className="text-accent hover:underline">
-            {V_STORE.pro.cost} V Coin in the V Store →
+            {V_STORE.pro.cost} Methodium in the V Store →
           </Link>
         </p>
       </div>

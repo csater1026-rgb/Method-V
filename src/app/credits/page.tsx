@@ -14,7 +14,7 @@ import { timeAgo } from "@/lib/format";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { Coin } from "@/components/Coin";
 
-export const metadata: Metadata = { title: "V Coin credits" };
+export const metadata: Metadata = { title: "Methodium" };
 
 export default async function CreditsPage({ searchParams }: PageProps<"/credits">) {
   const params = await searchParams;
@@ -35,12 +35,12 @@ export default async function CreditsPage({ searchParams }: PageProps<"/credits"
     <div className="mx-auto w-full max-w-3xl px-4 py-8">
       <h1 className="display rise text-6xl">Credits</h1>
       <p className="mt-1 text-muted">
-        Credits on Method V are called <span className="font-semibold text-ink">V Coin</span>. Earn them by testing apps, or buy a pack.
+        Credits on Method V are called <span className="font-semibold text-ink">Methodium (Mv)</span>, a made-up element (it used to be called V Coin). Earn it by testing apps, or buy a pack.
       </p>
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-line bg-surface p-5">
         <div>
-          <p className="text-sm text-muted">Your V Coin</p>
+          <p className="text-sm text-muted">Your Methodium</p>
           <p className="font-mono text-5xl font-bold">
             <Coin />
             {viewer?.credits ?? 0}
@@ -58,7 +58,7 @@ export default async function CreditsPage({ searchParams }: PageProps<"/credits"
 
       {params.paid && (
         <p className="mt-4 rounded-xl border border-accent/40 bg-accent/10 px-4 py-3 text-sm">
-          Thanks! Your V Coin is on its way; it shows up here in a few seconds.
+          Thanks! Your Methodium is on its way; it shows up here in a few seconds.
         </p>
       )}
 
@@ -73,7 +73,7 @@ export default async function CreditsPage({ searchParams }: PageProps<"/credits"
           Bounties: earn bigger
         </h2>
         <p className="mt-1 text-sm text-muted">
-          Builders pay V Coin for a specific job: find a bug, record a first try, review a page. The best answer gets the whole reward; if the
+          Builders pay Methodium for a specific job: find a bug, record a first try, review a page. The best answer gets the whole reward; if the
           builder doesn&apos;t pick one in time, everyone who answered splits it.
         </p>
         {bounties.length > 0 ? (
@@ -88,7 +88,7 @@ export default async function CreditsPage({ searchParams }: PageProps<"/credits"
           Perks: spend it on real deals
         </h2>
         <p className="mt-1 text-sm text-muted">
-          Builders offer deals on their apps (free months, lifetime deals, promo codes) that you unlock with V Coin.
+          Builders offer deals on their apps (free months, lifetime deals, promo codes) that you unlock with Methodium.
         </p>
         {perks.length > 0 ? (
           <PerkList perks={perks} />
@@ -97,16 +97,16 @@ export default async function CreditsPage({ searchParams }: PageProps<"/credits"
         )}
       </section>
 
-      <section id="buy" aria-label="Buy V Coin" className="mt-10 scroll-mt-24">
-        <h2 className="display text-4xl">Buy V Coin</h2>
+      <section id="buy" aria-label="Buy Methodium" className="mt-10 scroll-mt-24">
+        <h2 className="display text-4xl">Buy Methodium</h2>
         <p className="mt-1 mb-4 text-sm text-muted">
-          For the Spotlight (<Coin />{SPOTLIGHT.cost}) or testers for your app. Or earn them free by testing apps. V Coin can&apos;t be
+          For the Spotlight (<Coin />{SPOTLIGHT.cost}) or testers for your app. Or earn them free by testing apps. Methodium can&apos;t be
           turned back into money.
         </p>
         <BuyCredits />
       </section>
 
-      <h2 className="display mt-10 text-4xl">How V Coin works</h2>
+      <h2 className="display mt-10 text-4xl">How Methodium works</h2>
       <ul className="mt-2 flex flex-col gap-1.5 text-sm text-ink/90">
         <li>• Everyone starts with <Coin />{CREDITS.welcome}.</li>
         <li>
@@ -138,7 +138,7 @@ export default async function CreditsPage({ searchParams }: PageProps<"/credits"
           {TIPS.max} at a time, up to {TIPS.perDay} a day.
         </li>
         <li>
-          • Unlock <a href="#perks" className="text-accent hover:underline">perks</a>: deals on apps, paid to their builders in V Coin.
+          • Unlock <a href="#perks" className="text-accent hover:underline">perks</a>: deals on apps, paid to their builders in Methodium.
         </li>
         <li>
           • Book the Spotlight: one of {SPOTLIGHT.slots} spots in the Featured row for {SPOTLIGHT.days} days, <Coin />{SPOTLIGHT.cost}{" "}
@@ -146,7 +146,7 @@ export default async function CreditsPage({ searchParams }: PageProps<"/credits"
         </li>
       </ul>
 
-      {!isSupabaseConfigured && <p className="mt-6 text-sm text-muted">V Coin is off in demo mode.</p>}
+      {!isSupabaseConfigured && <p className="mt-6 text-sm text-muted">Methodium is off in demo mode.</p>}
 
       {viewer && (
         <>

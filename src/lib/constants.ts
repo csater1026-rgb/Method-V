@@ -25,8 +25,8 @@ export const MAX_FEEDBACK_SHOTS = 3;
 export const feedbackShotPattern = (userId: string) => new RegExp(`^${userId}/fb-[0-9]+-[a-z0-9]+\\.jpg$`);
 export const DROP_VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
 
-// Credits are called V Coin on screen: introduce them as credits the first
-// time a page mentions them ("credits, called V Coin"), then say V Coin.
+// Credits are called Methodium on screen: introduce them as credits the first
+// time a page mentions them ("credits, called Methodium"), then say Methodium.
 // Must match the numbers in supabase/migrations/*_phase3_credits_feedback.sql.
 export const CREDITS = {
   welcome: 10,
@@ -51,7 +51,7 @@ export const WOULD_USE = [
 ] as const;
 
 export const CREDIT_REASONS: Record<string, string> = {
-  welcome: "Welcome V Coin",
+  welcome: "Welcome Methodium",
   feedback_reward: "Feedback reward",
   feedback_helpful: "Feedback marked helpful",
   testers_requested: "Asked for testers",
@@ -59,7 +59,7 @@ export const CREDIT_REASONS: Record<string, string> = {
   streak_bonus: "4-week testing streak",
   boost: "Boosted an app",
   spotlight: "Booked the Spotlight",
-  credit_pack: "Bought V Coin",
+  credit_pack: "Bought Methodium",
   drop_bonus: "Bonus for posting a Drop",
   leaderboard_prize: "Leaderboard prize",
   perk_claimed: "Unlocked a perk",
@@ -75,20 +75,20 @@ export const CREDIT_REASONS: Record<string, string> = {
   store_app_post: "Extra app post from the V Store",
 };
 
-// More to do with V Coin. Must match supabase/migrations/20261019000000_v_coin_economy.sql.
+// More to do with Methodium. Must match supabase/migrations/20261019000000_v_coin_economy.sql.
 export const PERKS = { minCost: 5, maxCost: 500, perApp: 3 } as const;
 export const BOUNTIES = { minReward: 5, maxReward: 200, perApp: 3, days: 14, minDays: 3, maxDays: 30, minAnswer: 20 } as const;
 export const TIPS = { max: 50, perDay: 100, amounts: [2, 5, 10, 25] } as const;
 export const REFERRALS = { bonus: 10, perMonth: 20 } as const;
 
-// The V Store: upgrades bought with V Coin (V Coin is spend-only, never
+// The V Store: upgrades bought with Methodium (Methodium is spend-only, never
 // money). Must match buy_store_item() in supabase/migrations/20261021000000_v_store.sql.
 export const V_STORE = {
   pro: { cost: 50, days: 30 },
   appPost: { cost: 30, perWindow: 2, days: 30 },
 } as const;
 
-// V Coin for 1st, 2nd and 3rd on each monthly leaderboard (top builders and
+// Methodium for 1st, 2nd and 3rd on each monthly leaderboard (top builders and
 // top testers), paid when the month ends. Must match settle_leaderboards()
 // in supabase/migrations/20261018000000_leaderboard_prizes.sql.
 export const LEADERBOARD_PRIZES = [25, 15, 10] as const;
@@ -98,7 +98,7 @@ export const LEADERBOARD_PRIZES = [25, 15, 10] as const;
 export const TESTER_RANKS = [
   { slug: "new", label: "New tester", given: 0, helpful: 0, perk: "Give feedback to earn stamps" },
   { slug: "scout", label: "Scout", given: 5, helpful: 0, perk: "Scout badge on your profile" },
-  { slug: "tester", label: "Tester", given: 15, helpful: 3, perk: "Earn 3 V Coin per paid feedback instead of 2" },
+  { slug: "tester", label: "Tester", given: 15, helpful: 3, perk: "Earn 3 Methodium per paid feedback instead of 2" },
   { slug: "pro", label: "Pro Tester", given: 40, helpful: 10, perk: "Earn from 20 feedbacks a day instead of 10" },
   { slug: "trusted", label: "Trusted Tester", given: 100, helpful: 30, perk: "Your feedback shows first to builders" },
 ] as const;

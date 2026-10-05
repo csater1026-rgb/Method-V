@@ -3,11 +3,15 @@
 // again." Show those as they are; anything else gets the fallback. Shared by
 // the website and the phone app.
 export function dbMessage(error: { code?: string; message?: string } | null | undefined, fallback: string): string {
-  return error?.code === "P0001" && error.message ? withVCoin(error.message) : fallback;
+  return error?.code === "P0001" && error.message ? withMethodium(error.message) : fallback;
 }
 
-// A few of the database's messages are older than the name V Coin ("That
-// costs 50 credits and you have 20."). Say V Coin, like everywhere else.
-export function withVCoin(message: string): string {
-  return message.replace(/\bcredit pack\b/g, "V Coin pack").replace(/\bcredits\b/g, "V Coin");
+// The database's messages are older than the name Methodium: some say
+// credits ("That costs 50 credits and you have 20."), newer ones V Coin, its
+// first name. Say Methodium, like everywhere else.
+export function withMethodium(message: string): string {
+  return message
+    .replace(/\bcredit pack\b/g, "Methodium pack")
+    .replace(/\bcredits\b/g, "Methodium")
+    .replace(/\bV Coin\b/g, "Methodium");
 }

@@ -15,7 +15,7 @@ import { Body, Button, Display, Eyebrow } from "./ui";
 // but a new run shows again.
 const seenKey = (slug: string) => `method-v-promo-seen:${slug}`;
 
-// "Post a Drop, get +10 V Coin" as a pop-up the first time someone opens Home
+// "Post a Drop, get +10 Methodium" as a pop-up the first time someone opens Home
 // while the promotion runs, after the first-time tour. Post a Drop opens the
 // + tab; ✕ or Not now closes it.
 export function DropBonusPopup() {
@@ -60,10 +60,10 @@ export function DropBonusPopup() {
             <Body style={{ fontSize: 28 }}>🪙</Body>
           </View>
           <Display size={40} style={{ color: "#fff", textAlign: "center" }}>
-            Post a Drop, get +{promo.amount} V Coin
+            Post a Drop, get +{promo.amount} Methodium
           </Display>
           <Body size={14} style={{ color: "rgba(255,255,255,0.8)", textAlign: "center" }}>
-            Share a 60-second demo of what you built and we&apos;ll add {promo.amount} V Coin to your account. Spend it on testers or a Spotlight spot
+            Share a 60-second demo of what you built and we&apos;ll add {promo.amount} Methodium to your account. Spend it on testers or a Spotlight spot
             at the top of Home.
           </Body>
           <Body size={12} style={{ color: "rgba(255,255,255,0.6)", textAlign: "center" }}>

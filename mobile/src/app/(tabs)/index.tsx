@@ -110,7 +110,7 @@ export default function HomeScreen() {
         <Card style={{ gap: 4, borderColor: t.accent }}>
           <Body bold>🏆 Monthly leaderboards</Body>
           <Body muted size={13}>
-            Top builders and top testers, on Browse. 1st, 2nd and 3rd win {LEADERBOARD_PRIZES.join(", ")} V Coin when the month ends.
+            Top builders and top testers, on Browse. 1st, 2nd and 3rd win {LEADERBOARD_PRIZES.join(", ")} Methodium when the month ends.
           </Body>
         </Card>
       </Pressable>

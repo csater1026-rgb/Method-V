@@ -50,7 +50,7 @@ export default function MeScreen() {
   const links: [string, string][] = [
     ["Stats", "/dashboard"],
     ["V Store", "/store"],
-    ["V Coin credits", "/credits"],
+    ["Methodium", "/credits"],
     ["Inbox", "/inbox"],
     ["Edit profile", "/settings"],
     ["Terms of Service", "/terms"],
@@ -78,25 +78,25 @@ export default function MeScreen() {
       <NotificationsCard />
       <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
         <Coin size={13} />
-        <Mono muted={false}>{viewer.credits} V Coin</Mono>
+        <Mono muted={false}>{viewer.credits} Methodium</Mono>
       </View>
       <Button label="View your profile" onPress={() => router.push(`/u/${viewer.username}`)} />
-      {/* The V Store (spending V Coin on upgrades) is on the website, like buying V Coin. */}
+      {/* The V Store (spending Methodium on upgrades) is on the website, like buying Methodium. */}
       {SITE_URL ? (
         <Card style={{ gap: 10 }}>
           <Body bold>V Store</Body>
           <Body muted size={13}>
-            Spend your V Coin on upgrades: Pro for {V_STORE.pro.cost} V Coin, an extra app post for {V_STORE.appPost.cost}, or a spot in the Spotlight.
+            Spend your Methodium on upgrades: Pro for {V_STORE.pro.cost} Methodium, an extra app post for {V_STORE.appPost.cost}, or a spot in the Spotlight.
           </Body>
           <Button label="Open the V Store ↗" onPress={() => web("/store")} />
         </Card>
       ) : null}
-      {/* More ways to earn and spend V Coin (bounties and perks live on the website). */}
+      {/* More ways to earn and spend Methodium (bounties and perks live on the website). */}
       {SITE_URL ? (
         <Card style={{ gap: 10 }}>
-          <Body bold>Invite friends, both get {REFERRALS.bonus} V Coin</Body>
+          <Body bold>Invite friends, both get {REFERRALS.bonus} Methodium</Body>
           <Body muted size={13}>
-            When a friend who joins with your link posts their first Drop or gives their first paid feedback, you each get {REFERRALS.bonus} V Coin.
+            When a friend who joins with your link posts their first Drop or gives their first paid feedback, you each get {REFERRALS.bonus} Methodium.
           </Body>
           <Button
             label="Share your invite link"
@@ -108,7 +108,7 @@ export default function MeScreen() {
         <Card style={{ gap: 10 }}>
           <Body bold>Bounties and perks</Body>
           <Body muted size={13}>
-            Earn bigger with bounties (builders pay {BOUNTIES.minReward} to {BOUNTIES.maxReward} V Coin for a job), and spend V Coin on real deals
+            Earn bigger with bounties (builders pay {BOUNTIES.minReward} to {BOUNTIES.maxReward} Methodium for a job), and spend Methodium on real deals
             on apps.
           </Body>
           <Button label="See them on the website ↗" kind="ghost" onPress={() => web("/credits#bounties")} />
@@ -407,7 +407,7 @@ function DeleteAccountCard({ username }: { username: string }) {
     <Card style={{ gap: 10, borderColor: t.danger }}>
       <Body bold>Delete account</Body>
       <Body size={14}>
-        This can&apos;t be undone. It permanently deletes your profile, apps, Drops, questions, answers and messages, plus your V Coin, Pro,
+        This can&apos;t be undone. It permanently deletes your profile, apps, Drops, questions, answers and messages, plus your Methodium, Pro,
         and any earnings not yet paid out.
       </Body>
       <Body muted size={13}>

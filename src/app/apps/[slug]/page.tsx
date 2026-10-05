@@ -126,7 +126,7 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
                 {" "}
                 <strong>
                   You got +<Coin />
-                  {bonus} V Coin for posting it.
+                  {bonus} Methodium for posting it.
                 </strong>
               </>
             )}
@@ -192,7 +192,7 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
               <strong>⭐ Get {app.name} on Featured.</strong>{" "}
               <span className="text-muted">
                 The Spotlight puts it at the top of Home for {SPOTLIGHT.days} days for <Coin />
-                {isPro(ownProfile) ? SPOTLIGHT.proCost : SPOTLIGHT.cost} V Coin.
+                {isPro(ownProfile) ? SPOTLIGHT.proCost : SPOTLIGHT.cost} Methodium.
               </span>
             </span>
             <span className="font-semibold text-accent">Book it →</span>
@@ -217,7 +217,7 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
         {/* Test & earn for this app, right under what it is. */}
         <FeedbackPanel panel={feedbackPanel} app={{ id: app.id, slug: app.slug, name: app.name }} />
 
-        {/* More ways to earn and spend V Coin on this app. In demo mode everyone sees the builder's side too. */}
+        {/* More ways to earn and spend Methodium on this app. In demo mode everyone sees the builder's side too. */}
         <BountiesSection
           app={{ id: app.id, slug: app.slug, name: app.name }}
           bounties={bounties}

@@ -219,7 +219,7 @@ function Prizes() {
   const [first, second, third] = LEADERBOARD_PRIZES;
   return (
     <p className="mt-2 inline-flex flex-wrap items-center gap-x-2 rounded-lg border border-accent/50 bg-accent/10 px-2.5 py-1 text-xs font-semibold">
-      🏆 At the end of the month: 1st wins {first} V Coin · 2nd {second} · 3rd {third}
+      🏆 At the end of the month: 1st wins {first} Methodium · 2nd {second} · 3rd {third}
     </p>
   );
 }
@@ -227,7 +227,7 @@ function Prizes() {
 function PrizeTag({ place }: { place: number }) {
   if (place > 2) return null;
   return (
-    <span title={`Wins ${LEADERBOARD_PRIZES[place]} V Coin if the month ended now`} className="tag-accent shrink-0 font-mono">
+    <span title={`Wins ${LEADERBOARD_PRIZES[place]} Methodium if the month ended now`} className="tag-accent shrink-0 font-mono">
       +{LEADERBOARD_PRIZES[place]}
     </span>
   );

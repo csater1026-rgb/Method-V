@@ -25,7 +25,7 @@ const ok = (cond, msg) => {
 
 const browser = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {});
 
-// The "Post a Drop, get +10 V Coin" pop-up on Home (demo promotion) would
+// The "Post a Drop, get +10 Methodium" pop-up on Home (demo promotion) would
 // cover the page in every test, so it starts closed unless a test asks for it.
 const DEMO_BONUS_ENDS = "2026-11-01T06:59:59Z";
 const bonusSeen = (ctx) =>
@@ -90,7 +90,7 @@ await run("home (phone)", phone, async (page) => {
   const boards = page.getByRole("region", { name: "Leaderboards" });
   const builders = await boards.getByRole("region", { name: "Top builders" }).locator("li a").allTextContents();
   ok(builders[0]?.includes("Okafor Studio"), `Browse: top builder this month leads (${builders.join(", ")})`);
-  ok((await boards.getByText("1st wins 25 V Coin · 2nd 15 · 3rd 10", { exact: false }).count()) === 2, "both boards say what the top 3 win");
+  ok((await boards.getByText("1st wins 25 Methodium · 2nd 15 · 3rd 10", { exact: false }).count()) === 2, "both boards say what the top 3 win");
   const prizes = await boards.getByRole("region", { name: "Top builders" }).locator("li .tag-accent").allTextContents();
   ok(prizes.slice(0, 3).join(",") === "+25,+15,+10", `the top 3 show their prize (${prizes.join(",")})`);
   await go(page, "/browse?category=education");
@@ -702,7 +702,7 @@ await run("terms and privacy", phone, async (page) => {
 
   await go(page, "/terms");
   ok(await page.getByRole("heading", { level: 1, name: "Terms of Service" }).isVisible(), "Terms page");
-  for (const s of ["5. V Coin", "7. Tips, sponsorships and payouts"]) ok(await page.getByRole("heading", { name: s }).isVisible(), `Terms covers ${s}`);
+  for (const s of ["5. Methodium", "7. Tips, sponsorships and payouts"]) ok(await page.getByRole("heading", { name: s }).isVisible(), `Terms covers ${s}`);
   ok(await page.getByText("12% of sponsorship packages (7% with Pro)").isVisible(), "Terms states the real fees");
   await noSideScroll(page, "terms");
 
@@ -793,8 +793,8 @@ await run("test & earn (phone)", phone, async (page) => {
 
 await run("credits", phone, async (page) => {
   await go(page, "/credits");
-  ok(await page.getByText("How V Coin works").isVisible(), "credits page explains the rules");
-  const buy = page.getByRole("region", { name: "Buy V Coin" });
+  ok(await page.getByText("How Methodium works").isVisible(), "credits page explains the rules");
+  const buy = page.getByRole("region", { name: "Buy Methodium" });
   const packs = (await buy.locator("li button").allTextContents()).map((t) => t.replace(/\s+/g, " "));
   ok(packs.length === 3 && packs[0].includes("25") && packs[0].includes("$5") && packs[2].includes("$20"), `three credit packs (${packs.join(" | ")})`);
   await buy.locator("li button").first().click();
@@ -901,7 +901,7 @@ await run("v store (phone)", phone, async (page) => {
   const featured = page.getByRole("region", { name: "Featured" });
   const tiles = await featured.getByRole("button").evaluateAll((els) => els.map((el) => el.getAttribute("aria-label")));
   // Demo mode previews the store as Ada, who has Pro, so the Spotlight is 15.
-  ok(tiles.join(" | ") === "Method V Pro, 50 V Coin | The Spotlight, 15 V Coin | Extra app post, 30 V Coin", `featured items: Pro, Spotlight, extra post (${tiles.join(" | ")})`);
+  ok(tiles.join(" | ") === "Method V Pro, 50 Methodium | The Spotlight, 15 Methodium | Extra app post, 30 Methodium", `featured items: Pro, Spotlight, extra post (${tiles.join(" | ")})`);
   ok((await page.getByRole("region", { name: "Spend it on the community" }).getByRole("link").count()) === 4, "4 community tiles");
   await noSideScroll(page, "v store");
   await page.screenshot({ path: `${OUT}store-phone.png`, fullPage: true });
@@ -909,7 +909,7 @@ await run("v store (phone)", phone, async (page) => {
   const dialog = page.getByRole("dialog", { name: "The Spotlight" });
   ok(await dialog.isVisible(), "tapping a tile opens the item");
   await dialog.getByRole("button", { name: /Book it/ }).click();
-  await dialog.getByRole("button", { name: "Spend 15 V Coin" }).click();
+  await dialog.getByRole("button", { name: "Spend 15 Methodium" }).click();
   await dialog.getByText(/Add your Supabase keys/).waitFor({ timeout: 10_000 });
   ok(true, "buying asks to confirm, then explains demo mode");
   await page.keyboard.press("Escape");
@@ -946,7 +946,7 @@ await run(
   phone,
   async (page) => {
     await go(page, "/");
-    const pop = page.getByRole("dialog", { name: "Post a Drop, get +10 V Coin" });
+    const pop = page.getByRole("dialog", { name: "Post a Drop, get +10 Methodium" });
     await pop.waitFor({ timeout: 5000 });
     ok(true, "the Drop bonus pops up on Home");
     ok((await page.getByText("🎉 Post a Drop", { exact: false }).count()) === 0, "no banner on Home any more");
@@ -977,7 +977,7 @@ await run(
   { popups: true },
 );
 
-await run("V Coin: bounties, perks, tips, invites", desktop, async (page) => {
+await run("Methodium: bounties, perks, tips, invites", desktop, async (page) => {
   await go(page, "/apps/noteflow");
   const bounties = page.getByRole("region", { name: "Bounties" });
   ok(await bounties.getByText("Find a bug in the to-do export").isVisible(), "app pages show their bounties");
@@ -990,12 +990,12 @@ await run("V Coin: bounties, perks, tips, invites", desktop, async (page) => {
   await bounties.getByText(/demo mode/i).first().waitFor({ timeout: 5000 });
   ok(true, "answering explains demo mode");
   await bounties.getByRole("button", { name: "+ Post a bounty" }).click();
-  ok(await bounties.getByRole("form", { name: "Post a bounty" }).getByRole("button", { name: /Post · hold 20 V Coin/ }).isVisible(), "builders post a bounty, holding the reward");
+  ok(await bounties.getByRole("form", { name: "Post a bounty" }).getByRole("button", { name: /Post · hold 20 Methodium/ }).isVisible(), "builders post a bounty, holding the reward");
 
   const perks = page.getByRole("region", { name: "Perks" });
   ok(await perks.getByText("3 months of NoteFlow Pro").isVisible() && (await perks.getByText("38 of 50 left").count()) === 1, "app pages show perks and how many are left");
   await perks.getByRole("button", { name: /Unlock/ }).click();
-  await perks.getByRole("button", { name: "Spend 30 V Coin" }).click();
+  await perks.getByRole("button", { name: "Spend 30 Methodium" }).click();
   await perks.getByText(/demo mode/i).first().waitFor({ timeout: 5000 });
   ok(true, "unlocking asks to confirm, then explains demo mode");
   await perks.getByRole("button", { name: "+ Add a perk" }).click();
@@ -1004,11 +1004,11 @@ await run("V Coin: bounties, perks, tips, invites", desktop, async (page) => {
   await page.getByRole("button", { name: /Tip the builder/ }).click();
   const tip = page.getByRole("group", { name: "Tip @ada_builds" });
   await tip.getByRole("button", { name: "10" }).click();
-  ok(await tip.getByRole("button", { name: "Send 10 V Coin" }).isVisible(), "tip the builder, picking an amount");
+  ok(await tip.getByRole("button", { name: "Send 10 Methodium" }).isVisible(), "tip the builder, picking an amount");
 
   await go(page, "/credits");
   const invite = page.getByRole("region", { name: /Invite friends/ });
-  ok((await invite.getByLabel("Your invite link").textContent()).includes("/?ref="), "the V Coin page has your invite link");
+  ok((await invite.getByLabel("Your invite link").textContent()).includes("/?ref="), "the Methodium page has your invite link");
   ok((await page.getByRole("region", { name: "Bounties: earn bigger" }).locator("article").count()) === 3, "open bounties across Method V");
   const rewards = await page.getByRole("region", { name: "Bounties: earn bigger" }).locator("article .tag-accent").allTextContents();
   ok(rewards.map((r) => Number(r.replace(/\D/g, ""))).join(",") === "40,25,10", `biggest rewards first (${rewards.join(",")})`);
@@ -1033,7 +1033,7 @@ await run("first-time tour", desktop, async (page) => {
     await tour.getByRole("button", { name: "Next" }).click();
     titles.push(await tour.getByRole("heading").textContent());
   }
-  ok(titles.join(" > ") === "Drops > Post your app > Browse > V Coin > Your inbox > Your profile", `walks through the site (${titles.join(" > ")})`);
+  ok(titles.join(" > ") === "Drops > Post your app > Browse > Methodium > Your inbox > Your profile", `walks through the site (${titles.join(" > ")})`);
   await tour.getByRole("button", { name: "Back" }).click();
   ok((await tour.getByRole("heading").textContent()) === "Your inbox", "Back goes back a step");
   await page.keyboard.press("ArrowRight");

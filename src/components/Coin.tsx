@@ -2,7 +2,7 @@ import { COIN_HEIGHT, COIN_WIDTH, pixelCoinRects } from "@/lib/pixel-coin";
 
 const RECTS = pixelCoinRects();
 
-// V Coin, Method V's credits (a mint coin stamped with the logo's V), sized
+// Methodium, Method V's credits (a mint coin stamped with the logo's V), sized
 // to the text around it. Put it right before a number of credits.
 export function Coin({ className = "" }: { className?: string }) {
   return (

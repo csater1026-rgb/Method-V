@@ -34,7 +34,7 @@ export default function PrivacyPage() {
             send to other people.
           </li>
           <li>
-            <strong>What you do:</strong> likes, follows, which apps you open with Try it (and from where on Method V), your V Coin history,
+            <strong>What you do:</strong> likes, follows, which apps you open with Try it (and from where on Method V), your Methodium history,
             and your notification settings.
           </li>
           <li>
@@ -56,7 +56,7 @@ export default function PrivacyPage() {
           <li>To run Method V: sign you in, show your profile and posts, and deliver messages and notifications.</li>
           <li>To show you apps and Drops you&apos;re likely to enjoy, based on what you like and try on Method V.</li>
           <li>To give builders stats about their apps (for example, how many people tried an app and from where).</li>
-          <li>To handle V Coin, payments, sponsorships and payouts.</li>
+          <li>To handle Methodium, payments, sponsorships and payouts.</li>
           <li>To send account emails (like confirming your email or signing in) and notifications you&apos;ve turned on.</li>
           <li>To keep Method V safe: stop spam, fake engagement and abuse.</li>
         </ul>
@@ -68,7 +68,7 @@ export default function PrivacyPage() {
           questions and answers, your Tester Passport, and who you follow.
         </p>
         <p>
-          <strong>Private:</strong> your email address, your V Coin balance and history, your payments and earnings, and your messages
+          <strong>Private:</strong> your email address, your Methodium balance and history, your payments and earnings, and your messages
           (only you and the person you&apos;re talking to). Feedback you give on an app is seen only by you and that app&apos;s builder;
           app pages show only totals.
         </p>

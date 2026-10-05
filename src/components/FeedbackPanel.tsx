@@ -32,7 +32,7 @@ export function FeedbackPanel({ panel, app }: { panel: Panel; app: AppRef }) {
         {open && panel.mode !== "owner" && (
           <span className="tag-accent">
             <Coin />
-            Earn {CREDITS.feedbackReward} V Coin · {open.slots_total - open.slots_filled} spots left
+            Earn {CREDITS.feedbackReward} Methodium · {open.slots_total - open.slots_filled} spots left
           </span>
         )}
       </div>
@@ -54,14 +54,14 @@ export function FeedbackPanel({ panel, app }: { panel: Panel; app: AppRef }) {
               </>
             }
           >
-            Credits here are called V Coin. Spend them to get testers for your own app.
+            Credits here are called Methodium. Spend them to get testers for your own app.
           </HowStep>
         </ol>
       )}
 
       {panel.mode === "demo" && (
         <p className="mt-2 text-sm text-muted">
-          Testers who try an app and leave honest feedback earn credits, called V Coin, and builders spend them to get testers. It&apos;s
+          Testers who try an app and leave honest feedback earn credits, called Methodium, and builders spend them to get testers. It&apos;s
           off in demo mode.
         </p>
       )}
@@ -71,7 +71,7 @@ export function FeedbackPanel({ panel, app }: { panel: Panel; app: AppRef }) {
           <Link href={`/login?next=${encodeURIComponent(`/apps/${app.slug}#feedback`)}`} className="text-accent hover:underline">
             Sign in
           </Link>{" "}
-          to try {app.name}, give feedback{open ? ` and earn ${CREDITS.feedbackReward} V Coin` : ""}.
+          to try {app.name}, give feedback{open ? ` and earn ${CREDITS.feedbackReward} Methodium` : ""}.
         </p>
       )}
 
@@ -80,7 +80,7 @@ export function FeedbackPanel({ panel, app }: { panel: Panel; app: AppRef }) {
           <div className="mt-3">
             <p className="text-sm text-muted">
               {panel.mine.earned > 0
-                ? `Thanks! You earned ${panel.mine.earned} V Coin for this.`
+                ? `Thanks! You earned ${panel.mine.earned} Methodium for this.`
                 : "Thanks! Your feedback went to the builder."}{" "}
               Only you and the builder can see it.
             </p>
@@ -115,7 +115,7 @@ function TryFirst({ app, open }: { app: AppRef; open: TestRequest | null }) {
     <div className="mt-3 flex flex-col gap-3">
       <p className="text-sm text-muted">
         Open {app.name} with Try it, use it for a minute, then come back here to give feedback
-        {open ? ` and earn ${CREDITS.feedbackReward} V Coin` : ""}.
+        {open ? ` and earn ${CREDITS.feedbackReward} Methodium` : ""}.
       </p>
       <div className="flex flex-wrap gap-2">
         <a
@@ -215,7 +215,7 @@ function FeedbackForm({ app, open }: { app: AppRef; open: TestRequest | null }) 
       </p>
       {open && (
         <p className="rounded-lg border border-accent/40 bg-accent/5 px-3 py-2 text-sm">
-          <strong>To earn V Coin:</strong> use the app for at least a minute after tapping Try it, and write a couple of sentences
+          <strong>To earn Methodium:</strong> use the app for at least a minute after tapping Try it, and write a couple of sentences
           ({TESTER_GUARANTEE.minChars}+ characters) about what worked.
         </p>
       )}
@@ -279,8 +279,8 @@ function FeedbackForm({ app, open }: { app: AppRef; open: TestRequest | null }) 
         {open && (
           <span className={`text-xs ${workedLength >= TESTER_GUARANTEE.minChars ? "text-accent" : "text-muted"}`} aria-live="polite">
             {workedLength >= TESTER_GUARANTEE.minChars
-              ? "✓ Long enough to earn V Coin"
-              : `${workedLength}/${TESTER_GUARANTEE.minChars} characters to earn V Coin`}
+              ? "✓ Long enough to earn Methodium"
+              : `${workedLength}/${TESTER_GUARANTEE.minChars} characters to earn Methodium`}
           </span>
         )}
         <ShotPicker label="What worked" shots={workedShots} onChange={setWorkedShots} onError={setError} disabled={pending} />
@@ -476,7 +476,7 @@ function OwnerView({
           </>
         ) : (
           <p className="mt-1 text-sm text-muted">
-            Put {app.name} in the Test &amp; earn queue, where people try apps and give feedback for V Coin. Each tester is{" "}
+            Put {app.name} in the Test &amp; earn queue, where people try apps and give feedback for Methodium. Each tester is{" "}
             {CREDITS.perTester} credits.
           </p>
         )}

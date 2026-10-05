@@ -27,7 +27,7 @@ const STATUS: Record<Bounty["status"], string> = {
   cancelled: "Taken down",
 };
 
-// Bounties on an app's page: tasks the builder pays V Coin for. Anyone can
+// Bounties on an app's page: tasks the builder pays Methodium for. Anyone can
 // answer an open one; the builder picks the best answer and it's paid. If
 // they don't pick by the deadline, it's split between everyone who answered.
 export function BountiesSection({
@@ -53,12 +53,12 @@ export function BountiesSection({
         <h2 id="bounties-title" className="display text-4xl">
           Bounties
         </h2>
-        <span className="text-xs text-muted">Earn V Coin</span>
+        <span className="text-xs text-muted">Earn Methodium</span>
       </div>
       <p className="mt-1 text-sm text-muted">
         {isOwner
-          ? "Pay V Coin for a specific job: find a bug, record a first try, review your pricing page. The reward is held now and paid to the answer you pick."
-          : `Jobs ${app.name}'s builder pays V Coin for. Answer one; the best answer gets the reward.`}
+          ? "Pay Methodium for a specific job: find a bug, record a first try, review your pricing page. The reward is held now and paid to the answer you pick."
+          : `Jobs ${app.name}'s builder pays Methodium for. Answer one; the best answer gets the reward.`}
       </p>
 
       {bounties.length > 0 && (
@@ -160,7 +160,7 @@ export function BountyCard({
               )}
               {open && (
                 <button type="button" disabled={pending} onClick={() => run(() => awardBounty(a.id, app.slug))} className="btn-accent mt-2 px-3 py-1 text-xs">
-                  Pick as best · pay {bounty.reward} V Coin
+                  Pick as best · pay {bounty.reward} Methodium
                 </button>
               )}
             </li>
@@ -169,7 +169,7 @@ export function BountyCard({
       )}
       {isOwner && open && bounty.answer_count === 0 && (
         <button type="button" disabled={pending} onClick={() => run(() => cancelBounty(bounty.id, app.slug))} className="mt-3 text-xs text-muted underline hover:text-ink">
-          Take it down (you get the {bounty.reward} V Coin back)
+          Take it down (you get the {bounty.reward} Methodium back)
         </button>
       )}
 
@@ -264,7 +264,7 @@ function BountyForm({ app, onDone }: { app: { id: string; slug: string }; onDone
       </label>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="flex flex-col gap-1 text-sm font-medium">
-          Reward in V Coin
+          Reward in Methodium
           <input className="field" type="number" min={BOUNTIES.minReward} max={BOUNTIES.maxReward} value={reward} onChange={(e) => setReward(Number(e.target.value))} required />
         </label>
         <label className="flex flex-col gap-1 text-sm font-medium">
@@ -273,12 +273,12 @@ function BountyForm({ app, onDone }: { app: { id: string; slug: string }; onDone
         </label>
       </div>
       <p className="text-xs text-muted">
-        The reward is held from your V Coin now. Pick the best answer to pay it. Nobody answers: you get it back. You don&apos;t pick: it&apos;s split
+        The reward is held from your Methodium now. Pick the best answer to pay it. Nobody answers: you get it back. You don&apos;t pick: it&apos;s split
         between everyone who answered.
       </p>
       <div className="flex gap-2">
         <button className="btn-accent" disabled={pending}>
-          {pending ? "Posting…" : `Post · hold ${reward} V Coin`}
+          {pending ? "Posting…" : `Post · hold ${reward} Methodium`}
         </button>
         <button type="button" onClick={onDone} className="btn-ghost">
           Cancel
@@ -289,7 +289,7 @@ function BountyForm({ app, onDone }: { app: { id: string; slug: string }; onDone
   );
 }
 
-// Open bounties across Method V, on the V Coin page.
+// Open bounties across Method V, on the Methodium page.
 export function BountyList({ bounties }: { bounties: BountyListing[] }) {
   return (
     <ul className="mt-4 flex flex-col gap-3">

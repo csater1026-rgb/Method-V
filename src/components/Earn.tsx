@@ -322,7 +322,7 @@ export function BuyCredits() {
                 <Coin />
                 {p.credits}
               </span>
-              <span className="text-xs text-muted">V Coin</span>
+              <span className="text-xs text-muted">Methodium</span>
               <span className="font-semibold">{formatCents(p.cents)}</span>
               {"note" in p && <span className="tag-accent">{p.note}</span>}
             </button>

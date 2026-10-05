@@ -1,6 +1,6 @@
 // The Spotlight stage on Home (website and phone app): one app on top and
 // three under it. Who gets the four spots, in order:
-//   1. Paid Spotlights (booked with V Coin), first come first served: the
+//   1. Paid Spotlights (booked with Methodium), first come first served: the
 //      earliest booking that's on now takes the top spot, until its time runs
 //      out.
 //   2. Every spot still empty goes to "Today's picks": random apps that change

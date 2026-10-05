@@ -6,7 +6,7 @@ import { EARN, PACKAGE_RULES, formatCents } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Terms of Service",
-  description: "The rules for using Method V: your account, your content, V Coin, Pro, tips, sponsorships and payouts.",
+  description: "The rules for using Method V: your account, your content, Methodium, Pro, tips, sponsorships and payouts.",
 };
 
 // Written in plain English on purpose. The numbers come from constants.ts so
@@ -26,7 +26,7 @@ export default function TermsPage() {
         <ul>
           <li>You must be at least 13 years old to use Method V.</li>
           <li>
-            To buy anything (V Coin, Pro, tips or sponsorships) you must be 18, or have a parent or guardian&apos;s permission. To get paid
+            To buy anything (Methodium, Pro, tips or sponsorships) you must be 18, or have a parent or guardian&apos;s permission. To get paid
             (payouts) you must be 18 or older, because our payment partner requires it.
           </li>
           <li>One person per account. Give us a real email address and keep your password to yourself. You&apos;re responsible for what happens on your account.</li>
@@ -53,12 +53,12 @@ export default function TermsPage() {
           <li>share malware, phishing, scams, or apps that secretly collect people&apos;s data;</li>
           <li>harass, threaten or bully anyone, or post hate speech;</li>
           <li>post sexual content, graphic violence, or anything involving minors in a harmful way;</li>
-          <li>spam, or fake engagement: fake likes, follows, tries or feedback, or several accounts to farm V Coin;</li>
+          <li>spam, or fake engagement: fake likes, follows, tries or feedback, or several accounts to farm Methodium;</li>
           <li>copy other people&apos;s work and post it as your own;</li>
           <li>scrape the site, get around limits, or try to break into accounts or our systems.</li>
         </ul>
         <p>
-          We can remove content, take away V Coin earned by breaking these rules, and suspend or close accounts that break them. If
+          We can remove content, take away Methodium earned by breaking these rules, and suspend or close accounts that break them. If
           something breaks the rules, email us at <MailLink />.
         </p>
       </Section>
@@ -70,13 +70,13 @@ export default function TermsPage() {
         </p>
       </Section>
 
-      <Section title="5. V Coin">
-        <p>V Coin is what we call credits on Method V. You earn them by testing apps and giving feedback, and you can buy packs.</p>
+      <Section title="5. Methodium">
+        <p>Methodium (Mv) is what we call credits on Method V. You earn them by testing apps and giving feedback, and you can buy packs. It used to be called V Coin; only the name changed.</p>
         <ul>
-          <li>V Coin only works on Method V. It has no cash value and can&apos;t be turned into money, sold, or moved to another account.</li>
-          <li>Purchases of V Coin are final, except where the law says otherwise.</li>
-          <li>We may change how many V Coin things cost or earn. We&apos;ll never take away V Coin you earned or bought fairly.</li>
-          <li>If we ever shut Method V down, we&apos;ll give at least 30 days&apos; notice so you can use your V Coin.</li>
+          <li>Methodium only works on Method V. It has no cash value and can&apos;t be turned into money, sold, or moved to another account.</li>
+          <li>Purchases of Methodium are final, except where the law says otherwise.</li>
+          <li>We may change how many Methodium things cost or earn. We&apos;ll never take away Methodium you earned or bought fairly.</li>
+          <li>If we ever shut Method V down, we&apos;ll give at least 30 days&apos; notice so you can use your Methodium.</li>
         </ul>
       </Section>
 
@@ -137,7 +137,7 @@ export default function TermsPage() {
         <p>
           You can stop using Method V at any time. To delete your account, use <strong>Delete account</strong> at the bottom of Edit profile
           on the website, or on the Me tab in the app. It can&apos;t be done while a sponsorship deal or payout is still in progress, so
-          nobody loses money. Deleting your account also deletes your V Coin and any earnings not yet paid out. See
+          nobody loses money. Deleting your account also deletes your Methodium and any earnings not yet paid out. See
           the <Link href="/privacy" className="text-accent hover:underline">Privacy Policy</Link> for what happens to your data.
         </p>
         <p>

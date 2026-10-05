@@ -21,7 +21,7 @@ import { EMAIL_TEMPLATES } from "../src/lib/email-templates.ts";
 import { agreeUrl, hasAgreedToTerms, isOpenPath, isPreviewBot, landingFor, mustAgree, previewFor, safeNextPath, welcomeUrl } from "../src/lib/gate.ts";
 import { confirmMatches } from "../src/lib/account.ts";
 import { describeDatabaseError, loggingFetch } from "../src/lib/supabase/log.ts";
-import { dbMessage, withVCoin } from "../src/lib/db-errors.ts";
+import { dbMessage, withMethodium } from "../src/lib/db-errors.ts";
 import { USERNAME_PATTERN, isDefaultUsername, suggestUsername } from "../src/lib/username.ts";
 import { appLimit, limitMessage } from "../src/lib/app-limit.ts";
 import { RANDOM_STAGE, STAGE_SPOTS, buildStage, dailyPicks, paidOrder, stageOrder } from "../src/lib/spotlight-stage.ts";
@@ -293,7 +293,7 @@ ok(!confirmMatches("ada", "ada_builds") && !confirmMatches("", "ada_builds") && 
   ok(!bad.some(isPushServiceEndpoint), `anything else is refused (${bad.filter(isPushServiceEndpoint).join(", ") || "none got through"})`);
 }
 
-// Security: V Coin balances are private, so the profile columns the site
+// Security: Methodium balances are private, so the profile columns the site
 // reads must match what the database lets anyone read (and never credits).
 {
   const { PROFILE_COLUMNS } = await import("../src/lib/types.ts");
@@ -301,7 +301,7 @@ ok(!confirmMatches("ada", "ada_builds") && !confirmMatches("", "ada_builds") && 
   const sql = readFileSync(new URL("../supabase/migrations/20261011000000_security_hardening.sql", import.meta.url), "utf8");
   const granted = new Set(sql.match(/grant select \(([^)]*)\)/)![1].split(",").map((c) => c.trim()));
   const read = PROFILE_COLUMNS.split(",").map((c) => c.trim());
-  ok(!granted.has("credits") && !read.includes("credits"), "nobody reads V Coin balances off profiles");
+  ok(!granted.has("credits") && !read.includes("credits"), "nobody reads Methodium balances off profiles");
   ok(read.every((c) => granted.has(c)), `every profile column the site reads is readable (${read.filter((c) => !granted.has(c)).join(", ") || "all"})`);
 }
 
@@ -369,15 +369,16 @@ ok(!confirmMatches("ada", "ada_builds") && !confirmMatches("", "ada_builds") && 
   }
 }
 
-// --- The database's own messages reach people, in V Coin words ---
+// --- The database's own messages reach people, in Methodium words ---
 {
   const tooFast = { code: "P0001", message: "You're doing that too fast. Take a short break and try again." };
   ok(dbMessage(tooFast, "Couldn't post your question.") === tooFast.message, "the spam limit's message is shown as it is");
   ok(dbMessage({ code: "42501", message: "new row violates row-level security policy" }, "Couldn't post.") === "Couldn't post.", "other errors get the plain fallback");
   ok(dbMessage(null, "x") === "x" && dbMessage(undefined, "x") === "x", "no error, no message");
-  ok(withVCoin("That costs 50 credits and you have 20.") === "That costs 50 V Coin and you have 20.", "older messages say V Coin");
-  ok(withVCoin("The Spotlight costs 200 credits and you have 0.") === "The Spotlight costs 200 V Coin and you have 0." && withVCoin("Pick a credit pack.") === "Pick a V Coin pack.", "the Spotlight and pack messages too");
-  ok(dbMessage({ code: "P0001", message: "That costs 50 credits and you have 20." }, "x") === "That costs 50 V Coin and you have 20.", "and they're reworded on the way out");
+  ok(withMethodium("That costs 50 credits and you have 20.") === "That costs 50 Methodium and you have 20.", "older messages say Methodium");
+  ok(withMethodium("The Spotlight costs 200 credits and you have 0.") === "The Spotlight costs 200 Methodium and you have 0." && withMethodium("Pick a credit pack.") === "Pick a Methodium pack.", "the Spotlight and pack messages too");
+  ok(withMethodium("You need 50 V Coin for that. Earn more by testing apps.") === "You need 50 Methodium for that. Earn more by testing apps.", "messages that say V Coin say Methodium");
+  ok(dbMessage({ code: "P0001", message: "That costs 50 credits and you have 20." }, "x") === "That costs 50 Methodium and you have 20.", "and they're reworded on the way out");
 }
 
 // --- First sign-in: a real username instead of builder_1a2b3c… ---

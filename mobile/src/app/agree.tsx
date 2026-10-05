@@ -52,7 +52,7 @@ export default function AgreeScreen() {
       <Wordmark size={26} />
       <Eyebrow>Welcome to Method V</Eyebrow>
       <Display size={42}>One more step</Display>
-      <Body muted>Before you start, please read and agree to how Method V works: the rules, V Coin, payments, and what we do with your data.</Body>
+      <Body muted>Before you start, please read and agree to how Method V works: the rules, Methodium, payments, and what we do with your data.</Body>
 
       <Pressable
         accessibilityRole="checkbox"

@@ -37,8 +37,8 @@ const KIND_LABEL: Record<string, string> = {
   payout_failed: "Payout returned",
 };
 
-// The V Store (it replaced Earn): an item shop up top where V Coin buys
-// upgrades (V Coin is spend-only, never money), then a builder's real
+// The V Store (it replaced Earn): an item shop up top where Methodium buys
+// upgrades (Methodium is spend-only, never money), then a builder's real
 // money below: balance and payouts, sponsorship deals, and where it all came
 // from. /earn redirects here.
 export default async function StorePage({ searchParams }: PageProps<"/store">) {
@@ -46,7 +46,7 @@ export default async function StorePage({ searchParams }: PageProps<"/store">) {
   const viewer = await getViewer();
   if (isSupabaseConfigured && !viewer) redirect("/login?next=/store");
 
-  // Demo mode previews the store as Ada with 30 V Coin.
+  // Demo mode previews the store as Ada with 30 Methodium.
   const profile = isSupabaseConfigured ? await getOwnProfile() : demoProfiles[0];
   const pro = isPro(profile);
   const [store, apps, nextSpotlightAt] = await Promise.all([
@@ -112,20 +112,20 @@ export default async function StorePage({ searchParams }: PageProps<"/store">) {
     <div className="mx-auto w-full max-w-5xl px-4 py-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="eyebrow">Spend your V Coin</p>
+          <p className="eyebrow">Spend your Methodium</p>
           <h1 className="display rise mt-1 -skew-x-6 text-7xl uppercase">V Store</h1>
         </div>
         <Link
           href="/credits"
           className="flex items-center gap-2 rounded-xl border border-line bg-surface px-4 py-2.5 hover:border-accent"
-          aria-label={`${credits} V Coin. See your V Coin history`}
+          aria-label={`${credits} Methodium. See your Methodium history`}
         >
           <span className="font-mono text-3xl font-bold">
             <Coin />
             {credits}
           </span>
           <span className="text-xs text-muted">
-            V Coin
+            Methodium
             <br />
             History →
           </span>
@@ -142,7 +142,7 @@ export default async function StorePage({ searchParams }: PageProps<"/store">) {
         spotlightWait={spotlightWait}
       />
       <p className="mt-4 text-sm text-muted">
-        Need more V Coin?{" "}
+        Need more Methodium?{" "}
         <Link href="/test" className="text-accent hover:underline">
           Earn it testing apps
         </Link>{" "}
@@ -150,7 +150,7 @@ export default async function StorePage({ searchParams }: PageProps<"/store">) {
         <Link href="/credits#buy" className="text-accent hover:underline">
           buy a pack
         </Link>
-        . V Coin can&apos;t be turned into money.
+        . Methodium can&apos;t be turned into money.
       </p>
 
       <div id="earnings" className="mt-16 scroll-mt-24 border-t border-line pt-10">

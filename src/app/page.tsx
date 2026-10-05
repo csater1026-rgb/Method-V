@@ -147,7 +147,7 @@ export default async function HomePage() {
         <span className="min-w-0">
           <span className="block font-semibold">🏆 Monthly leaderboards</span>
           <span className="block text-sm text-muted">
-            Top builders and top testers. 1st, 2nd and 3rd win {LEADERBOARD_PRIZES.join(", ")} V Coin when the month ends.
+            Top builders and top testers. 1st, 2nd and 3rd win {LEADERBOARD_PRIZES.join(", ")} Methodium when the month ends.
           </span>
         </span>
         <span className="shrink-0 text-sm font-semibold text-accent">See them →</span>

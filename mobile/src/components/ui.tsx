@@ -213,7 +213,7 @@ export function Handle({ username, size = 15 }: { username: string; size?: numbe
   );
 }
 
-// V Coin, Method V's credits (a mint coin stamped with the logo's V), the
+// Methodium, Method V's credits (a mint coin stamped with the logo's V), the
 // same as the website's. Drawn from the website's src/lib/pixel-coin.ts.
 const COIN_PIXELS = pixelCoinRects();
 

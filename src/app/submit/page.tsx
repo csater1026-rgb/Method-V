@@ -56,7 +56,7 @@ export default async function SubmitPage() {
               Add a Drop to one of your apps
             </Link>
             <Link href="/test" className="btn-ghost">
-              Test apps and earn V Coin
+              Test apps and earn Methodium
             </Link>
           </p>
         </section>

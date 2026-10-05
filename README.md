@@ -27,7 +27,7 @@ It's live at **[methodv.app](https://methodv.app)**, with a phone app for iPhone
 | 📤 **Post in 2 minutes** | Paste your link. Method V reads your site (even an App Store or Google Play page) and fills in the name, tagline and category. Add a 60-second demo video if you want. |
 | 📱 **The Drops feed** | A swipeable, full-screen feed of app demos, like TikTok for apps. One tap on **Try it** opens the real thing. The "For you" ranking learns what each person is into. |
 | 💬 **Honest feedback** | After trying an app, people answer: would you use it, what worked, and what confused you, with screenshots. Only the builder sees it. |
-| 🪙 **Test & earn** | Testers earn credits (V Coin) for helpful feedback. Builders spend them to get more testers. Helping others is how you get help. |
+| 🪙 **Test & earn** | Testers earn credits (Methodium) for helpful feedback. Builders spend them to get more testers. Helping others is how you get help. |
 | ❓ **Questions and polls** | Builders ask their users anything, with one-tap polls, right in the feed. |
 | 👤 **Profiles and reputation** | Followers, your apps, a Tester Passport with ranks and stamps, and a status like Hiring or Open to collab. |
 | 🚀 **Grow** | Launch days, a Spotlight spot on the home page, challenges with prizes, an embeddable Try-it badge, and stats on where your tries come from. |
@@ -40,7 +40,7 @@ The screenshots show the site's built-in sample apps.
 | | |
 |---|---|
 | ![Post your app](docs/screenshots/02-post-your-app.jpg) | ![Swipe through Drops](docs/screenshots/03-drops-feed.jpg) |
-| ![Real people try it](docs/screenshots/04-try-it.jpg) | ![Test apps, earn V Coin](docs/screenshots/05-test-and-earn.jpg) |
+| ![Real people try it](docs/screenshots/04-try-it.jpg) | ![Test apps, earn Methodium](docs/screenshots/05-test-and-earn.jpg) |
 | ![Questions and polls](docs/screenshots/06-questions.jpg) | ![Builder profiles](docs/screenshots/07-builder-profile.jpg) |
 | ![Browse and search](docs/screenshots/08-browse.jpg) | ![Featured apps and builders](docs/screenshots/09-home.jpg) |
 | ![Launch days and Spotlight](docs/screenshots/10-grow.jpg) | ![Sponsorship packages](docs/screenshots/11-sponsorships.jpg) |

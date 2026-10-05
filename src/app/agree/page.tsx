@@ -30,7 +30,7 @@ export default async function AgreePage({ searchParams }: PageProps<"/agree">) {
       <p className="eyebrow">Welcome to Method V</p>
       <h1 className="display rise mt-1 text-6xl">One more step</h1>
       <p className="mt-2 text-muted">
-        Before you start, please read and agree to how Method V works: the rules, V Coin, payments, and what we do with your data.
+        Before you start, please read and agree to how Method V works: the rules, Methodium, payments, and what we do with your data.
       </p>
       <AgreeForm next={next} />
       <div className="mt-6 text-center">

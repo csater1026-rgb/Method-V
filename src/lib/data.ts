@@ -203,7 +203,7 @@ function toFeedback(row: any, links: Map<string, string> = new Map()): Feedback 
 
 const demoProfile = (id: string) => demoProfiles.find((p) => p.id === id)!;
 
-// Your V Coin balance. Balances are private: my_credits() reads only your own.
+// Your Methodium balance. Balances are private: my_credits() reads only your own.
 async function myCredits(supabase: Awaited<ReturnType<typeof createClient>>): Promise<number> {
   const { data, error } = await supabase.rpc("my_credits");
   if (error) console.error("my_credits failed", error.code, error.message);
@@ -1987,7 +1987,7 @@ export async function getAnalytics(appId: string, days: number): Promise<Analyti
 
 
 // ---------------------------------------------------------------------------
-// More to do with V Coin: perks, bounties, invites
+// More to do with Methodium: perks, bounties, invites
 // (20261019000000_v_coin_economy.sql). Each read is quiet (empty) until that
 // file has been run.
 // ---------------------------------------------------------------------------
@@ -2081,7 +2081,7 @@ export async function getAppBounties(app: { id: string }, viewer: Viewer | null)
   return rows.map((b: any) => ({ ...b, answers: answers.get(b.id) ?? [] }) as Bounty);
 }
 
-// Open bounties across Method V, biggest rewards first (V Coin page).
+// Open bounties across Method V, biggest rewards first (Methodium page).
 export async function getOpenBounties(limit = 12): Promise<BountyListing[]> {
   if (!isSupabaseConfigured) {
     return demoBounties.map((b) => ({ ...demoBounty(b), app: demoAppRef(b.app_id) })).sort((a, b) => b.reward - a.reward).slice(0, limit);
@@ -2099,7 +2099,7 @@ export async function getOpenBounties(limit = 12): Promise<BountyListing[]> {
   return data.map((b: any) => ({ ...b, answers: [] }) as BountyListing);
 }
 
-// Perks you can unlock across Method V, newest first (V Coin page).
+// Perks you can unlock across Method V, newest first (Methodium page).
 export async function getPerkListings(viewer: Viewer | null, limit = 12): Promise<PerkListing[]> {
   if (!isSupabaseConfigured) return demoPerks.map((p) => ({ ...demoPerk(p), app: demoAppRef(p.app_id) })).slice(0, limit);
   const supabase = await createClient();

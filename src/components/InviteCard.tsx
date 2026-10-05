@@ -7,7 +7,7 @@ import { REFERRALS } from "@/lib/constants";
 import { Coin } from "./Coin";
 
 // Your invite link. When a friend who joined with it posts their first Drop
-// or earns their first feedback reward, you both get REFERRALS.bonus V Coin.
+// or earns their first feedback reward, you both get REFERRALS.bonus Methodium.
 export function InviteCard({ link, joined, rewarded }: { link: string; joined: number; rewarded: number }) {
   const [copied, setCopied] = useState(false);
   return (
@@ -17,7 +17,7 @@ export function InviteCard({ link, joined, rewarded }: { link: string; joined: n
       </h2>
       <p className="mt-1 text-sm text-muted">
         Share your link. When a friend who joins with it posts their first Drop or gives their first paid feedback, you each get{" "}
-        {REFERRALS.bonus} V Coin.
+        {REFERRALS.bonus} Methodium.
       </p>
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <code className="min-w-0 flex-1 truncate rounded-md border border-line bg-bg px-3 py-2 font-mono text-sm" aria-label="Your invite link">

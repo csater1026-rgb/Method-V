@@ -132,7 +132,7 @@ export default function PostScreen() {
             </Body>
             {SITE_URL ? (
               <Button
-                label={`Get an extra post · ${V_STORE.appPost.cost} V Coin ↗`}
+                label={`Get an extra post · ${V_STORE.appPost.cost} Methodium ↗`}
                 kind="ghost"
                 onPress={() => void WebBrowser.openBrowserAsync(`${SITE_URL}/store`)}
               />
@@ -331,7 +331,7 @@ function Field({ t, label, hint, ...props }: React.ComponentProps<typeof TextInp
   );
 }
 
-// "Post a Drop, get +10 V Coin" while the promotion runs (same as the website).
+// "Post a Drop, get +10 Methodium" while the promotion runs (same as the website).
 function DropBonus() {
   const t = useTheme();
   const { data: promo } = useLoad(() => getPromotion("drop_bonus"), []);
@@ -339,7 +339,7 @@ function DropBonus() {
   const ends = new Date(promo.ends_at).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/Los_Angeles" });
   return (
     <Card style={{ gap: 4, borderColor: t.accent }}>
-      <Body bold>🎉 Post a Drop, get +{promo.amount} V Coin</Body>
+      <Body bold>🎉 Post a Drop, get +{promo.amount} Methodium</Body>
       <Body muted size={13}>
         Until {ends}: one bonus per app, up to {promo.per_day} a day. Spend it on testers or a Spotlight on Featured.
       </Body>

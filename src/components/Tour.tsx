@@ -18,7 +18,7 @@ const STEPS: Step[] = [
   },
   {
     title: "Featured",
-    body: "The Spotlight sits up top: apps whose builders booked it with V Coin, plus new random picks every day. Tap any card to open the app, try it and leave feedback.",
+    body: "The Spotlight sits up top: apps whose builders booked it with Methodium, plus new random picks every day. Tap any card to open the app, try it and leave feedback.",
     target: ["featured"],
   },
   {
@@ -37,8 +37,8 @@ const STEPS: Step[] = [
     target: ["browse"],
   },
   {
-    title: "V Coin",
-    body: "Credits on Method V are called V Coin. Earn them by testing apps and giving feedback, then spend them in the V Store: Pro, extra app posts, a Spotlight spot, or testers for your own app.",
+    title: "Methodium",
+    body: "Credits on Method V are called Methodium (Mv), a made-up element. Earn it by testing apps and giving feedback, then spend it in the V Store: Pro, extra app posts, a Spotlight spot, or testers for your own app.",
     target: ["credits"],
   },
   {
@@ -53,7 +53,7 @@ const STEPS: Step[] = [
   },
   {
     title: "You're all set",
-    body: "Start by testing an app (and earning V Coin), or post your own.",
+    body: "Start by testing an app (and earning Methodium), or post your own.",
   },
 ];
 

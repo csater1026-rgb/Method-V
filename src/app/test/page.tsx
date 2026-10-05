@@ -9,7 +9,7 @@ import { Coin } from "@/components/Coin";
 
 export const metadata: Metadata = {
   title: "Test & earn",
-  description: "Try new apps, give honest feedback and earn credits (V Coin) to get testers for your own.",
+  description: "Try new apps, give honest feedback and earn credits (Methodium) to get testers for your own.",
 };
 
 export default async function TestPage() {
@@ -20,7 +20,7 @@ export default async function TestPage() {
     <div className="mx-auto w-full max-w-6xl px-4 py-8">
       <h1 className="display rise text-6xl sm:text-7xl">Test &amp; earn</h1>
       <p className="mt-1 max-w-2xl text-muted">
-        These builders want real feedback. Try their app, tell them what worked and what didn&apos;t, and earn credits, called V Coin, you
+        These builders want real feedback. Try their app, tell them what worked and what didn&apos;t, and earn credits, called Methodium, you
         can spend to get testers for your own app.
       </p>
 
@@ -55,7 +55,7 @@ export default async function TestPage() {
           </Link>
         ) : (
           <Link href="/login?next=/test" className="text-sm text-accent hover:underline">
-            Sign in to earn V Coin
+            Sign in to earn Methodium
           </Link>
         )}
       </div>

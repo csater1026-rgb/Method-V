@@ -37,7 +37,7 @@ import {
 import { sitePreview, type SitePreview } from "@/lib/site-preview";
 import { SOCIALS, cleanHandle } from "@/lib/socials";
 import { DEMO_MODE_MESSAGE, DROPS_BUCKET, authProviders, isSupabaseConfigured, type AuthProvider } from "@/lib/supabase/env";
-import { dbMessage, withVCoin } from "@/lib/db-errors";
+import { dbMessage, withMethodium } from "@/lib/db-errors";
 import { deleteAccount } from "@/lib/delete-account";
 import { removePost } from "@/lib/remove-post";
 import { applyReferral } from "@/lib/referral";
@@ -613,7 +613,7 @@ export async function submitFeedback(appId: string, appSlug: string, input: NewF
 
 function rpcError(message: string | undefined, fallback: string): string {
   // Messages raised by our database functions are written for people; anything else isn't.
-  return message && !/permission|violates|function|column|relation/i.test(message) ? withVCoin(message) : fallback;
+  return message && !/permission|violates|function|column|relation/i.test(message) ? withMethodium(message) : fallback;
 }
 
 export async function requestTesters(appId: string, appSlug: string, testers: number): Promise<ActionResult> {
@@ -1194,7 +1194,7 @@ export async function reportPackage(dealId: string, problem: string): Promise<Ac
 export async function buyCredits(credits: number): Promise<CheckoutResult> {
   const pack = CREDIT_PACKS.find((p) => p.credits === credits);
   if (!pack) return { ok: false, error: "Pick a credit pack." };
-  return startCheckout({ kind: "credits", ref: null, amount: pack.credits }, `${pack.credits} V Coin (Method V credits)`, "/credits");
+  return startCheckout({ kind: "credits", ref: null, amount: pack.credits }, `${pack.credits} Methodium (Method V credits)`, "/credits");
 }
 
 export async function fundSponsorship(id: string): Promise<CheckoutResult> {
@@ -1402,7 +1402,7 @@ export async function deleteBrand(brandId: string): Promise<ActionResult> {
 }
 
 // ---------------------------------------------------------------------------
-// More to do with V Coin: perks, bounties, tips (20261019000000_v_coin_economy.sql)
+// More to do with Methodium: perks, bounties, tips (20261019000000_v_coin_economy.sql)
 // ---------------------------------------------------------------------------
 
 export type PerkInput = { id: string | null; title: string; details: string; secret: string; cost: number; quantity: number | null; active: boolean };
@@ -1418,7 +1418,7 @@ export async function savePerk(appId: string, appSlug: string, input: PerkInput)
     (title.length < 3 || title.length > 80 ? "Give the perk a name (3 to 80 characters)." : null) ??
     (!secret ? "Add the code or link people get when they unlock it." : null) ??
     (secret.length > 500 ? "Keep the code or link under 500 characters." : null) ??
-    (!Number.isFinite(cost) || cost < 5 || cost > 500 ? "Perks cost 5 to 500 V Coin." : null) ??
+    (!Number.isFinite(cost) || cost < 5 || cost > 500 ? "Perks cost 5 to 500 Methodium." : null) ??
     (quantity !== null && (!Number.isFinite(quantity) || quantity < 1 || quantity > 1000) ? "How many: 1 to 1,000 (or leave it empty for no limit)." : null);
   return callRpc(
     "save_perk",
@@ -1462,7 +1462,7 @@ export async function postBounty(
   const invalid =
     unknownApp(appId) ??
     (title.length < 5 || title.length > 100 ? "Say what you want done (5 to 100 characters)." : null) ??
-    (!Number.isFinite(reward) || reward < 5 || reward > 200 ? "Rewards are 5 to 200 V Coin." : null);
+    (!Number.isFinite(reward) || reward < 5 || reward > 200 ? "Rewards are 5 to 200 Methodium." : null);
   return callRpc(
     "post_bounty",
     { p_app: appId, p_title: title, p_details: String(input.details ?? "").trim().slice(0, 1000), p_reward: reward, p_days: days },
@@ -1496,7 +1496,7 @@ export async function sendTip(toId: string, amount: number, appId: string | null
   const invalid =
     (!UUID.test(toId) ? "Unknown person." : null) ??
     (appId && !UUID.test(appId) ? "Unknown app." : null) ??
-    (!Number.isFinite(n) || n < 1 || n > 50 ? "Tips are 1 to 50 V Coin." : null);
+    (!Number.isFinite(n) || n < 1 || n > 50 ? "Tips are 1 to 50 Methodium." : null);
   return callRpc(
     "send_tip",
     { p_to: toId, p_amount: n, p_app: appId || null, p_note: String(note ?? "").trim().slice(0, 140) },
@@ -1507,10 +1507,10 @@ export async function sendTip(toId: string, amount: number, appId: string | null
 }
 
 // ---------------------------------------------------------------------------
-// The V Store: upgrades bought with V Coin
+// The V Store: upgrades bought with Methodium
 // ---------------------------------------------------------------------------
 
 export async function buyStoreItem(item: "pro" | "app_post"): Promise<ActionResult> {
   const invalid = item === "pro" || item === "app_post" ? null : "That isn't in the V Store.";
-  return callRpc("buy_store_item", { p_item: item }, "Couldn't finish that. Your V Coin wasn't spent.", ["/store", "/pro", "/submit", "/credits"], invalid);
+  return callRpc("buy_store_item", { p_item: item }, "Couldn't finish that. Your Methodium wasn't spent.", ["/store", "/pro", "/submit", "/credits"], invalid);
 }

@@ -100,7 +100,7 @@ export default async function StatsPage() {
 }
 
 const KINDS: Record<string, string> = {
-  credits: "V Coin packs",
+  credits: "Methodium packs",
   pro: "Pro",
   tip: "Tips",
   sponsorship: "Boost Exchange sponsorships",

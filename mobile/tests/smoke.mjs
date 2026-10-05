@@ -48,13 +48,13 @@ async function visit(path, shot) {
 
 // The post-a-Drop bonus pops up on Home the first time (demo promotion).
 await visit("/", "drop-bonus-popup");
-ok(await page.getByText("Post a Drop, get +10 V Coin").isVisible(), "the Drop bonus pops up on Home");
+ok(await page.getByText("Post a Drop, get +10 Methodium").isVisible(), "the Drop bonus pops up on Home");
 ok(await page.getByRole("button", { name: "Post a Drop →" }).isVisible(), "with a button to post a Drop");
 await page.getByRole("button", { name: "Close" }).click();
 await page.waitForTimeout(400);
-ok((await page.getByText("Post a Drop, get +10 V Coin").count()) === 0, "✕ closes it");
+ok((await page.getByText("Post a Drop, get +10 Methodium").count()) === 0, "✕ closes it");
 await visit("/", "home");
-ok((await page.getByText("Post a Drop, get +10 V Coin").count()) === 0, "and it stays closed");
+ok((await page.getByText("Post a Drop, get +10 Methodium").count()) === 0, "and it stays closed");
 ok(await page.getByText("In the Spotlight", { exact: true }).first().isVisible(), "Home shows the Spotlight stage");
 ok((await page.getByText("Today's pick", { exact: true }).count()) > 0, "empty Spotlight spots get Today's picks");
 ok((await page.getByText("NoteFlow").count()) > 0, "Home lists the sample apps");
@@ -156,12 +156,12 @@ for (const [path, title] of [["/q/nope", "Question not found"], ["/apps/nope", "
 
 await visit("/browse", "browse");
 {
-  // The monthly leaderboards live on Browse; the top 3 win V Coin.
+  // The monthly leaderboards live on Browse; the top 3 win Methodium.
   ok(await page.getByText("Top builders ·", { exact: false }).first().isVisible(), "Browse shows the top builders");
   ok((await page.getByText("Top testers ·", { exact: false }).count()) > 0, "…and the top testers");
   ok(await page.getByRole("link", { name: /^1\. Okafor Studio/ }).first().isVisible(), "the top builder leads the board");
-  ok((await page.getByText("1st wins 25 V Coin", { exact: false }).count()) === 2, "both boards say what the top 3 win");
-  ok((await page.getByLabel("wins 25 V Coin").count()) === 2, "1st place on each board shows +25");
+  ok((await page.getByText("1st wins 25 Methodium", { exact: false }).count()) === 2, "both boards say what the top 3 win");
+  ok((await page.getByLabel("wins 25 Methodium").count()) === 2, "1st place on each board shows +25");
   await page.getByText("Top builders ·", { exact: false }).first().scrollIntoViewIfNeeded();
   await page.waitForTimeout(400);
   await page.screenshot({ path: `${OUT}browse-leaderboards.png` });
@@ -225,7 +225,7 @@ await page.getByRole("button", { name: "Take the tour" }).click();
 await page.getByText("Welcome to Method V").waitFor({ timeout: 5000 });
 ok(new URL(page.url()).pathname === "/", "the tour starts on Home");
 await page.getByRole("button", { name: "Start the tour" }).click();
-ok(await page.getByText("apps whose builders booked it with V Coin", { exact: false }).isVisible(), "step 1: Featured");
+ok(await page.getByText("apps whose builders booked it with Methodium", { exact: false }).isVisible(), "step 1: Featured");
 await page.getByRole("button", { name: "Next" }).click();
 await page.waitForTimeout(600);
 ok(new URL(page.url()).pathname === "/drops" && (await page.getByText("Swipe through 60-second demos", { exact: false }).isVisible()), "step 2 opens the Drops tab");

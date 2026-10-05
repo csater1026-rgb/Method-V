@@ -332,7 +332,7 @@ export const demoChallenges = [
 
 export const demoDay = ago;
 
-// Perks people unlock with V Coin, and bounties builders post (V Coin page,
+// Perks people unlock with Methodium, and bounties builders post (Methodium page,
 // app pages). Codes are never shown in demo mode.
 export const demoPerks = [
   { id: "demo-perk-noteflow", app_id: "demo-app-noteflow", title: "3 months of NoteFlow Pro", details: "Unlimited meetings and the Slack integration.", cost: 30, quantity: 50, claimed_count: 12 },

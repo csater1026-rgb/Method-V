@@ -61,11 +61,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!supabase || !s) return setViewer(null);
     const [{ data, error }, balance] = await Promise.all([
       supabase.from("profiles").select("id, username, display_name, roles, avatar_path").eq("id", s.user.id).maybeSingle(),
-      // V Coin balances are private: my_credits() reads only your own.
+      // Methodium balances are private: my_credits() reads only your own.
       supabase.rpc("my_credits"),
     ]);
     const credits = Number(balance.data ?? 0);
-    if (balance.error) console.warn("Couldn't load your V Coin", balance.error.message);
+    if (balance.error) console.warn("Couldn't load your Methodium", balance.error.message);
     if (error) console.warn("Couldn't load your profile", error.message);
     setViewer(
       data

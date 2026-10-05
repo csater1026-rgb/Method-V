@@ -16,7 +16,7 @@ function endDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/Los_Angeles" });
 }
 
-// "Post a Drop, get +10 V Coin" as a pop-up the first time someone opens Home
+// "Post a Drop, get +10 Methodium" as a pop-up the first time someone opens Home
 // while the promotion runs (after the first-time tour, never on top of it).
 // Post a Drop goes to the post page; ✕, Not now, Escape or a tap outside
 // closes it.
@@ -82,10 +82,10 @@ export function DropBonusPopup({ promo, userId }: { promo: Promotion | null; use
           <Coin className="h-9 w-9" />
         </div>
         <h2 id="drop-bonus-title" className="display mt-3 text-5xl leading-none">
-          Post a Drop, get +{promo.amount} V Coin
+          Post a Drop, get +{promo.amount} Methodium
         </h2>
         <p className="mt-3 text-sm text-white/80">
-          Share a 60-second demo of what you built and we&apos;ll add {promo.amount} V Coin to your account. Spend it on testers or a
+          Share a 60-second demo of what you built and we&apos;ll add {promo.amount} Methodium to your account. Spend it on testers or a
           Spotlight spot at the top of Home.
         </p>
         <p className="mt-2 text-xs text-white/60">

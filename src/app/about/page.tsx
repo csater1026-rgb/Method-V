@@ -102,11 +102,11 @@ export default function AboutPage() {
           </div>
           <div id="testers" className="rounded-2xl border border-line bg-surface p-6">
             <p className="eyebrow">For testers</p>
-            <h2 className="display mt-1 text-4xl">Try new apps, earn V Coin</h2>
+            <h2 className="display mt-1 text-4xl">Try new apps, earn Methodium</h2>
             <ul className="mt-3 flex flex-col gap-2 text-ink/90">
               <li>• Find apps before anyone else and help shape them.</li>
               <li>
-                • Earn {CREDITS.feedbackReward} V Coin (Method V&apos;s credits) for each piece of real feedback in Test &amp; earn.
+                • Earn {CREDITS.feedbackReward} Methodium (Method V&apos;s credits) for each piece of real feedback in Test &amp; earn.
               </li>
               <li>• Spend them to get testers for your own app, or a Spotlight spot.</li>
               <li>• Build a Tester Passport: ranks and stamps that show you give useful feedback.</li>
@@ -123,7 +123,7 @@ export default function AboutPage() {
         <div className="mt-4 flex flex-col gap-3">
           <Faq q="Is it free?">
             Yes. Posting your app, trying apps and giving or getting feedback are free. Optional extras cost money: Pro (more stats and a
-            cheaper Spotlight), V Coin packs, and sponsorships.
+            cheaper Spotlight), Methodium packs, and sponsorships.
           </Faq>
           <Faq q="Do I need a demo video?">
             No. A {MAX_DROP_SECONDS}-second screen recording helps people get it fast and puts your app in the Drops feed, but you can post

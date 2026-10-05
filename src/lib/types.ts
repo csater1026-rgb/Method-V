@@ -32,7 +32,7 @@ export type Profile = {
   cover_path?: string | null;
 };
 
-// The profile columns anyone may read. Everything except credits (a V Coin
+// The profile columns anyone may read. Everything except credits (a Methodium
 // balance is private: read your own with the my_credits() function). Must
 // match the grant in supabase/migrations/20261011000000_security_hardening.sql
 // (the unit tests check).
@@ -127,7 +127,7 @@ export type Viewer = {
   avatar_url?: string | null;
 };
 
-// A running promotion (public.promotions), e.g. "post a Drop, get 10 V Coin".
+// A running promotion (public.promotions), e.g. "post a Drop, get 10 Methodium".
 export type Promotion = { slug: string; amount: number; ends_at: string; per_day: number };
 
 export type TestRequest = {
@@ -215,7 +215,7 @@ export type Swap = {
   to: SwapApp;
 };
 
-// A deal on an app that people unlock with V Coin. `secret` (the code or
+// A deal on an app that people unlock with Methodium. `secret` (the code or
 // link) is only set for the builder and for people who unlocked it.
 export type Perk = {
   id: string;
@@ -248,7 +248,7 @@ export type Bounty = {
   answers: BountyAnswer[];
 };
 
-// Open bounties and perks across Method V, for the V Coin page.
+// Open bounties and perks across Method V, for the Methodium page.
 export type BountyListing = Bounty & { app: { slug: string; name: string } };
 export type PerkListing = Perk & { app: { slug: string; name: string } };
 

@@ -11,7 +11,7 @@ import { Avatar, Body, Card, Display, Handle, Mono } from "./ui";
 type Row = { user_id: string; username: string; display_name: string; avatar_url?: string | null; stat: string };
 
 // A monthly leaderboard card on Browse (top builders, top testers), like the
-// website's. The top 3 win V Coin when the month ends (LEADERBOARD_PRIZES).
+// website's. The top 3 win Methodium when the month ends (LEADERBOARD_PRIZES).
 export function Leaderboard({ title, note, empty, rows, limit = 5 }: { title: string; note: string; empty: string; rows: Row[]; limit?: number }) {
   const t = useTheme();
   const router = useRouter();
@@ -26,7 +26,7 @@ export function Leaderboard({ title, note, empty, rows, limit = 5 }: { title: st
       </Body>
       <View style={{ alignSelf: "flex-start", borderWidth: 1, borderColor: t.accent, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 }}>
         <Body size={12} bold>
-          🏆 At the end of the month: 1st wins {LEADERBOARD_PRIZES[0]} V Coin · 2nd {LEADERBOARD_PRIZES[1]} · 3rd {LEADERBOARD_PRIZES[2]}
+          🏆 At the end of the month: 1st wins {LEADERBOARD_PRIZES[0]} Methodium · 2nd {LEADERBOARD_PRIZES[1]} · 3rd {LEADERBOARD_PRIZES[2]}
         </Body>
       </View>
       {rows.length === 0 ? (
@@ -51,7 +51,7 @@ export function Leaderboard({ title, note, empty, rows, limit = 5 }: { title: st
             </Body>
             <Mono>{r.stat}</Mono>
             {i < 3 && (
-              <Mono style={{ color: t.accent, fontSize: 12 }} accessibilityLabel={`wins ${LEADERBOARD_PRIZES[i]} V Coin`}>
+              <Mono style={{ color: t.accent, fontSize: 12 }} accessibilityLabel={`wins ${LEADERBOARD_PRIZES[i]} Methodium`}>
                 +{LEADERBOARD_PRIZES[i]}
               </Mono>
             )}

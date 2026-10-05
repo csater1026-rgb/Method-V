@@ -106,7 +106,7 @@ export default async function BrowsePage({ searchParams }: PageProps<"/browse">)
 
       <UpcomingLaunches apps={upcoming} />
 
-      {/* This month's leaderboards: the top 3 on each win V Coin when the month ends. */}
+      {/* This month's leaderboards: the top 3 on each win Methodium when the month ends. */}
       {!hasFilters && (
         <section id="leaderboards" aria-labelledby="leaderboards-title" className="mt-8 scroll-mt-20">
           <h2 id="leaderboards-title" className="display text-4xl">

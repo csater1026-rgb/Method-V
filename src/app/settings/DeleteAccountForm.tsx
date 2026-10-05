@@ -30,7 +30,7 @@ export function DeleteAccountForm({ username }: { username: string }) {
       <p className="mt-1 text-sm text-ink/90">This can&apos;t be undone. It permanently deletes:</p>
       <ul className="mt-2 ml-5 list-disc text-sm text-ink/90">
         <li>your profile, apps, Drops, questions, answers and messages;</li>
-        <li>your V Coin, Pro, and any earnings not yet paid out.</li>
+        <li>your Methodium, Pro, and any earnings not yet paid out.</li>
       </ul>
       <form
         className="mt-3 flex flex-col gap-2"
