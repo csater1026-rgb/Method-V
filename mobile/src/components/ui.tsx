@@ -1,10 +1,10 @@
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View, type TextProps, type ViewStyle } from "react-native";
-import Svg, { Rect } from "react-native-svg";
+import Svg, { Defs, LinearGradient, Polygon, Polyline, Rect, Stop } from "react-native-svg";
 
 import { OFFICIAL_HANDLE, ROLES, labelFor, primaryStatus } from "@shared/constants";
-import { COIN_HEIGHT, COIN_WIDTH, pixelCoinRects } from "@shared/pixel-coin";
+import { MV_COLORS, MV_INNER, MV_M, MV_M_WIDTH, MV_OUTER, MV_SHADOW_DY, MV_V, MV_V_WIDTH, MV_VIEW } from "@shared/methodium-icon";
 import { V_HEIGHT, V_WIDTH, pixelVRects } from "@shared/pixel-v";
 
 import { MINT, MINT_INK, fonts, useTheme } from "@/theme";
@@ -213,16 +213,22 @@ export function Handle({ username, size = 15 }: { username: string; size?: numbe
   );
 }
 
-// Methodium, Method V's credits (a mint coin stamped with the logo's V), the
-// same as the website's. Drawn from the website's src/lib/pixel-coin.ts.
-const COIN_PIXELS = pixelCoinRects();
-
+// Methodium, Method V's credits: a mint hexagon token reading "Mv", the
+// same as the website's. Drawn from the website's src/lib/methodium-icon.ts.
 export function Coin({ size = 14 }: { size?: number }) {
   return (
-    <Svg width={(size * COIN_WIDTH) / COIN_HEIGHT} height={size} viewBox={`0 0 ${COIN_WIDTH} ${COIN_HEIGHT}`} accessible={false}>
-      {COIN_PIXELS.map((r, i) => (
-        <Rect key={i} x={r.x} y={r.y} width={r.w} height={r.h} fill={r.fill} />
-      ))}
+    <Svg width={(size * MV_VIEW.width) / MV_VIEW.height} height={size} viewBox={`0 0 ${MV_VIEW.width} ${MV_VIEW.height}`} accessible={false}>
+      <Defs>
+        <LinearGradient id="mvEdge" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor={MV_COLORS.edgeTop} />
+          <Stop offset="1" stopColor={MV_COLORS.edgeBottom} />
+        </LinearGradient>
+      </Defs>
+      <Polygon points={MV_OUTER} fill={MV_COLORS.shadow} transform={`translate(0 ${MV_SHADOW_DY})`} />
+      <Polygon points={MV_OUTER} fill="url(#mvEdge)" />
+      <Polygon points={MV_INNER} fill={MV_COLORS.face} />
+      <Polyline points={MV_M} fill="none" stroke={MV_COLORS.symbol} strokeWidth={MV_M_WIDTH} strokeLinejoin="miter" strokeLinecap="butt" />
+      <Polyline points={MV_V} fill="none" stroke={MV_COLORS.symbol} strokeWidth={MV_V_WIDTH} strokeLinejoin="miter" strokeLinecap="butt" />
     </Svg>
   );
 }

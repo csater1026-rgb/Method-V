@@ -8,7 +8,7 @@ import { useLoad } from "@/lib/useLoad";
 import { useTheme } from "@/theme";
 
 import { useTour } from "./Tour";
-import { Body, Button, Display, Eyebrow } from "./ui";
+import { Body, Button, Coin, Display, Eyebrow } from "./ui";
 
 // Same key and rule as the website (src/components/DropBonusPopup.tsx): it
 // remembers the promotion's end date, so closing it hides this run for good
@@ -57,7 +57,7 @@ export function DropBonusPopup() {
           </Pressable>
           <Eyebrow>For a limited time</Eyebrow>
           <View style={{ width: 60, height: 60, borderRadius: 30, borderWidth: 2, borderColor: t.accent, alignItems: "center", justifyContent: "center" }}>
-            <Body style={{ fontSize: 28 }}>🪙</Body>
+            <Coin size={32} />
           </View>
           <Display size={40} style={{ color: "#fff", textAlign: "center" }}>
             Post a Drop, get +{promo.amount} Methodium

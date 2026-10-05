@@ -225,14 +225,15 @@ body {
   vertical-align: -0.115em;
 }
 
-/* The credit coin (Coin component): as tall as the capitals, sitting on
-   the baseline, with a hair of space before the number. */
+/* The Methodium token (Coin component): a little taller than the
+   capitals (it's a hexagon), centered on the text, with a hair of space
+   before the number. */
 @utility coin {
   display: inline-block;
-  height: 0.9em;
+  height: 1.05em;
   width: auto;
-  margin-right: 0.12em;
-  vertical-align: -0.12em;
+  margin-right: 0.15em;
+  vertical-align: -0.2em;
 }
 
 /* A category stamp in the Tester Passport: an inked rectangle with a thin
