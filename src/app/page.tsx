@@ -82,7 +82,7 @@ export default async function HomePage() {
           ))}
         </section>
       ) : (
-        <p className="mt-4 px-4 text-muted">Nothing featured yet. Post a Drop and be the first.</p>
+        <p className="mt-4 px-4 text-muted">Nothing featured yet. Post your project and be the first.</p>
       )}
 
       {suggestions.length > 0 ? (

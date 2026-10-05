@@ -1749,17 +1749,12 @@ export async function getChallenges(): Promise<Challenge[]> {
 }
 
 // The challenge running right now (the one ending soonest), for the banner at
-// the top of Home. Null when none is on.
+// the top of Home. Null when none is on: the banner only shows once you add a
+// challenge in Supabase and its start date arrives. Demo mode shows none on
+// Home either (its sample challenges are still on /challenges).
 export async function getRunningChallenge(): Promise<Challenge | null> {
   const now = Date.now();
-  if (!isSupabaseConfigured) {
-    return (
-      demoChallenges
-        .map((c) => demoChallenge(c, now))
-        .filter((c) => new Date(c.starts_at).getTime() <= now && now < new Date(c.ends_at).getTime())
-        .sort((a, b) => a.ends_at.localeCompare(b.ends_at))[0] ?? null
-    );
-  }
+  if (!isSupabaseConfigured) return null;
   const at = new Date(now).toISOString();
   const supabase = await createClient();
   const { data } = await supabase

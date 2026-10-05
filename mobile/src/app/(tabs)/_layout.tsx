@@ -51,7 +51,7 @@ export default function TabsLayout() {
           name="post"
           options={{
             title: "Post",
-            tabBarAccessibilityLabel: "Post a Drop",
+            tabBarAccessibilityLabel: "Post your project",
             tabBarLabel: () => null,
             tabBarIcon: () => (
               <View

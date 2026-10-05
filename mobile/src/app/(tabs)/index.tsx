@@ -69,7 +69,7 @@ export default function HomeScreen() {
         </ScrollView>
       ) : (
         <Body muted style={{ paddingHorizontal: 16 }}>
-          Nothing featured yet. Post a Drop and be the first.
+          Nothing featured yet. Post your project and be the first.
         </Body>
       )}
 

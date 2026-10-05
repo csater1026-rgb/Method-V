@@ -82,7 +82,7 @@ await run("home (phone)", phone, async (page) => {
   ok((await justPosted.locator("article").first().getAttribute("class")).includes("snap-start"), "Just posted swipes sideways too");
   ok((await justPosted.locator("article .tag-accent").count()) === 0, "Just posted cards have no Featured-style labels");
   const order = await page.locator("main section[aria-label]").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
-  ok(order.join(" > ") === "Challenge > In the Spotlight > Builders like you > Just posted", `Home order: the Spotlight comes first, no "post your app" box (${order.join(" > ")})`);
+  ok(order.join(" > ") === "In the Spotlight > Builders like you > Just posted", `Home order: the Spotlight comes first, no "post your app" box (${order.join(" > ")})`);
   // (Hidden on phones, which use the + tab; it shows from tablet width up.)
   ok((await page.locator("header a[href='/submit']", { hasText: "Post your project" }).count()) === 1, "the top-right button says Post your project");
   ok((await page.getByRole("link", { name: /Monthly leaderboards/ }).getAttribute("href")) === "/browse#leaderboards", "Home links to the leaderboards on Browse");
@@ -1064,11 +1064,7 @@ await run("tour on a phone, skipped", phone, async (page) => {
 await run("challenges (desktop)", desktop, async (page) => {
   await go(page, "/");
   ok((await page.getByRole("navigation").getByRole("link", { name: "Challenges" }).count()) === 0, "no Challenges tab in the menu");
-  const banner = page.getByRole("region", { name: "Challenge" });
-  ok((await banner.getByRole("link").getAttribute("href")) === "/challenges/best-supabase-app", "the running challenge ending soonest is on Home");
-  await banner.getByRole("link").click();
-  await page.waitForURL(/\/challenges\/best-supabase-app/);
-  ok(true, "the banner opens the challenge");
+  ok((await page.getByRole("region", { name: "Challenge" }).count()) === 0, "no challenge banner on Home until one is live");
   await go(page, "/challenges");
   ok((await page.locator("main li a[href^='/challenges/']").count()) === 2, "two demo challenges");
   await go(page, "/challenges/best-supabase-app");

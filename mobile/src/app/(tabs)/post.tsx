@@ -45,7 +45,7 @@ export default function PostScreen() {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24, gap: 16, backgroundColor: t.bg }}>
         <Display size={40} style={{ textAlign: "center" }}>
-          Post a Drop
+          Post your project
         </Display>
         <Body muted style={{ textAlign: "center" }}>
           Show off what you built in 60 seconds or less. Sign in to post.
@@ -121,7 +121,7 @@ export default function PostScreen() {
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1, backgroundColor: t.bg }}>
       <ScrollView contentContainerStyle={{ paddingTop: insets.top + 12, padding: 16, gap: 18, paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
-        <Display size={52}>Post a Drop</Display>
+        <Display size={52}>Post your project</Display>
         <DropBonus />
         {full ? (
           <Card style={{ gap: 6, borderColor: t.accent }}>

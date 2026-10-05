@@ -73,7 +73,7 @@ ok(await page.getByText("🏆 Monthly leaderboards").isVisible(), "Home links to
 }
 ok(await page.getByText(/Demo mode/).isVisible(), "demo mode is labeled");
 for (const tab of ["Home", "Drops", "Browse", "Me"]) ok((await page.getByRole("tab", { name: tab }).count()) > 0, `tab bar has ${tab}`);
-ok((await page.getByRole("tab", { name: "Post a Drop" }).count()) > 0, "tab bar has the + button");
+ok((await page.getByRole("tab", { name: "Post your project" }).count()) > 0, "tab bar has the + button (Post your project)");
 await page.getByRole("button", { name: "Follow @june_designs" }).click();
 await page.waitForURL(/sign-in/);
 ok(true, "Follow while signed out goes to sign-in");
