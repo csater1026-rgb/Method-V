@@ -755,6 +755,7 @@ await run("terms and privacy", phone, async (page) => {
 
 await run("submit", desktop, async (page) => {
   await go(page, "/submit");
+  ok(await page.getByText(/You can post 3 new apps every 30 days \(3 left\)/).isVisible(), "the Post page says the limit: 3 new apps every 30 days");
   const input = page.getByLabel("Drop video");
   await input.setInputFiles(CLIPS + "clip-62s.webm");
   await page.getByText(/Drops can be up to 60 seconds/).waitFor({ timeout: 15000 });

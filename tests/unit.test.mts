@@ -23,6 +23,7 @@ import { confirmMatches } from "../src/lib/account.ts";
 import { describeDatabaseError, loggingFetch } from "../src/lib/supabase/log.ts";
 import { dbMessage, withVCoin } from "../src/lib/db-errors.ts";
 import { USERNAME_PATTERN, isDefaultUsername, suggestUsername } from "../src/lib/username.ts";
+import { appLimit, limitMessage } from "../src/lib/app-limit.ts";
 import { RANDOM_STAGE, STAGE_SPOTS, buildStage, dailyPicks, paidOrder, stageOrder } from "../src/lib/spotlight-stage.ts";
 
 let failures = 0;
@@ -436,6 +437,17 @@ ok(!confirmMatches("ada", "ada_builds") && !confirmMatches("", "ada_builds") && 
     ok(built.slice(1).every((a) => a.reason === "pick" && a.id !== "app-1"), "random picks fill the rest, no promotion needed");
     ok(!built.some((a) => a.id === "team" || a.id === "launch"), "no team picks or launch days on the stage for now");
   }
+}
+
+// Up to 3 new apps every 30 days.
+{
+  const now = Date.UTC(2026, 9, 20, 12);
+  const daysAgo = (d: number) => new Date(now - d * 86_400_000).toISOString();
+  ok(appLimit([], now).left === 3 && appLimit([], now).nextAt === null, "nobody's posted: 3 left");
+  ok(appLimit([daysAgo(2), daysAgo(40)], now).left === 2, "apps older than 30 days don't count");
+  const full = appLimit([daysAgo(1), daysAgo(5), daysAgo(16)], now);
+  ok(full.left === 0 && full.nextAt === new Date(now + 14 * 86_400_000).toISOString(), "3 in 30 days: the next opens when the oldest turns 30 days old");
+  ok(/3 apps every 30 days\. Your next one opens on Nov 3\./.test(limitMessage(full.nextAt!)), `the message says when (${limitMessage(full.nextAt!)})`);
 }
 
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");

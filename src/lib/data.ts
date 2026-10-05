@@ -23,6 +23,7 @@ import {
   demoUpdates,
 } from "./demo";
 import { SIGNALS, bumpInterest, mergeInterests, rankFeed, rankQuestions, type Interests } from "./interests";
+import { APP_LIMIT, appLimit } from "./app-limit";
 import { RANDOM_STAGE, buildStage, stageDay } from "./spotlight-stage";
 import { SUGGESTION_LIMIT, setUpFirst, topUpSuggestions } from "./suggest";
 import { FEEDBACK_BUCKET, isSupabaseConfigured, publicFileUrl } from "./supabase/env";
@@ -2128,3 +2129,15 @@ export async function getMyInvites(viewer: Viewer | null): Promise<{ joined: num
   return { joined: Number(row?.joined ?? 0), rewarded: Number(row?.rewarded ?? 0) };
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
+
+// How many more apps you can post (APP_LIMIT: 3 every 30 days), and when the
+// next one opens if you can't right now.
+export async function getMyAppLimit(viewer: Viewer | null): Promise<{ left: number; nextAt: string | null }> {
+  if (!isSupabaseConfigured || !viewer) return { left: APP_LIMIT.perWindow, nextAt: null };
+  const { data } = await (await createClient())
+    .from("apps")
+    .select("created_at")
+    .eq("owner_id", viewer.id)
+    .gt("created_at", new Date(Date.now() - APP_LIMIT.days * 24 * 60 * 60 * 1000).toISOString());
+  return appLimit((data ?? []).map((a) => a.created_at as string));
+}

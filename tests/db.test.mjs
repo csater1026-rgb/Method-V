@@ -20,6 +20,7 @@ const AFTER_LATE = [
   "20261017000000_spotlight_fill.sql",
   "20261018000000_leaderboard_prizes.sql",
   "20261019000000_v_coin_economy.sql",
+  "20261020000000_app_limit.sql",
 ];
 const migrations = readdirSync(migrationsDir)
   .filter((f) => f.endsWith(".sql") && !LATE.includes(f) && !AFTER_LATE.includes(f))
@@ -90,7 +91,9 @@ async function as(role, uid, sql, params) {
   try {
     return await db.query(sql, params);
   } finally {
-    await db.exec("reset role");
+    // Back to the test's own superuser with nobody signed in, like the
+    // server's own key or the Supabase dashboard.
+    await db.exec("reset role; select set_config('request.jwt.claim.sub', '', false);");
   }
 }
 async function fails(role, uid, sql, params) {
@@ -1426,6 +1429,21 @@ ok(!!(await fails("anon", null, "insert into public.sponsorships (sponsor_brand,
   ok((await credits(RA)) === ra2, "the invite bonus is paid once per friend");
   const mine = (await as("authenticated", RA, "select * from public.my_referrals()")).rows[0];
   ok(mine.joined === 1 && mine.rewarded === 1, "you can see how many friends joined and earned you the bonus");
+
+  // Up to 3 new apps per person every 30 days (20261020000000_app_limit.sql).
+  const LIM = "acacacac-0000-0000-0000-000000000000";
+  await db.exec(`insert into auth.users (id) values ('${LIM}')`);
+  const post = (n) =>
+    as("authenticated", LIM, "insert into public.apps (owner_id, slug, name, tagline, url, category) values ($1, $2, $2, 'x', 'https://example.com', 'games') returning id", [LIM, `limit-${n}`]);
+  for (const n of [1, 2, 3]) await post(n);
+  ok((await db.query("select count(*)::int n from public.apps where owner_id = $1", [LIM])).rows[0].n === 3, "posting 3 apps in a month is fine");
+  const fourth = (await fails("authenticated", LIM, "insert into public.apps (owner_id, slug, name, tagline, url, category) values ($1, 'limit-4', 'x', 'x', 'https://example.com', 'games')", [LIM])) ?? "";
+  ok(/3 apps every 30 days\. Your next one opens on \w{3} \d{1,2}/.test(fourth), `a 4th app within 30 days is refused, saying when the next one opens (${fourth})`);
+  await db.query("update public.apps set created_at = now() - interval '31 days' where owner_id = $1 and slug = 'limit-1'", [LIM]);
+  await post(5);
+  ok(true, "once the oldest is 30 days old, the next one opens");
+  await db.query("insert into public.apps (owner_id, slug, name, tagline, url, category) values ($1, 'limit-admin', 'x', 'x', 'https://example.com', 'games')", [LIM]);
+  ok(true, "the server's own key isn't limited");
 }
 
 // Security hardening (20261011000000_security_hardening.sql).

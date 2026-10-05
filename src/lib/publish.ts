@@ -3,6 +3,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { CATEGORIES, MAX_DROP_SECONDS, PRICING, STAGES, isOneOf } from "./constants";
+import { APP_LIMIT, appLimit, limitMessage } from "./app-limit";
 import { dbMessage } from "./db-errors";
 import { parseList, slugify } from "./format";
 import { checkLink } from "./link-check";
@@ -67,6 +68,16 @@ export async function publishApp(
   if (!admin) {
     return { ok: false, error: "The server is missing SUPABASE_SECRET_KEY, so it can't verify links yet." };
   }
+
+  // 3 new apps every 30 days (the database enforces it too); checked before
+  // the slow link check so nobody waits just to be told no.
+  const { data: mine } = await supabase
+    .from("apps")
+    .select("created_at")
+    .eq("owner_id", viewerId)
+    .gt("created_at", new Date(Date.now() - APP_LIMIT.days * 24 * 60 * 60 * 1000).toISOString());
+  const limit = appLimit((mine ?? []).map((a) => a.created_at as string));
+  if (limit.nextAt) return { ok: false, error: limitMessage(limit.nextAt) };
 
   const link = await checkLink(input.url);
   if (!link.ok) return { ok: false, error: `Link check failed: ${link.reason}` };

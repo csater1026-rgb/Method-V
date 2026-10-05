@@ -7,11 +7,12 @@ import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollVie
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CATEGORIES, DROP_VIDEO_TYPES, MAX_DROP_BYTES, MAX_DROP_MB, MAX_DROP_SECONDS, SAFETY_AGREEMENT, SAFETY_CHECKLIST } from "@shared/constants";
+import { APP_LIMIT, limitMessage } from "@shared/app-limit";
 
 import { Body, Button, Card, Display, ErrorText, Mono, tap } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import { isLive } from "@/lib/config";
-import { getPromotion, postDrop, previewLink } from "@/lib/data";
+import { getMyAppLimit, getPromotion, postDrop, previewLink } from "@/lib/data";
 import { useLoad } from "@/lib/useLoad";
 import { fonts, media, useTheme, type Palette } from "@/theme";
 
@@ -36,6 +37,9 @@ export default function PostScreen() {
   const [reading, setReading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<number | null>(null);
+  // 3 new apps every 30 days: checked up front so nobody uploads a video for nothing.
+  const limit = useLoad(() => getMyAppLimit(viewer?.id ?? null), [viewer?.id]);
+  const full = limit.data?.nextAt ?? null;
 
   if (isLive && !viewer) {
     return (
@@ -92,6 +96,7 @@ export default function PostScreen() {
   ].filter(Boolean);
 
   async function post() {
+    if (full) return setError(limitMessage(full));
     if (!video || missing.length) return;
     setError(null);
     setProgress(0);
@@ -118,6 +123,14 @@ export default function PostScreen() {
       <ScrollView contentContainerStyle={{ paddingTop: insets.top + 12, padding: 16, gap: 18, paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
         <Display size={52}>Post a Drop</Display>
         <DropBonus />
+        {full ? (
+          <Card style={{ gap: 6, borderColor: t.accent }}>
+            <Body bold>You&apos;ve posted {APP_LIMIT.perWindow} apps this month</Body>
+            <Body muted size={13}>
+              {limitMessage(full)}
+            </Body>
+          </Card>
+        ) : null}
         <Pressable accessibilityRole="link" onPress={() => router.push("/ask")} hitSlop={8} style={{ marginTop: -10, alignSelf: "flex-start" }}>
           <Body bold size={14} style={{ color: t.accent }}>
             Or ask a question about your app →
@@ -267,7 +280,7 @@ export default function PostScreen() {
 
         {missing.length > 0 && <Body muted size={13}>Still need: {missing.join(", ")}.</Body>}
         <ErrorText>{error}</ErrorText>
-        <Button label="Post" onPress={() => void post()} disabled={missing.length > 0} busy={progress !== null} />
+        <Button label="Post" onPress={() => void post()} disabled={missing.length > 0 || Boolean(full)} busy={progress !== null} />
       </ScrollView>
 
       {progress !== null && (
