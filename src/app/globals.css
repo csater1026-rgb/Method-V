@@ -78,6 +78,19 @@
   --stage-accent: #82ed9d;
   --stage-accent-ink: #0b1b12;
   --stage-accent-edge: #4fb86a;
+  /* The V Store's tiles (VStore.tsx): bright mint with dark ink in dark mode,
+     the site's blue in light mode. */
+  --shop-ink: #0b1b12;
+  --shop-tile: linear-gradient(160deg, #e2ffe9, #a6f3bb);
+  --shop-featured: radial-gradient(ellipse 70% 55% at 50% 30%, rgb(255 255 255 / 0.45), transparent 70%),
+    linear-gradient(160deg, #b6f7c8, #82ed9d 55%, #4fb86a);
+  --shop-border: #82ed9d;
+  --shop-featured-border: #4fb86a;
+  --shop-glow: rgb(79 184 106 / 0.6);
+  --shop-badge: #0b1b12;
+  --shop-badge-ink: #82ed9d;
+  --shop-badge-edge: #4fb86a;
+  --shop-badge-hover: #13291c;
   /* Height of the phone bottom tab bar (MobileTabs); none on larger screens. */
   --tabbar: calc(3.5rem + env(safe-area-inset-bottom));
 }
@@ -120,6 +133,17 @@
     --stage-accent: #40f4f5;
     --stage-accent-ink: #04213a;
     --stage-accent-edge: #1aa9b0;
+    --shop-ink: #0b1b2b;
+    --shop-tile: linear-gradient(160deg, #eef6ff, #bcdcfb);
+    --shop-featured: radial-gradient(ellipse 70% 55% at 50% 30%, rgb(255 255 255 / 0.5), transparent 70%),
+      linear-gradient(160deg, #d6ebff, #8cc4f5 55%, #4a9ce6);
+    --shop-border: #8cc4f5;
+    --shop-featured-border: #0379d9;
+    --shop-glow: rgb(3 121 217 / 0.45);
+    --shop-badge: #0b1b2b;
+    --shop-badge-ink: #8fd3ff;
+    --shop-badge-edge: #0379d9;
+    --shop-badge-hover: #142b44;
   }
 }
 
@@ -154,6 +178,17 @@
   --stage-accent: #40f4f5;
   --stage-accent-ink: #04213a;
   --stage-accent-edge: #1aa9b0;
+  --shop-ink: #0b1b2b;
+  --shop-tile: linear-gradient(160deg, #eef6ff, #bcdcfb);
+  --shop-featured: radial-gradient(ellipse 70% 55% at 50% 30%, rgb(255 255 255 / 0.5), transparent 70%),
+    linear-gradient(160deg, #d6ebff, #8cc4f5 55%, #4a9ce6);
+  --shop-border: #8cc4f5;
+  --shop-featured-border: #0379d9;
+  --shop-glow: rgb(3 121 217 / 0.45);
+  --shop-badge: #0b1b2b;
+  --shop-badge-ink: #8fd3ff;
+  --shop-badge-edge: #0379d9;
+  --shop-badge-hover: #142b44;
 }
 
 /* Video, posters and anything drawn on top of them: always the dark palette. */
@@ -536,37 +571,35 @@ body {
   }
 }
 
-/* The V Store (components/VStore.tsx): bright mint item-shop tiles with dark
-   text, each with a dark badge (a big mint symbol), the name and a dark price
-   pill. The featured tile (Pro) is a deeper mint. The tiles are the store's
-   own look, so they're the same in light and dark mode. */
+/* The V Store (components/VStore.tsx): bright item-shop tiles with dark
+   text, each with a dark badge (a big symbol), the name and a dark price
+   pill; the featured tile (Pro) is deeper. Mint in dark mode, the site's
+   blue in light mode (the --shop-* colors at the top). */
 .shop-tile {
-  color: #0b1b12;
-  background: linear-gradient(160deg, #e2ffe9, #a6f3bb);
-  border: 1px solid #82ed9d;
+  color: var(--shop-ink);
+  background: var(--shop-tile);
+  border: 1px solid var(--shop-border);
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 0.6),
-    0 14px 30px -20px rgb(79 184 106 / 0.6);
+    0 14px 30px -20px var(--shop-glow);
   transition:
     transform 0.18s ease,
     border-color 0.18s ease,
     box-shadow 0.18s ease;
 }
 .shop-featured {
-  background:
-    radial-gradient(ellipse 70% 55% at 50% 30%, rgb(255 255 255 / 0.45), transparent 70%),
-    linear-gradient(160deg, #b6f7c8, #82ed9d 55%, #4fb86a);
-  border-color: #4fb86a;
+  background: var(--shop-featured);
+  border-color: var(--shop-featured-border);
 }
 a.shop-tile:hover,
 button.shop-tile:hover,
 a.shop-tile:focus-visible,
 button.shop-tile:focus-visible {
   transform: translateY(-2px);
-  border-color: #0b1b12;
+  border-color: var(--shop-ink);
   box-shadow:
-    0 0 0 1px #0b1b12,
-    0 18px 36px -16px rgb(79 184 106 / 0.7);
+    0 0 0 1px var(--shop-ink),
+    0 18px 36px -16px var(--shop-glow);
   outline: none;
 }
 .shop-art {
@@ -580,7 +613,7 @@ button.shop-tile:focus-visible {
   top: 0.7rem;
   left: 0.7rem;
   z-index: 1;
-  border: 1px solid rgb(11 27 18 / 0.2);
+  border: 1px solid color-mix(in srgb, var(--shop-ink) 20%, transparent);
   border-radius: 9999px;
   background: rgb(255 255 255 / 0.45);
   padding: 0.2rem 0.6rem;
@@ -588,7 +621,7 @@ button.shop-tile:focus-visible {
   font-size: 10px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: rgb(11 27 18 / 0.8);
+  color: color-mix(in srgb, var(--shop-ink) 80%, transparent);
 }
 .shop-banner {
   position: relative;
@@ -600,26 +633,26 @@ button.shop-tile:focus-visible {
   align-items: center;
   gap: 0.2rem;
   border-radius: 9999px;
-  background: #0b1b12;
+  background: var(--shop-badge);
   padding: 0.15rem 0.7rem 0.15rem 0.45rem;
   font-family: var(--font-mono);
   font-size: 1rem;
   font-weight: 700;
-  color: #82ed9d;
+  color: var(--shop-badge-ink);
 }
 .shop-buy {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
   border-radius: 0.5rem;
-  background: #0b1b12;
+  background: var(--shop-badge);
   padding: 0.65rem 1.1rem;
   font-weight: 700;
-  color: #82ed9d;
-  box-shadow: 0 3px 0 #2f8a4a;
+  color: var(--shop-badge-ink);
+  box-shadow: 0 3px 0 var(--shop-badge-edge);
 }
 .shop-buy:hover:not(:disabled) {
-  background: #13291c;
+  background: var(--shop-badge-hover);
 }
 .shop-buy:disabled {
   opacity: 0.5;

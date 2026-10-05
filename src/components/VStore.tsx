@@ -42,9 +42,9 @@ type Item = {
 const proUntilText = (iso: string) =>
   new Date(iso).getFullYear() > 2090 ? "forever (demo)" : `until ${new Date(iso).toLocaleDateString("en-US", { month: "long", day: "numeric" })}`;
 
-// The V Store as an item shop: bright mint tiles with dark text, each with a
-// dark badge showing a big mint symbol (PRO, ★, +1…), the name and the price.
-// The same in light and dark mode. Tapping a tile opens the item with its Buy
+// The V Store as an item shop: bright tiles with dark text, each with a dark
+// badge showing a big symbol (PRO, ★, +1…), the name and the price. Mint in
+// dark mode, the site's blue in light mode (the --shop-* colors). Tapping a tile opens the item with its Buy
 // button (and an app picker for the Spotlight).
 export function VStore({ credits, proUntil, store, apps, spotlightCost, spotlightWait }: Props) {
   // proUntil is only passed while Pro is on.
@@ -153,7 +153,7 @@ export function VStore({ credits, proUntil, store, apps, spotlightCost, spotligh
                 </span>
                 <span className="shop-banner">
                   <span className="display block text-2xl leading-none sm:text-3xl">{c.title}</span>
-                  <span className="mt-1 block text-xs text-[#0b1b12]/70">{c.body}</span>
+                  <span className="mt-1 block text-xs text-(--shop-ink)/70">{c.body}</span>
                 </span>
               </Link>
             </li>
@@ -188,7 +188,7 @@ function ShopTile({ item, big = false, className = "", onOpen }: { item: Item; b
         <ShopBadge name={item.icon} className={`shop-art ${big ? "w-24 lg:w-36" : "w-16 lg:w-20"}`} />
       </span>
       <span className="shop-banner">
-        <span className="font-mono text-[10px] tracking-widest text-[#0b1b12]/60 uppercase">{item.kind}</span>
+        <span className="font-mono text-[10px] tracking-widest text-(--shop-ink)/60 uppercase">{item.kind}</span>
         <span className={`display mt-0.5 block leading-none ${big ? "text-5xl sm:text-6xl" : "text-2xl sm:text-4xl"}`}>{item.name}</span>
         <span className="shop-price mt-2">
           <Coin />
@@ -233,29 +233,29 @@ function ItemDialog({ item, credits, apps, onClose }: { item: Item; credits: num
         onClick={(e) => e.stopPropagation()}
         className="rise shop-tile shop-featured relative w-full max-w-md overflow-hidden rounded-t-2xl pb-[env(safe-area-inset-bottom)] shadow-2xl sm:rounded-2xl"
       >
-        <button type="button" onClick={close} aria-label="Close" className="absolute top-3 right-3 z-10 rounded-lg px-3 py-1.5 text-[#0b1b12]/70 hover:bg-[#0b1b12]/10 hover:text-[#0b1b12]">
+        <button type="button" onClick={close} aria-label="Close" className="absolute top-3 right-3 z-10 rounded-lg px-3 py-1.5 text-(--shop-ink)/70 hover:bg-(--shop-ink)/10 hover:text-(--shop-ink)">
           ✕
         </button>
         <div className="flex justify-center px-6 pt-8 pb-4">
           <ShopBadge name={item.icon} className="shop-art w-24" />
         </div>
-        <div className="border-t border-[#0b1b12]/10 bg-white/35 p-5">
-          <p className="font-mono text-[10px] tracking-widest text-[#0b1b12]/60 uppercase">
+        <div className="border-t border-(--shop-ink)/10 bg-white/35 p-5">
+          <p className="font-mono text-[10px] tracking-widest text-(--shop-ink)/60 uppercase">
             {item.kind} · {item.tag}
           </p>
           <h3 id="shop-item-title" className="display mt-1 text-5xl leading-none">
             {item.name}
           </h3>
-          <p className="mt-2 text-sm text-[#0b1b12]/80">{item.about}</p>
+          <p className="mt-2 text-sm text-(--shop-ink)/80">{item.about}</p>
           {item.status && <p className="mt-2 text-sm font-semibold">{item.status}</p>}
 
           <div className="mt-4 flex flex-col gap-2">
             {item.off ? (
-              <p className="text-sm text-[#0b1b12]/80">{item.off}</p>
+              <p className="text-sm text-(--shop-ink)/80">{item.off}</p>
             ) : (
               <>
                 {item.id === "spotlight" && apps.length > 1 && (
-                  <label className="flex flex-col gap-1 text-xs font-medium text-[#0b1b12]/80">
+                  <label className="flex flex-col gap-1 text-xs font-medium text-(--shop-ink)/80">
                     Which app
                     <select className="field py-2 text-sm" value={appId} onChange={(e) => setAppId(e.target.value)}>
                       {apps.map((a) => (
@@ -271,7 +271,7 @@ function ItemDialog({ item, credits, apps, onClose }: { item: Item; credits: num
                     <button type="button" className="shop-buy" disabled={pending} onClick={spend}>
                       {pending ? "Spending…" : `Spend ${item.cost} Methodium`}
                     </button>
-                    <button type="button" className="rounded-lg px-4 py-2.5 text-sm font-semibold text-[#0b1b12]/80 hover:bg-[#0b1b12]/10" disabled={pending} onClick={() => setConfirming(false)}>
+                    <button type="button" className="rounded-lg px-4 py-2.5 text-sm font-semibold text-(--shop-ink)/80 hover:bg-(--shop-ink)/10" disabled={pending} onClick={() => setConfirming(false)}>
                       Cancel
                     </button>
                   </div>
@@ -282,7 +282,7 @@ function ItemDialog({ item, credits, apps, onClose }: { item: Item; credits: num
                   </button>
                 )}
                 {short && (
-                  <p className="text-xs text-[#0b1b12]/80">
+                  <p className="text-xs text-(--shop-ink)/80">
                     You have {credits}, so you need {item.cost - credits} more.{" "}
                     <Link href="/test" className="underline">
                       Earn it with bounties
@@ -297,7 +297,7 @@ function ItemDialog({ item, credits, apps, onClose }: { item: Item; credits: num
               </>
             )}
             {message && (
-              <p aria-live="polite" className={`rounded-md px-3 py-2 text-sm font-semibold ${message.ok ? "bg-[#0b1b12] text-[#82ed9d]" : "bg-[#0b1b12] text-[#ffb4a6]"}`}>
+              <p aria-live="polite" className={`rounded-md px-3 py-2 text-sm font-semibold bg-(--shop-badge) ${message.ok ? "text-(--shop-badge-ink)" : "text-[#ffb4a6]"}`}>
                 {message.text}
               </p>
             )}
@@ -321,16 +321,15 @@ function ShopBadge({ name, className = "" }: { name: IconName; className?: strin
   const text = SYMBOL[name];
   return (
     <svg viewBox="0 0 64 64" className={`h-auto ${className}`} aria-hidden>
-      <rect x="2" y="4" width="60" height="60" rx="17" fill="#4fb86a" />
-      <rect x="2" y="2" width="60" height="60" rx="17" fill="#0b1b12" />
+      <rect x="2" y="4" width="60" height="60" rx="17" style={{ fill: "var(--shop-badge-edge)" }} />
+      <rect x="2" y="2" width="60" height="60" rx="17" style={{ fill: "var(--shop-badge)" }} />
       <text
         x="32"
         y={text.length > 2 ? 42 : 45}
         textAnchor="middle"
-        fill="#82ed9d"
         fontWeight={800}
         fontSize={text.length > 2 ? 26 : 36}
-        style={{ fontFamily: "var(--font-display)" }}
+        style={{ fontFamily: "var(--font-display)", fill: "var(--shop-badge-ink)" }}
       >
         {text}
       </text>
