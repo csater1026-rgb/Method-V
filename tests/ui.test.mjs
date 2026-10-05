@@ -660,7 +660,9 @@ for (const [label, size] of [
     await page.getByRole("link", { name: "See how it works ↓" }).click();
     const how = page.getByRole("region", { name: "Three steps to your first real users" });
     ok((await how.locator("li").count()) === 3, "how it works in three steps");
-    ok(await page.getByRole("region", { name: "In the Spotlight" }).first().isVisible(), "shows real apps in the Spotlight");
+    ok((await page.getByRole("region", { name: "In the Spotlight" }).count()) === 0, "no Spotlight before signing in");
+    ok((await page.getByText(/NoteFlow|QuizPop|PalettePal|Splitsy/).count()) === 0, "no real apps before signing in");
+    ok((await page.getByRole("link", { name: "Join free to look inside" }).getAttribute("href")) === "/login?mode=signup", "members-only teaser asks them to join");
     const faq = page.getByRole("region", { name: "Questions" });
     await faq.getByText("Is it free?").click();
     ok(await faq.getByText(/Posting your app, trying apps/).isVisible(), "FAQ answers open");

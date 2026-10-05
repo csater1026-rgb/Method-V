@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { FeaturedCard } from "@/components/FeaturedCard";
-import { SpotlightStage } from "@/components/SpotlightStage";
 import { CREDITS, MAX_DROP_SECONDS } from "@/lib/constants";
-import { getApps, getFeatured } from "@/lib/data";
 
 export const metadata: Metadata = {
   title: "Show off what you built. Get real people to try it.",
@@ -14,10 +11,9 @@ export const metadata: Metadata = {
 
 // What a first-time visitor sees at methodv.app (signed out, the proxy shows
 // this page for "/"), and anyone at /about: what Method V is, how it works,
-// real apps on it right now, then the sign-up. Explaining first, asking second.
-export default async function AboutPage() {
-  const [featured, newest] = await Promise.all([getFeatured(), getApps({}, 8)]);
-  const live = featured.curated ? featured.apps : [];
+// then the sign-up. Explaining first, asking second. It shows no real apps:
+// those (the Spotlight, the feed, every app) are for members only.
+export default function AboutPage() {
 
   return (
     <div className="w-full">
@@ -74,32 +70,22 @@ export default async function AboutPage() {
         </ol>
       </section>
 
-      {/* 3. Real apps on it right now. */}
-      {live.length > 0 && (
-        <section aria-labelledby="live-title" className="py-4">
-          <div className="mx-auto max-w-6xl px-4">
-            <p className="eyebrow">Live on Method V</p>
-            <h2 id="live-title" className="display mt-1 text-5xl">
-              In the Spotlight right now
-            </h2>
-          </div>
-          <div className="mx-auto mt-4 max-w-6xl">
-            <SpotlightStage apps={live} bookHref="/login?mode=signup" />
-          </div>
-        </section>
-      )}
-      {newest.length > 0 && (
-        <section aria-labelledby="new-title" className="mx-auto max-w-6xl py-10">
-          <h2 id="new-title" className="display px-4 text-3xl">
-            Just posted
+      {/* 3. What members get to see. No real apps here: they're for members only. */}
+      <section aria-labelledby="inside-title" className="mx-auto max-w-6xl px-4 py-4">
+        <div className="media-dark stage relative overflow-hidden rounded-2xl border border-line px-6 py-12 text-center text-white">
+          <p className="eyebrow">Members only</p>
+          <h2 id="inside-title" className="display mt-1 text-5xl">
+            See what people are building
           </h2>
-          <div className="no-scrollbar mt-3 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-2">
-            {newest.map((app, i) => (
-              <FeaturedCard key={app.id} app={app} rank={i} />
-            ))}
-          </div>
-        </section>
-      )}
+          <p className="mx-auto mt-3 max-w-xl text-white/80">
+            The Spotlight, the Drops feed and every app on Method V are for members. Join free to watch the demos, try the apps and see
+            who&apos;s in the Spotlight today.
+          </p>
+          <Link href="/login?mode=signup" className="btn-accent mt-6 inline-block px-6 py-3 text-base">
+            Join free to look inside
+          </Link>
+        </div>
+      </section>
 
       {/* 4. Not a builder? Still useful. */}
       <section aria-labelledby="testers-title" className="mx-auto max-w-6xl px-4 py-12">
