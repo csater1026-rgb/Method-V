@@ -23,8 +23,11 @@ const AFTER_LATE = [
   "20261020000000_app_limit.sql",
   "20261021000000_v_store.sql",
 ];
+// Paying for testers was retired for bounties; applied last, after the tests
+// of the tester spots it refunds.
+const FINAL = ["20261022000000_testers_to_bounties.sql"];
 const migrations = readdirSync(migrationsDir)
-  .filter((f) => f.endsWith(".sql") && !LATE.includes(f) && !AFTER_LATE.includes(f))
+  .filter((f) => f.endsWith(".sql") && !LATE.includes(f) && !AFTER_LATE.includes(f) && !FINAL.includes(f))
   .sort()
   .map((f) => readFileSync(new URL(f, migrationsDir), "utf8"));
 
@@ -81,7 +84,7 @@ async function runAgain(files) {
   return failed;
 }
 {
-  const newest = readdirSync(migrationsDir).filter((f) => f >= "20261001000000" && f.endsWith(".sql") && !LATE.includes(f) && !AFTER_LATE.includes(f)).sort();
+  const newest = readdirSync(migrationsDir).filter((f) => f >= "20261001000000" && f.endsWith(".sql") && !LATE.includes(f) && !AFTER_LATE.includes(f) && !FINAL.includes(f)).sort();
   const failed = await runAgain(newest);
   ok(failed.length === 0 && newest.length === 11, `the newest migrations are safe to run twice (${failed.join("; ") || newest.join(", ")})`);
 }
@@ -1460,6 +1463,7 @@ ok(!!(await fails("anon", null, "insert into public.sponsorships (sponsor_brand,
   const SHOP = "aeaeaeae-0000-0000-0000-000000000000";
   await db.exec(`insert into auth.users (id) values ('${SHOP}')`);
   // "" when it worked, otherwise the error.
+  const shopErr = async (who, sql, params) => (await fails("authenticated", who, sql, params)) || "";
   const shopBuy = async (item) => (await fails("authenticated", SHOP, "select public.buy_store_item($1)", [item])) || "";
   await db.query("update public.profiles set credits = 0 where id = $1", [SHOP]);
   ok((await shopBuy("pro")).includes("need 50 V Coin"), "you can't buy Pro without 50 V Coin");
@@ -1492,6 +1496,33 @@ ok(!!(await fails("anon", null, "insert into public.sponsorships (sponsor_brand,
   store = (await as("authenticated", SHOP, "select * from public.my_store()")).rows[0];
   ok(store.extra_app_posts === 0, "both saved posts were used");
   ok((await as("authenticated", C, "select * from public.store_purchases where user_id = $1", [SHOP])).rows.length === 0, "people can't see each other's purchases");
+
+  // Testers replaced by bounties (20261022000000_testers_to_bounties.sql):
+  // spots still waiting are refunded, and nobody can hold Methodium for testers.
+  const TB = "afafafaf-0000-0000-0000-000000000000";
+  await db.exec(`insert into auth.users (id) values ('${TB}')`);
+  await fund(TB, 20);
+  const tbApp = await makeApp(TB, "tester-refund");
+  await as("authenticated", TB, "select public.request_testers($1, 5)", [tbApp]);
+  const held = await credits(TB);
+  for (const f of FINAL) await db.exec(readFileSync(new URL(f, migrationsDir), "utf8"));
+  ok((await credits(TB)) === held + 10, "every unfilled tester spot goes back to its builder (5 spots: 10 Methodium)");
+  const spots = (await db.query("select slots_total, slots_filled from public.test_requests where app_id = $1", [tbApp])).rows[0];
+  ok(spots.slots_total === spots.slots_filled, "…and nothing is left waiting");
+  ok((await shopErr(TB, "select public.request_testers($1, 3)", [tbApp])).includes("replaced by bounties"), "asking for testers now points to bounties");
+  ok((await credits(TB)) === held + 10, "…and holds nothing");
+  const twice = await runAgain(FINAL);
+  ok(twice.length === 0 && (await credits(TB)) === held + 10, `running it again is safe and refunds nothing twice (${twice.join("; ") || "clean"})`);
+  // Invites now pay out on a friend's first bounty reward.
+  const [RF, RT] = ["babababa-0000-0000-0000-000000000000", "bcbcbcbc-0000-0000-0000-000000000000"];
+  await db.exec(`insert into auth.users (id) values ('${RF}'), ('${RT}')`);
+  await db.query("update public.profiles set referred_by = $1 where id = $2", [RF, RT]);
+  const rfApp = await makeApp(TB, "referral-bounty");
+  const rfBounty = (await as("authenticated", TB, "select public.post_bounty($1, 'Try my signup flow', 'Sign up and tell me what broke', 5) as id", [rfApp])).rows[0].id;
+  const rfAnswer = (await as("authenticated", RT, "select public.answer_bounty($1, 'Signed up on Firefox; the confirm email took 5 minutes.') as id", [rfBounty])).rows[0].id;
+  const [rf0, rt0] = [await credits(RF), await credits(RT)];
+  await as("authenticated", TB, "select public.award_bounty($1)", [rfAnswer]);
+  ok((await credits(RF)) === rf0 + 10 && (await credits(RT)) === rt0 + 5 + 10, "a friend's first bounty win earns you both the invite bonus");
 }
 
 // Security hardening (20261011000000_security_hardening.sql).

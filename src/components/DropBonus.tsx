@@ -18,7 +18,7 @@ export function DropBonusBanner({ promo, className = "" }: { promo: Promotion | 
           {promo.amount} Methodium.
         </strong>{" "}
         <span className="text-muted">
-          Until {endDate(promo.ends_at)}: one bonus per app, up to {promo.per_day} a day. Spend it on testers or a Spotlight spot.
+          Until {endDate(promo.ends_at)}: one bonus per app, up to {promo.per_day} a day. Spend it in the V Store, like a Spotlight spot.
         </span>
       </p>
     </div>

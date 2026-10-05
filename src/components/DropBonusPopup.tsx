@@ -85,7 +85,7 @@ export function DropBonusPopup({ promo, userId }: { promo: Promotion | null; use
           Post a Drop, get +{promo.amount} Methodium
         </h2>
         <p className="mt-3 text-sm text-white/80">
-          Share a 60-second demo of what you built and we&apos;ll add {promo.amount} Methodium to your account. Spend it on testers or a
+          Share a 60-second demo of what you built and we&apos;ll add {promo.amount} Methodium to your account. Spend it in the V Store, like a
           Spotlight spot at the top of Home.
         </p>
         <p className="mt-2 text-xs text-white/60">

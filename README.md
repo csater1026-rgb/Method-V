@@ -27,7 +27,7 @@ It's live at **[methodv.app](https://methodv.app)**, with a phone app for iPhone
 | 📤 **Post in 2 minutes** | Paste your link. Method V reads your site (even an App Store or Google Play page) and fills in the name, tagline and category. Add a 60-second demo video if you want. |
 | 📱 **The Drops feed** | A swipeable, full-screen feed of app demos, like TikTok for apps. One tap on **Try it** opens the real thing. The "For you" ranking learns what each person is into. |
 | 💬 **Honest feedback** | After trying an app, people answer: would you use it, what worked, and what confused you, with screenshots. Only the builder sees it. |
-| 🪙 **Test & earn** | Testers earn credits (Methodium) for helpful feedback. Builders spend them to get more testers. Helping others is how you get help. |
+| 🪙 **Test & earn** | Builders post bounties (a Methodium reward for a specific job, like trying a signup flow); testers earn by doing them. Nobody can buy testers, because nobody can promise one. Feedback is free; helpful feedback earns a bonus. |
 | ❓ **Questions and polls** | Builders ask their users anything, with one-tap polls, right in the feed. |
 | 👤 **Profiles and reputation** | Followers, your apps, a Tester Passport with ranks and stamps, and a status like Hiring or Open to collab. |
 | 🚀 **Grow** | Launch days, a Spotlight spot on the home page, challenges with prizes, an embeddable Try-it badge, and stats on where your tries come from. |

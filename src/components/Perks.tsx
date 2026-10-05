@@ -37,7 +37,7 @@ export function PerksSection({
       </div>
       <p className="mt-1 text-sm text-muted">
         {isOwner
-          ? `Offer a deal on ${app.name} (a promo code, a free month, a lifetime deal) that people unlock with Methodium. The Methodium comes to you, to spend on testers or the Spotlight.`
+          ? `Offer a deal on ${app.name} (a promo code, a free month, a lifetime deal) that people unlock with Methodium. The Methodium comes to you, to spend on bounties or in the V Store.`
           : `Deals on ${app.name} from its builder. Unlock one with Methodium you earned testing apps.`}
       </p>
 

@@ -353,7 +353,7 @@ await run("app page", desktop, async (page) => {
   ok(await page.getByRole("heading", { name: "NoteFlow", exact: true }).isVisible(), "app heading");
   ok((await page.locator("#discuss").getByRole("link", { name: /^Comments/ }).count()) === 0, "no comments tab: talking about an app happens in Q&A");
   ok(await page.locator("#qa").isVisible(), "Q&A is the first tab");
-  ok((await page.locator("#qa").getByRole("link", { name: "Leave feedback in Test & earn" }).getAttribute("href")) === "#feedback", "Q&A points to the feedback area");
+  ok((await page.locator("#qa").getByRole("link", { name: "Leave feedback" }).getAttribute("href")) === "#feedback", "Q&A points to the feedback area");
   ok(await page.getByRole("link", { name: "Next.js" }).isVisible(), "tech stack chips link to browse");
   await page.screenshot({ path: OUT + "app-desktop.png", fullPage: true });
 });
@@ -758,19 +758,21 @@ await run("submit", desktop, async (page) => {
 await run("test & earn", desktop, async (page) => {
   await go(page, "/test");
   ok(await page.getByRole("heading", { name: "Test & earn" }).isVisible(), "Test & earn page loads");
-  ok((await page.locator("main article").count()) === 2, "queue shows the 2 sample apps waiting for testers");
-  ok(await page.getByText("4 spots left").isVisible(), "shows spots left");
-  await page.getByRole("link", { name: "Test it →" }).first().click();
+  ok(await page.getByRole("heading", { name: "Open bounties" }).isVisible() && (await page.locator("main article").filter({ has: page.getByRole("heading", { level: 3 }) }).count()) >= 1, "Test & earn lists open bounties");
+  ok((await page.getByText(/spots? left|waiting for testers/i).count()) === 0, "no tester spots anywhere");
+  ok((await page.getByRole("link", { name: "Give feedback →" }).count()) > 0, "new apps to give free feedback on");
+  await page.getByRole("link", { name: "Give feedback →" }).first().click();
   await page.waitForURL(/\/apps\/.+#feedback/);
   ok(await page.locator("#feedback").getByText("off in demo mode").isVisible(), "feedback panel explains demo mode");
   const panel = page.locator("#feedback");
-  ok(await panel.getByRole("heading", { name: "Test & earn" }).isVisible() && (await panel.locator("ol li").count()) === 3, "the app page explains Test & earn in 3 steps");
+  ok(await panel.getByRole("heading", { name: "Feedback" }).isVisible() && (await panel.locator("ol li").count()) === 3, "the app page explains feedback in 3 steps");
+  ok((await page.getByRole("button", { name: /testers/ }).count()) === 0, "nothing on the app page sells testers");
   const below = await page.evaluate(() => {
     const d = document.querySelector("main p.leading-relaxed");
     const f = document.getElementById("feedback");
     return Boolean(d && f && d.compareDocumentPosition(f) & Node.DOCUMENT_POSITION_FOLLOWING && f.getBoundingClientRect().top - d.getBoundingClientRect().bottom < 60);
   });
-  ok(below, "Test & earn sits right under the app's description");
+  ok(below, "feedback sits right under the app's description");
   await page.screenshot({ path: OUT + "test-desktop.png", fullPage: true });
 });
 
@@ -902,7 +904,9 @@ await run("v store (phone)", phone, async (page) => {
   const tiles = await featured.getByRole("button").evaluateAll((els) => els.map((el) => el.getAttribute("aria-label")));
   // Demo mode previews the store as Ada, who has Pro, so the Spotlight is 15.
   ok(tiles.join(" | ") === "Method V Pro, 50 Methodium | The Spotlight, 15 Methodium | Extra app post, 30 Methodium", `featured items: Pro, Spotlight, extra post (${tiles.join(" | ")})`);
-  ok((await page.getByRole("region", { name: "Spend it on the community" }).getByRole("link").count()) === 4, "4 community tiles");
+  const community = await page.getByRole("region", { name: "Spend it on the community" }).getByRole("link").allTextContents();
+  ok(community.length === 3 && !community.join(" ").includes("Testers"), `3 community tiles, none selling testers (${community.length})`);
+  ok((await page.getByText(/guaranteed testers/i).count()) === 0, "the store never promises testers");
   await noSideScroll(page, "v store");
   await page.screenshot({ path: `${OUT}store-phone.png`, fullPage: true });
   await featured.getByRole("button", { name: /The Spotlight/ }).click();

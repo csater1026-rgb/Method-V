@@ -261,12 +261,6 @@ export function demoSchedule(now = Date.now()): Record<string, { launch_at?: str
   };
 }
 
-// Apps waiting for testers in the "Test & earn" queue.
-export const demoTestRequests: Record<string, { slots_total: number; slots_filled: number }> = {
-  "demo-app-quizpop": { slots_total: 10, slots_filled: 6 },
-  "demo-app-splitsy": { slots_total: 5, slots_filled: 0 },
-};
-
 // Phase 4 samples.
 export const demoBackers: Record<string, { user: string; note: string; days: number }[]> = {
   "demo-app-noteflow": [

@@ -4,13 +4,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 
-import { cancelTesters, markHelpful, replyToFeedback, requestTesters, submitFeedback } from "@/app/actions";
-import { CREDITS, MAX_FEEDBACK_SHOTS, TESTER_GUARANTEE, TESTER_PACKS, WOULD_USE, labelFor } from "@/lib/constants";
+import { markHelpful, replyToFeedback, submitFeedback } from "@/app/actions";
+import { CREDITS, MAX_FEEDBACK_SHOTS, STREAK_BONUS, WOULD_USE, labelFor } from "@/lib/constants";
 import { imageProblem, shrinkToJpeg } from "@/lib/crop-image";
 import { timeAgo } from "@/lib/format";
 import { createClient } from "@/lib/supabase/client";
 import { FEEDBACK_BUCKET } from "@/lib/supabase/env";
-import type { Feedback, FeedbackPanel as Panel, TestRequest } from "@/lib/types";
+import type { Feedback, FeedbackPanel as Panel } from "@/lib/types";
 
 import { Avatar } from "./Avatar";
 import { RankTag } from "./Passport";
@@ -20,21 +20,15 @@ import { TipButton } from "./TipButton";
 
 type AppRef = { id: string; slug: string; name: string };
 
-// Structured feedback and try-to-earn credits on an app page. What shows
-// depends on who's looking: the builder, a signed-in tester, or a visitor.
+// Structured feedback on an app page. What shows depends on who's looking:
+// the builder, a signed-in tester, or a visitor. Feedback is free; nobody
+// pays for testers (builders post bounties for that). Helpful feedback and
+// testing streaks earn Methodium.
 export function FeedbackPanel({ panel, app }: { panel: Panel; app: AppRef }) {
-  const open = panel.request && panel.request.slots_filled < panel.request.slots_total ? panel.request : null;
-
   return (
     <section id="feedback" className="scroll-mt-20 rounded-xl border border-line bg-surface p-4 sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="display text-4xl">Test &amp; earn</h2>
-        {open && panel.mode !== "owner" && (
-          <span className="tag-accent">
-            <Coin />
-            Earn {CREDITS.feedbackReward} Methodium · {open.slots_total - open.slots_filled} spots left
-          </span>
-        )}
+        <h2 className="display text-4xl">Feedback</h2>
       </div>
 
       {panel.mode !== "owner" && (
@@ -50,19 +44,19 @@ export function FeedbackPanel({ panel, app }: { panel: Panel; app: AppRef }) {
             title={
               <>
                 Earn <Coin />
-                {CREDITS.feedbackReward}
+                {CREDITS.helpfulBonus}
               </>
             }
           >
-            Credits here are called Methodium. Spend them to get testers for your own app.
+            If the builder marks it helpful. Testing {STREAK_BONUS.weeks} weeks in a row earns {STREAK_BONUS.credits} more.
           </HowStep>
         </ol>
       )}
 
       {panel.mode === "demo" && (
         <p className="mt-2 text-sm text-muted">
-          Testers who try an app and leave honest feedback earn credits, called Methodium, and builders spend them to get testers. It&apos;s
-          off in demo mode.
+          Anyone can try an app and leave honest feedback; feedback the builder marks helpful earns Methodium. It&apos;s off in demo
+          mode.
         </p>
       )}
 
@@ -71,7 +65,7 @@ export function FeedbackPanel({ panel, app }: { panel: Panel; app: AppRef }) {
           <Link href={`/login?next=${encodeURIComponent(`/apps/${app.slug}#feedback`)}`} className="text-accent hover:underline">
             Sign in
           </Link>{" "}
-          to try {app.name}, give feedback{open ? ` and earn ${CREDITS.feedbackReward} Methodium` : ""}.
+          to try {app.name} and give feedback.
         </p>
       )}
 
@@ -87,13 +81,13 @@ export function FeedbackPanel({ panel, app }: { panel: Panel; app: AppRef }) {
             <FeedbackItem item={panel.mine} />
           </div>
         ) : panel.tried ? (
-          <FeedbackForm app={app} open={open} />
+          <FeedbackForm app={app} />
         ) : (
-          <TryFirst app={app} open={open} />
+          <TryFirst app={app} />
         ))}
 
       {panel.mode === "owner" && (
-        <OwnerView app={app} request={panel.request} feedback={panel.feedback} credits={panel.credits} />
+        <OwnerView app={app} feedback={panel.feedback} />
       )}
     </section>
   );
@@ -109,13 +103,12 @@ function HowStep({ n, title, children }: { n: number; title: React.ReactNode; ch
   );
 }
 
-function TryFirst({ app, open }: { app: AppRef; open: TestRequest | null }) {
+function TryFirst({ app }: { app: AppRef }) {
   const router = useRouter();
   return (
     <div className="mt-3 flex flex-col gap-3">
       <p className="text-sm text-muted">
-        Open {app.name} with Try it, use it for a minute, then come back here to give feedback
-        {open ? ` and earn ${CREDITS.feedbackReward} Methodium` : ""}.
+        Open {app.name} with Try it, use it for a minute, then come back here to give feedback.
       </p>
       <div className="flex flex-wrap gap-2">
         <a
@@ -171,13 +164,12 @@ async function uploadShots(shots: Shot[]): Promise<{ paths: string[] } | { error
   return { paths };
 }
 
-function FeedbackForm({ app, open }: { app: AppRef; open: TestRequest | null }) {
+function FeedbackForm({ app }: { app: AppRef }) {
   const [wouldUse, setWouldUse] = useState<string>("");
   const [rating, setRating] = useState(0);
   const [workedShots, setWorkedShots] = useState<Shot[]>([]);
   const [confusingShots, setConfusingShots] = useState<Shot[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [workedLength, setWorkedLength] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -213,12 +205,6 @@ function FeedbackForm({ app, open }: { app: AppRef; open: TestRequest | null }) 
       <p className="text-sm text-muted">
         Honest and specific helps most. Only the builder sees what you write.
       </p>
-      {open && (
-        <p className="rounded-lg border border-accent/40 bg-accent/5 px-3 py-2 text-sm">
-          <strong>To earn Methodium:</strong> use the app for at least a minute after tapping Try it, and write a couple of sentences
-          ({TESTER_GUARANTEE.minChars}+ characters) about what worked.
-        </p>
-      )}
 
       <fieldset>
         <legend className="mb-1.5 text-sm font-medium">Would you use it?</legend>
@@ -274,15 +260,7 @@ function FeedbackForm({ app, open }: { app: AppRef; open: TestRequest | null }) 
           rows={3}
           className="field"
           onPaste={(e) => pasteShots(e, workedShots, setWorkedShots, setError)}
-          onChange={(e) => setWorkedLength(e.target.value.trim().length)}
         />
-        {open && (
-          <span className={`text-xs ${workedLength >= TESTER_GUARANTEE.minChars ? "text-accent" : "text-muted"}`} aria-live="polite">
-            {workedLength >= TESTER_GUARANTEE.minChars
-              ? "✓ Long enough to earn Methodium"
-              : `${workedLength}/${TESTER_GUARANTEE.minChars} characters to earn Methodium`}
-          </span>
-        )}
         <ShotPicker label="What worked" shots={workedShots} onChange={setWorkedShots} onError={setError} disabled={pending} />
       </div>
       <div className="flex flex-col gap-1.5">
@@ -421,105 +399,20 @@ function ShotList({ urls, label }: { urls: string[]; label: string }) {
   );
 }
 
-function OwnerView({
-  app,
-  request,
-  feedback,
-  credits,
-}: {
-  app: AppRef;
-  request: TestRequest | null;
-  feedback: Feedback[];
-  credits: number;
-}) {
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
-  const open = request && request.slots_filled < request.slots_total ? request : null;
-
-  function buy(testers: number) {
-    setError(null);
-    startTransition(async () => {
-      const result = await requestTesters(app.id, app.slug, testers);
-      if (!result.ok) setError(result.error);
-    });
-  }
-
-  function cancel() {
-    setError(null);
-    startTransition(async () => {
-      const result = await cancelTesters(app.id, app.slug);
-      if (!result.ok) setError(result.error);
-    });
-  }
-
+function OwnerView({ app, feedback }: { app: AppRef; feedback: Feedback[] }) {
   return (
     <div className="mt-3 flex flex-col gap-5">
+      {/* Nobody can promise testers, so there's nothing to buy here: a bounty
+          only pays someone who actually did the job, and comes back if nobody does. */}
       <div className="rounded-lg border border-line bg-bg/50 p-4">
-        <h3 className="display text-2xl">Get testers</h3>
-        {open ? (
-          <>
-            <p className="mt-1 text-sm text-muted">
-              {app.name} is in the Test &amp; earn queue: <strong className="text-ink">{open.slots_filled}</strong> of {open.slots_total}{" "}
-              testers so far.
-              {open.expires_at && (
-                <>
-                  {" "}
-                  Any spots still open on{" "}
-                  <span suppressHydrationWarning>{new Date(open.expires_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>{" "}
-                  come back to you automatically.
-                </>
-              )}
-            </p>
-            <div className="mt-2 h-2 overflow-hidden rounded-full bg-surface-2" aria-hidden>
-              <div className="h-full bg-accent" style={{ width: `${(open.slots_filled / open.slots_total) * 100}%` }} />
-            </div>
-          </>
-        ) : (
-          <p className="mt-1 text-sm text-muted">
-            Put {app.name} in the Test &amp; earn queue, where people try apps and give feedback for Methodium. Each tester is{" "}
-            {CREDITS.perTester} credits.
-          </p>
-        )}
-        <div className="mt-3 rounded-lg border border-accent/40 bg-accent/5 p-3 text-sm">
-          <p className="font-semibold">Real testers, or your credits back</p>
-          <ul className="mt-1 list-disc space-y-0.5 pl-5 text-muted">
-            <li>Your credits are held, not spent. A spot is only used when someone opens {app.name} with Try it, uses it for at least a minute, and writes real feedback (a couple of sentences).</li>
-            <li>Spots nobody fills within {TESTER_GUARANTEE.days} days come back to you automatically.</li>
-            <li>Stop any time to get unused spots back right away.</li>
-          </ul>
-        </div>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {TESTER_PACKS.map((n) => {
-            const cost = n * CREDITS.perTester;
-            return (
-              <button
-                key={n}
-                type="button"
-                onClick={() => buy(n)}
-                disabled={pending || credits < cost}
-                className="btn-ghost"
-              >
-                +{n} testers · <Coin />
-                {cost}
-              </button>
-            );
-          })}
-          {open && (
-            <button type="button" onClick={cancel} disabled={pending} className="text-sm text-muted hover:text-danger">
-              Stop and refund <Coin />
-              {(open.slots_total - open.slots_filled) * CREDITS.perTester}
-            </button>
-          )}
-        </div>
-        <p className="mt-2 text-xs text-muted">
-          You have <Coin />
-          {credits}.{" "}
-          <Link href="/test" className="text-accent hover:underline">
-            Test other apps
-          </Link>{" "}
-          to earn more.
+        <h3 className="display text-2xl">Want people to try {app.name}?</h3>
+        <p className="mt-1 text-sm text-muted">
+          Post a bounty: pay Methodium for a specific job, like trying your signup flow, finding a bug or recording a first try. Only
+          someone who actually does it gets paid, and if nobody answers you get it all back.
         </p>
-        {error && <p className="mt-2 text-sm text-danger">{error}</p>}
+        <a href="#bounties" className="btn-accent mt-3 inline-block">
+          Post a bounty
+        </a>
       </div>
 
       {feedback.length === 0 ? (

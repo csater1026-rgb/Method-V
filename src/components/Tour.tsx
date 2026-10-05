@@ -38,7 +38,7 @@ const STEPS: Step[] = [
   },
   {
     title: "Methodium",
-    body: "Credits on Method V are called Methodium (Mv), a made-up element. Earn it by testing apps and giving feedback, then spend it in the V Store: Pro, extra app posts, a Spotlight spot, or testers for your own app.",
+    body: "Credits on Method V are called Methodium (Mv), a made-up element. Earn it by answering bounties in Test & earn, then spend it in the V Store (Pro, extra app posts, a Spotlight spot) or on bounties for your own app.",
     target: ["credits"],
   },
   {

@@ -130,12 +130,6 @@ export type Viewer = {
 // A running promotion (public.promotions), e.g. "post a Drop, get 10 Methodium".
 export type Promotion = { slug: string; amount: number; ends_at: string; per_day: number };
 
-export type TestRequest = {
-  slots_total: number;
-  slots_filled: number;
-  // When unfilled spots go back to the builder (null before the guarantee update).
-  expires_at?: string | null;
-};
 
 export type Feedback = {
   id: string;
@@ -158,11 +152,9 @@ export type Feedback = {
 };
 
 export type FeedbackPanel =
-  | { mode: "demo" | "signed-out"; request: TestRequest | null }
-  | { mode: "owner"; request: TestRequest | null; feedback: Feedback[]; credits: number }
-  | { mode: "tester"; request: TestRequest | null; tried: boolean; mine: Feedback | null };
-
-export type QueueItem = AppCard & { spots_left: number };
+  | { mode: "demo" | "signed-out" }
+  | { mode: "owner"; feedback: Feedback[] }
+  | { mode: "tester"; tried: boolean; mine: Feedback | null };
 
 export type CreditEvent = {
   id: number;

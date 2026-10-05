@@ -96,7 +96,7 @@ export default function MeScreen() {
         <Card style={{ gap: 10 }}>
           <Body bold>Invite friends, both get {REFERRALS.bonus} Methodium</Body>
           <Body muted size={13}>
-            When a friend who joins with your link posts their first Drop or gives their first paid feedback, you each get {REFERRALS.bonus} Methodium.
+            When a friend who joins with your link posts their first Drop or earns their first bounty reward, you each get {REFERRALS.bonus} Methodium.
           </Body>
           <Button
             label="Share your invite link"

@@ -14,7 +14,6 @@ import {
   MIN_PASSWORD,
   OFFICIAL_HANDLE,
   ROLES,
-  TESTER_PACKS,
   WOULD_USE,
   feedbackShotPattern,
   isOneOf,
@@ -614,35 +613,6 @@ export async function submitFeedback(appId: string, appSlug: string, input: NewF
 function rpcError(message: string | undefined, fallback: string): string {
   // Messages raised by our database functions are written for people; anything else isn't.
   return message && !/permission|violates|function|column|relation/i.test(message) ? withMethodium(message) : fallback;
-}
-
-export async function requestTesters(appId: string, appSlug: string, testers: number): Promise<ActionResult> {
-  const auth = await requireViewer();
-  if ("error" in auth) return { ok: false, error: auth.error };
-  if (!UUID.test(appId)) return { ok: false, error: "Unknown app." };
-  if (!TESTER_PACKS.includes(testers as (typeof TESTER_PACKS)[number])) return { ok: false, error: "Pick a tester pack." };
-
-  const supabase = await createClient();
-  const { error } = await supabase.rpc("request_testers", { p_app_id: appId, p_testers: testers });
-  if (error) return { ok: false, error: rpcError(error.message, "Couldn't add testers.") };
-  revalidatePath(`/apps/${appSlug}`);
-  revalidatePath("/test");
-  revalidatePath("/", "layout");
-  return { ok: true };
-}
-
-export async function cancelTesters(appId: string, appSlug: string): Promise<ActionResult> {
-  const auth = await requireViewer();
-  if ("error" in auth) return { ok: false, error: auth.error };
-  if (!UUID.test(appId)) return { ok: false, error: "Unknown app." };
-
-  const supabase = await createClient();
-  const { error } = await supabase.rpc("cancel_test_request", { p_app_id: appId });
-  if (error) return { ok: false, error: rpcError(error.message, "Couldn't cancel.") };
-  revalidatePath(`/apps/${appSlug}`);
-  revalidatePath("/test");
-  revalidatePath("/", "layout");
-  return { ok: true };
 }
 
 // ---------------------------------------------------------------------------

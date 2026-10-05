@@ -47,7 +47,7 @@ export default async function HomePage() {
           <>
             <div className="min-w-0">
               <p className="font-semibold">Get more eyes on {latestApp.name}</p>
-              <p className="text-sm text-muted">Put it on Featured with the Spotlight, ask for testers, or ask people a question about it.</p>
+              <p className="text-sm text-muted">Put it on Featured with the Spotlight, post a bounty to get people trying it, or ask people a question about it.</p>
             </div>
             <Link href={`/apps/${latestApp.slug}#spotlight`} className="btn-accent shrink-0">
               ⭐ Get on Featured →

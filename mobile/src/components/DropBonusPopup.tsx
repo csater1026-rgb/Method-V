@@ -63,7 +63,7 @@ export function DropBonusPopup() {
             Post a Drop, get +{promo.amount} Methodium
           </Display>
           <Body size={14} style={{ color: "rgba(255,255,255,0.8)", textAlign: "center" }}>
-            Share a 60-second demo of what you built and we&apos;ll add {promo.amount} Methodium to your account. Spend it on testers or a Spotlight spot
+            Share a 60-second demo of what you built and we&apos;ll add {promo.amount} Methodium to your account. Spend it in the V Store, like a Spotlight spot
             at the top of Home.
           </Body>
           <Body size={12} style={{ color: "rgba(255,255,255,0.6)", textAlign: "center" }}>

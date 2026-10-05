@@ -19,7 +19,6 @@ import {
   demoQuestions,
   demoSchedule,
   demoSwaps,
-  demoTestRequests,
   demoUpdates,
 } from "./demo";
 import { SIGNALS, bumpInterest, mergeInterests, rankFeed, rankQuestions, type Interests } from "./interests";
@@ -69,9 +68,7 @@ import type {
   QuestionCard,
   Suggestion,
   Passport,
-  QueueItem,
   Swap,
-  TestRequest,
   TopBuilder,
   TopTester,
   Update,
@@ -655,30 +652,11 @@ async function loadFeedback(
 
 const RANK_ORDER: string[] = TESTER_RANKS.map((r) => r.slug);
 
-function openRequest(row: TestRequest | null | undefined): TestRequest | null {
-  return row ? { slots_total: row.slots_total, slots_filled: row.slots_filled, expires_at: row.expires_at ?? null } : null;
-}
-
-// Gives builders back the tester spots nobody filled in time. Cheap and safe
-// to run on any page that shows the queue, an app's feedback or credits; it
-// only ever refunds expired spots, once. Once per request.
-const settleTesterSpots = cache(async (): Promise<void> => {
-  if (!isSupabaseConfigured) return;
-  const { error } = await (await createClient()).rpc("expire_test_requests");
-  // Before the guarantee update the function doesn't exist yet; nothing to do.
-  if (error && error.code !== "PGRST202" && error.code !== "42883") console.error("expire_test_requests failed", error.code, error.message);
-});
-
 export async function getFeedbackPanel(app: App, viewer: Viewer | null): Promise<FeedbackPanel> {
-  if (!isSupabaseConfigured) return { mode: "demo", request: demoTestRequests[app.id] ?? null };
+  if (!isSupabaseConfigured) return { mode: "demo" };
 
-  await settleTesterSpots();
   const supabase = await createClient();
-  // "*" so expires_at comes along once the guarantee update is run.
-  const { data: req } = await supabase.from("test_requests").select("*").eq("app_id", app.id).maybeSingle();
-  const request = openRequest(req);
-
-  if (!viewer) return { mode: "signed-out", request };
+  if (!viewer) return { mode: "signed-out" };
 
   if (viewer.id === app.owner_id) {
     const rows = await loadFeedback(supabase, (fields) =>
@@ -687,66 +665,17 @@ export async function getFeedbackPanel(app: App, viewer: Viewer | null): Promise
     // Trusted and Pro testers' feedback shows first; newest first within a rank.
     const feedback = rows
       .sort((a, b) => RANK_ORDER.indexOf(b.user_rank) - RANK_ORDER.indexOf(a.user_rank) || b.created_at.localeCompare(a.created_at));
-    return { mode: "owner", request, feedback, credits: viewer.credits };
+    return { mode: "owner", feedback };
   }
 
   const [mine, { data: tried }] = await Promise.all([
     loadFeedback(supabase, (fields) => supabase.from("feedback").select(fields).eq("app_id", app.id).eq("user_id", viewer.id).maybeSingle()),
     supabase.from("try_clicks").select("id").eq("app_id", app.id).eq("user_id", viewer.id).limit(1).maybeSingle(),
   ]);
-  return { mode: "tester", request, tried: Boolean(tried), mine: mine[0] ?? null };
-}
-
-// Apps with open tester spots, oldest request first so everyone gets a turn.
-// Leaves out the viewer's own apps and ones they've already reviewed.
-export async function getTestQueue(viewer: Viewer | null): Promise<QueueItem[]> {
-  if (!isSupabaseConfigured) {
-    return demoApps
-      .filter((a) => demoTestRequests[a.id])
-      .map((a) => {
-        const r = demoTestRequests[a.id];
-        return { ...a, owner: toSummary(demoProfile(a.owner_id)), poster_url: null, spots_left: r.slots_total - r.slots_filled };
-      })
-      .filter((a) => a.spots_left > 0);
-  }
-
-  await settleTesterSpots();
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("test_requests")
-    .select(
-      `slots_total, slots_filled, opened_at,
-       app:apps!inner(*, owner:profiles!apps_owner_id_fkey(${summaryCols()}), drops(poster_path, created_at))`,
-    )
-    .not("app.link_checked_at", "is", null)
-    .order("opened_at", { ascending: true })
-    .limit(100);
-  if (error) throw new Error(`Couldn't load the test queue: ${error.message}`);
-
-  let reviewed = new Set<string>();
-  if (viewer) {
-    const { data: mine } = await supabase.from("feedback").select("app_id").eq("user_id", viewer.id);
-    reviewed = new Set((mine ?? []).map((r) => r.app_id as string));
-  }
-
-  return (data ?? [])
-    .filter((row) => row.slots_filled < row.slots_total)
-    .map((row) => {
-      /* eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped embed */
-      const app = row.app as any;
-      const latest = [...(app.drops ?? [])].sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
-      return {
-        ...toApp(app),
-        owner: toSummary(app.owner),
-        poster_url: cardImage(app, latest?.poster_path),
-        spots_left: row.slots_total - row.slots_filled,
-      };
-    })
-    .filter((a) => a.owner_id !== viewer?.id && !reviewed.has(a.id));
+  return { mode: "tester", tried: Boolean(tried), mine: mine[0] ?? null };
 }
 
 export async function getCreditHistory(viewer: Viewer): Promise<CreditEvent[]> {
-  await settleTesterSpots();
   const supabase = await createClient();
   const { data } = await supabase
     .from("credit_events")

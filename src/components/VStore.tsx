@@ -144,10 +144,10 @@ export function VStore({ credits, proUntil, store, apps, spotlightCost, spotligh
       </ShopSection>
 
       <ShopSection title="Spend it on the community">
-        <ul className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {COMMUNITY.map((c) => (
             <li key={c.title}>
-              <Link href={c.title === "Testers" ? (apps[0] ? `/apps/${apps[0].slug}#feedback` : "/submit") : c.href} className="shop-tile shop-uncommon group relative flex aspect-[4/5] flex-col overflow-hidden rounded-xl">
+              <Link href={c.href} className="shop-tile shop-uncommon group relative flex aspect-[4/5] flex-col overflow-hidden rounded-xl">
                 <span className="shop-tag">{c.tag}</span>
                 <span className="flex flex-1 items-center justify-center p-6">
                   <PixelArt art={c.art} className="shop-art w-[46%]" />
@@ -388,19 +388,13 @@ const GIFT: Art = {
   colors: { R: "#ff5a5a", Y: "#ffd84a" },
 };
 
-const PERSON: Art = {
-  rows: ["...SSS...", "..SSSSS..", "..SSSSS..", "...SSS...", ".BBBBBBB.", "BBBBBBBBB", "BBBBBBBBB", "BBBBBBBBB"],
-  colors: { S: "#ffd9b8", B: "#40c4ff" },
-};
-
 const HEART: Art = {
   rows: [".RR...RR.", "RRRR.RRRR", "RHRRRRRRR", "RRRRRRRRR", ".RRRRRRR.", "..RRRRR..", "...RRR...", "....R...."],
   colors: { R: "#ff6b8a", H: "#ffd0da" },
 };
 
 const COMMUNITY = [
-  { href: "/credits#bounties", title: "Bounties", tag: "Earn or post", body: "Pay people to find bugs.", art: TARGET },
+  { href: "/test", title: "Bounties", tag: "Earn or post", body: "Pay people to try your app or find bugs.", art: TARGET },
   { href: "/credits#perks", title: "Perks", tag: "Deals", body: "Deals on other builders' apps.", art: GIFT },
-  { href: "/submit", title: "Testers", tag: "For your app", body: "Guaranteed testers for your app.", art: PERSON },
   { href: "/browse", title: "Tips", tag: "Say thanks", body: "Tip a builder or tester.", art: HEART },
 ];

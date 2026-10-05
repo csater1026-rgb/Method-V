@@ -16,7 +16,7 @@ export function InviteCard({ link, joined, rewarded }: { link: string; joined: n
         Invite friends, both get <Coin className="inline" /> {REFERRALS.bonus}
       </h2>
       <p className="mt-1 text-sm text-muted">
-        Share your link. When a friend who joins with it posts their first Drop or gives their first paid feedback, you each get{" "}
+        Share your link. When a friend who joins with it posts their first Drop or earns their first bounty reward, you each get{" "}
         {REFERRALS.bonus} Methodium.
       </p>
       <div className="mt-3 flex flex-wrap items-center gap-2">

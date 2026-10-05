@@ -341,7 +341,7 @@ function DropBonus() {
     <Card style={{ gap: 4, borderColor: t.accent }}>
       <Body bold>🎉 Post a Drop, get +{promo.amount} Methodium</Body>
       <Body muted size={13}>
-        Until {ends}: one bonus per app, up to {promo.per_day} a day. Spend it on testers or a Spotlight on Featured.
+        Until {ends}: one bonus per app, up to {promo.per_day} a day. Spend it in the V Store, like a Spotlight spot on Home.
       </Body>
     </Card>
   );

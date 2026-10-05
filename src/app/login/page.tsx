@@ -22,7 +22,7 @@ const ABOUT = [
   { title: "Show off what you built", body: "Post your app with a 60-second Drop and a cover image. It goes in the feed, on Browse and on your profile." },
   { title: "Get real feedback", body: "Real people try your app and tell you what worked, what didn't and whether they'd use it. Not bots." },
   { title: "Get traction", body: "Pick up testers, followers and likes, land a Featured spot or the Spotlight, and take on sponsors." },
-  { title: "Test and earn", body: "Try other people's apps, give honest feedback, and earn credits (called Methodium) to get testers for yours." },
+  { title: "Test and earn", body: "Try other people's apps, give honest feedback, and earn credits (called Methodium) by answering builders' bounties." },
 ];
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {

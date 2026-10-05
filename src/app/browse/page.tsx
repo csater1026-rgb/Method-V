@@ -115,7 +115,7 @@ export default async function BrowsePage({ searchParams }: PageProps<"/browse">)
           <p className="mt-1 text-sm text-muted">
             Fresh every month. Try apps and give feedback, or post your app and get people trying it.{" "}
             <Link href="/test" className="text-accent hover:underline">
-              Apps waiting for testers →
+              Open bounties in Test &amp; earn →
             </Link>
           </p>
           <div className="mt-3 grid gap-4 lg:grid-cols-2">

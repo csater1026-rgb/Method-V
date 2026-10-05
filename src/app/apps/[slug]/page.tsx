@@ -366,7 +366,7 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
                 <p className="mb-3 text-sm text-muted">
                   Ask {app.owner.display_name || "the builder"} anything, or answer other people&apos;s questions. Tried it?{" "}
                   <a href="#feedback" className="text-accent hover:underline">
-                    Leave feedback in Test &amp; earn
+                    Leave feedback
                   </a>
                   .
                 </p>

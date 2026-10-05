@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { CREDITS, MAX_DROP_SECONDS } from "@/lib/constants";
+import { BOUNTIES, MAX_DROP_SECONDS } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Show off what you built. Get real people to try it.",
@@ -106,9 +106,10 @@ export default function AboutPage() {
             <ul className="mt-3 flex flex-col gap-2 text-ink/90">
               <li>• Find apps before anyone else and help shape them.</li>
               <li>
-                • Earn {CREDITS.feedbackReward} Methodium (Method V&apos;s credits) for each piece of real feedback in Test &amp; earn.
+                • Earn Methodium (Method V&apos;s credits) by answering bounties: builders pay {BOUNTIES.minReward} to {BOUNTIES.maxReward}{" "}
+                for a specific job, like trying a signup flow or finding a bug.
               </li>
-              <li>• Spend them to get testers for your own app, or a Spotlight spot.</li>
+              <li>• Spend it in the V Store on Pro, extra app posts or a Spotlight spot.</li>
               <li>• Build a Tester Passport: ranks and stamps that show you give useful feedback.</li>
             </ul>
           </div>

@@ -8,7 +8,7 @@ import { BountyList } from "@/components/Bounties";
 import { BuyCredits } from "@/components/Earn";
 import { InviteCard } from "@/components/InviteCard";
 import { PerkList } from "@/components/Perks";
-import { BOUNTIES, CREDITS, CREDIT_REASONS, REFERRALS, SPOTLIGHT, STREAK_BONUS, TESTER_GUARANTEE, TIPS } from "@/lib/constants";
+import { BOUNTIES, CREDITS, CREDIT_REASONS, REFERRALS, SPOTLIGHT, STREAK_BONUS, TIPS } from "@/lib/constants";
 import { getCreditHistory, getMyInvites, getOpenBounties, getPerkListings, getViewer } from "@/lib/data";
 import { timeAgo } from "@/lib/format";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
@@ -100,8 +100,8 @@ export default async function CreditsPage({ searchParams }: PageProps<"/credits"
       <section id="buy" aria-label="Buy Methodium" className="mt-10 scroll-mt-24">
         <h2 className="display text-4xl">Buy Methodium</h2>
         <p className="mt-1 mb-4 text-sm text-muted">
-          For the Spotlight (<Coin />{SPOTLIGHT.cost}) or testers for your app. Or earn them free by testing apps. Methodium can&apos;t be
-          turned back into money.
+          For the V Store (Pro, extra app posts, the Spotlight at <Coin />{SPOTLIGHT.cost}) or bounties on your app. Or earn it free by
+          answering bounties. Methodium can&apos;t be turned back into money.
         </p>
         <BuyCredits />
       </section>
@@ -110,28 +110,27 @@ export default async function CreditsPage({ searchParams }: PageProps<"/credits"
       <ul className="mt-2 flex flex-col gap-1.5 text-sm text-ink/90">
         <li>• Everyone starts with <Coin />{CREDITS.welcome}.</li>
         <li>
-          • Try an app in <Link href="/test" className="text-accent hover:underline">Test &amp; earn</Link> for at least a minute
-          and write real feedback ({TESTER_GUARANTEE.minChars}+ characters): earn <Coin />{CREDITS.feedbackReward}.
-        </li>
-        <li>• When a builder marks your feedback helpful: +<Coin />{CREDITS.helpfulBonus}.</li>
-        <li>
-          • Spend <Coin />{CREDITS.perTester} per tester to put your own app in the queue. Your credits are held, not spent: they&apos;re
-          only used when a real tester gives feedback, and spots nobody fills in {TESTER_GUARANTEE.days} days come back to you
-          automatically (or stop any time).
-        </li>
-        <li>• You can earn from up to {CREDITS.dailyPaidFeedback} feedbacks a day, so the queue stays fair.</li>
-        <li>
-          • Tester Passport perks: Testers earn <Coin />3 per paid feedback, Pro Testers can earn from 20 a day, and{" "}
-          {STREAK_BONUS.weeks} weeks in a row earns a <Coin />{STREAK_BONUS.credits} bonus.
-        </li>
-        <li>
-          • Answer a <a href="#bounties" className="text-accent hover:underline">bounty</a>: rewards of <Coin />
+          • Answer a <a href="#bounties" className="text-accent hover:underline">bounty</a> in{" "}
+          <Link href="/test" className="text-accent hover:underline">
+            Test &amp; earn
+          </Link>
+          : rewards of <Coin />
           {BOUNTIES.minReward} to <Coin />
-          {BOUNTIES.maxReward}, set by the builder.
+          {BOUNTIES.maxReward}, set by the builder. The best answer gets it; if the builder doesn&apos;t pick, everyone who answered
+          splits it.
+        </li>
+        <li>
+          • Want people to try your app? Post a bounty from its page. Only someone who actually does the job gets paid, and if nobody
+          answers you get it all back. (You can&apos;t buy testers: nobody can promise someone will test your app.)
+        </li>
+        <li>• Give feedback on any app for free. When the builder marks it helpful: +<Coin />{CREDITS.helpfulBonus}.</li>
+        <li>
+          • Give feedback {STREAK_BONUS.weeks} weeks in a row: a <Coin />
+          {STREAK_BONUS.credits} bonus.
         </li>
         <li>
           • Invite friends: you both get <Coin />
-          {REFERRALS.bonus} when they post their first Drop or give their first paid feedback.
+          {REFERRALS.bonus} when they post their first Drop or earn their first bounty reward.
         </li>
         <li>
           • Tip a builder you love or a tester who helped: <Coin />1 to <Coin />
