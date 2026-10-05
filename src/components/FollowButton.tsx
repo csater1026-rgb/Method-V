@@ -11,10 +11,12 @@ export function FollowButton({
   profileId,
   initialFollowing,
   signedIn,
+  small = false,
 }: {
   profileId: string;
   initialFollowing: boolean;
   signedIn: boolean;
+  small?: boolean;
 }) {
   const router = useRouter();
   const signIn = useSignIn();
@@ -48,7 +50,7 @@ export function FollowButton({
         onClick={toggle}
         disabled={pending}
         aria-pressed={following}
-        className={following ? "btn-ghost" : "btn-accent"}
+        className={`${following ? "btn-ghost" : "btn-accent"} ${small ? "rounded-full px-4 py-1.5 text-sm" : ""}`}
       >
         {following ? "Following" : "Follow"}
       </button>
