@@ -12,15 +12,13 @@ import Svg, {
 import { STAGE_SPOTS } from "@shared/spotlight-stage";
 import type { AppCard as Card, FeaturedReason } from "@shared/types";
 
-import { MediaDark, fonts, useColorSchemeName } from "@/theme";
+import { MediaDark, fonts, media, stageMint, useColorSchemeName } from "@/theme";
 
 import { AppCard } from "./AppCard";
 import { Body, Display } from "./ui";
 
 type StageApp = Card & { reason: FeaturedReason };
 
-// Solid behind each card, so the light only shows around it.
-const CARD_BG = "#0b1626";
 
 const LABELS: Record<FeaturedReason, string> = {
   featured: "In the Spotlight",
@@ -35,12 +33,14 @@ const LABELS: Record<FeaturedReason, string> = {
 // falls behind the apps (so they stay crisp) in the brand's cyan; paid
 // Spotlights wear a gold tag, Today's picks a quiet glass one. Paid
 // Spotlights come first (see src/lib/spotlight-stage.ts).
-// The stage's light: mint in dark mode, cyan in light mode (like the website).
+// The stage's light and colors: mint on deep mint-tinted greens in dark
+// mode, cyan on navy in light mode (like the website). `card` is the solid
+// behind each card, so the light only shows around it.
 function useGlow() {
   const dark = useColorSchemeName() === "dark";
   return dark
-    ? { hex: "#82ed9d", rgb: "130,237,157", hi: "#e8ffee" }
-    : { hex: "#40f4f5", rgb: "64,244,245", hi: "#e1feff" };
+    ? { hex: "#82ed9d", rgb: "130,237,157", hi: "#e8ffee", stage: "#0a140e", card: "#0e1813", housing: "#17251d", glass: "rgba(8,18,12,0.75)", palette: stageMint }
+    : { hex: "#40f4f5", rgb: "64,244,245", hi: "#e1feff", stage: "#070e19", card: "#0b1626", housing: "#142235", glass: "rgba(7,14,25,0.75)", palette: media };
 }
 
 export function SpotlightStage({ apps }: { apps: StageApp[] }) {
@@ -50,13 +50,13 @@ export function SpotlightStage({ apps }: { apps: StageApp[] }) {
   const under = rest.slice(0, STAGE_SPOTS - 1);
   if (!top) return null;
   return (
-    <MediaDark>
+    <MediaDark palette={g.palette}>
       <View
         style={{
           marginHorizontal: 16,
           borderRadius: 16,
           overflow: "hidden",
-          backgroundColor: "#070e19",
+          backgroundColor: g.stage,
           borderWidth: 1,
           borderColor: `rgba(${g.rgb},0.25)`,
         }}
@@ -74,7 +74,7 @@ export function SpotlightStage({ apps }: { apps: StageApp[] }) {
               borderRadius: 13,
               borderWidth: 1,
               borderColor: `rgba(${g.rgb},0.75)`,
-              backgroundColor: CARD_BG,
+              backgroundColor: g.card,
               shadowColor: g.hex,
               shadowOpacity: 0.5,
               shadowRadius: 18,
@@ -114,7 +114,7 @@ export function SpotlightStage({ apps }: { apps: StageApp[] }) {
                   <View
                     style={{
                       borderRadius: 12,
-                      backgroundColor: CARD_BG,
+                      backgroundColor: g.card,
                       shadowColor: g.hex,
                       shadowOpacity: 0.35,
                       shadowRadius: 12,
@@ -168,7 +168,7 @@ function SpotTag({ reason }: { reason: FeaturedReason }) {
       style={{
         borderWidth: 1,
         borderColor: gold ? "#f5b93b" : `rgba(${g.rgb},0.5)`,
-        backgroundColor: gold ? "#f8c94f" : "rgba(7,14,25,0.75)",
+        backgroundColor: gold ? "#f8c94f" : g.glass,
         borderRadius: 4,
         paddingHorizontal: 6,
         paddingVertical: 2,
@@ -265,7 +265,7 @@ function Light({ big = false, style }: { big?: boolean; style?: object }) {
           width: big ? 72 : 46,
           height: big ? 12 : 10,
           borderRadius: 999,
-          backgroundColor: "#142235",
+          backgroundColor: g.housing,
           borderWidth: 1,
           borderColor: "rgba(255,255,255,0.12)",
           zIndex: 2,

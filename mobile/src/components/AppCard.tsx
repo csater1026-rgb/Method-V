@@ -5,13 +5,14 @@ import { Pressable, View } from "react-native";
 import { CATEGORIES, labelFor } from "@shared/constants";
 import type { AppCard as Card } from "@shared/types";
 
-import { media, useTheme } from "@/theme";
+import { useMedia, useTheme } from "@/theme";
 
 import { TryCount } from "./TryCount";
 import { Avatar, Body, Display, Handle, Mono, Tag } from "./ui";
 
 // A striped stand-in when there's no poster (like the website's).
 export function DropPlaceholder({ name, compact }: { name: string; compact?: boolean }) {
+  const media = useMedia();
   return (
     // Full-screen placeholders put the name in the middle, clear of the caption.
     <View style={{ flex: 1, overflow: "hidden", backgroundColor: media.surface, justifyContent: compact ? "flex-end" : "center", alignItems: compact ? "flex-start" : "center", padding: compact ? 10 : 24 }}>
@@ -32,6 +33,7 @@ export function DropPlaceholder({ name, compact }: { name: string; compact?: boo
 
 export function AppCard({ app, wide }: { app: Card; wide?: boolean }) {
   const t = useTheme();
+  const media = useMedia();
   return (
     <Link href={`/apps/${app.slug}`} asChild>
       <Pressable

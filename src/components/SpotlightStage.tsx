@@ -91,7 +91,7 @@ export function SpotlightStage({
 function HeroCard({ app }: { app: FeaturedApp }) {
   return (
     <div className="stage-hero rise relative rounded-[14px] p-px">
-      <article className="relative grid overflow-hidden rounded-[13px] bg-[#0b1626] text-white sm:grid-cols-[1.15fr_1fr]">
+      <article className="relative grid overflow-hidden rounded-[13px] bg-[var(--stage-card)] text-white sm:grid-cols-[1.15fr_1fr]">
         <Link
           href={`/apps/${app.slug}`}
           className="relative block aspect-video overflow-hidden"
@@ -184,7 +184,7 @@ function Light({
   return (
     <span
       aria-hidden
-      className={`z-20 block rounded-full ${off ? "border border-white/10 bg-[#142235]" : "stage-light"} ${big ? "h-3.5 w-20" : "h-3 w-12"} ${className}`}
+      className={`z-20 block rounded-full ${off ? "border border-white/10 bg-[var(--stage-housing)]" : "stage-light"} ${big ? "h-3.5 w-20" : "h-3 w-12"} ${className}`}
     />
   );
 }

@@ -5,8 +5,9 @@
  * mint, white and cyan. Two themes: dark (charcoal, soft white ink, mint
  * accent, like the V in the logo) and light (white paper, navy ink, blue
  * accent so text and buttons stay readable). Mint marks highlight badges in
- * both. Video and poster areas, and the Spotlight stage, stay a deep navy
- * with a cyan accent in both (`media-dark`).
+ * both. Video and poster areas stay a deep navy with a cyan accent in both
+ * (`media-dark`). The Spotlight stage is a deep mint-tinted green in dark
+ * mode and that navy in light mode (the --stage-* tokens).
  * Big Shoulders (condensed poster caps) for display, Schibsted Grotesk for
  * reading, Martian Mono for numbers, timers, credits and tags.
  *
@@ -61,6 +62,22 @@
   --stage-glow: 130 237 157;
   --stage-glow-2: 79 184 106;
   --stage-glow-hi: 232 255 238;
+  /* The stage itself, and the cards on it (see .stage below): deep mint-tinted
+     greens in dark mode, the media navy in light mode. */
+  --stage-bg-1: #0f1c15;
+  --stage-bg-2: #0a140e;
+  --stage-bg-3: #070d0a;
+  --stage-card: #0e1813;
+  --stage-housing: #17251d;
+  --stage-glass: 8 18 12;
+  --stage-surface: #13201a;
+  --stage-surface-2: #1a2a21;
+  --stage-line: #24382c;
+  --stage-base: #0c1611;
+  --stage-muted: #a3b8aa;
+  --stage-accent: #82ed9d;
+  --stage-accent-ink: #0b1b12;
+  --stage-accent-edge: #4fb86a;
   /* Height of the phone bottom tab bar (MobileTabs); none on larger screens. */
   --tabbar: calc(3.5rem + env(safe-area-inset-bottom));
 }
@@ -89,6 +106,20 @@
     --stage-glow: 64 244 245;
     --stage-glow-2: 3 121 217;
     --stage-glow-hi: 225 254 255;
+    --stage-bg-1: #0b1727;
+    --stage-bg-2: #070e19;
+    --stage-bg-3: #050a12;
+    --stage-card: #0b1626;
+    --stage-housing: #142235;
+    --stage-glass: 7 14 25;
+    --stage-surface: #0f2031;
+    --stage-surface-2: #172b3f;
+    --stage-line: #243a50;
+    --stage-base: #0a1624;
+    --stage-muted: #9db2c7;
+    --stage-accent: #40f4f5;
+    --stage-accent-ink: #04213a;
+    --stage-accent-edge: #1aa9b0;
   }
 }
 
@@ -109,6 +140,20 @@
   --stage-glow: 64 244 245;
   --stage-glow-2: 3 121 217;
   --stage-glow-hi: 225 254 255;
+  --stage-bg-1: #0b1727;
+  --stage-bg-2: #070e19;
+  --stage-bg-3: #050a12;
+  --stage-card: #0b1626;
+  --stage-housing: #142235;
+  --stage-glass: 7 14 25;
+  --stage-surface: #0f2031;
+  --stage-surface-2: #172b3f;
+  --stage-line: #243a50;
+  --stage-base: #0a1624;
+  --stage-muted: #9db2c7;
+  --stage-accent: #40f4f5;
+  --stage-accent-ink: #04213a;
+  --stage-accent-edge: #1aa9b0;
 }
 
 /* Video, posters and anything drawn on top of them: always the dark palette. */
@@ -400,7 +445,21 @@ body {
   background:
     radial-gradient(ellipse 75% 55% at 50% -8%, rgb(var(--stage-glow) / 0.2), transparent 68%),
     radial-gradient(ellipse 70% 45% at 50% 108%, rgb(var(--stage-glow-2) / 0.22), transparent 70%),
-    linear-gradient(180deg, #0b1727 0%, #070e19 55%, #050a12 100%);
+    linear-gradient(180deg, var(--stage-bg-1) 0%, var(--stage-bg-2) 55%, var(--stage-bg-3) 100%);
+}
+/* Cards and Drop posters on the stage: mint-tinted in dark mode, navy + cyan
+   in light (posters carry their own media-dark, so they're named too). */
+.stage,
+.stage .media-dark {
+  --color-bg: var(--stage-base);
+  --color-surface: var(--stage-surface);
+  --color-surface-2: var(--stage-surface-2);
+  --color-line: var(--stage-line);
+  --color-muted: var(--stage-muted);
+  --color-accent: var(--stage-accent);
+  --color-accent-ink: var(--stage-accent-ink);
+  --accent-edge: var(--stage-accent-edge);
+  --glow: var(--stage-glow);
 }
 /* The rail the lights hang on. */
 .stage-rail {
@@ -408,7 +467,7 @@ body {
 }
 /* A small light on the rail: a dark housing with a glowing strip. */
 .stage-light {
-  background: #142235;
+  background: var(--stage-housing);
   border: 1px solid rgb(255 255 255 / 0.12);
   box-shadow: 0 2px 6px rgb(0 0 0 / 0.5);
 }
@@ -456,7 +515,7 @@ body {
   border-color: #f5b93b;
 }
 .spot-glass {
-  background: rgb(7 14 25 / 0.6);
+  background: rgb(var(--stage-glass) / 0.6);
   color: #dffcff;
   border-color: rgb(var(--stage-glow) / 0.45);
   backdrop-filter: blur(6px);

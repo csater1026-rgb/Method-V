@@ -40,18 +40,25 @@ export function useColorSchemeName(): "light" | "dark" {
 }
 
 // Inside <MediaDark> everything uses the media palette (deep navy) whatever
-// the phone is set to, like the website's media-dark (the Spotlight stage).
-const ForceDark = createContext(false);
+// the phone is set to, like the website's media-dark. Pass another palette
+// (the Spotlight stage passes stageMint in dark mode) to use that instead.
+const ForceDark = createContext<Palette | null>(null);
 
-export function MediaDark({ children }: { children: React.ReactNode }) {
-  return createElement(ForceDark.Provider, { value: true }, children);
+export function MediaDark({ palette, children }: { palette?: Palette; children: React.ReactNode }) {
+  return createElement(ForceDark.Provider, { value: palette ?? media }, children);
 }
 
 export function useTheme(): Palette {
   const scheme = useColorScheme();
   const forced = useContext(ForceDark);
-  if (forced) return media;
+  if (forced) return forced;
   return scheme !== "light" ? palettes.dark : palettes.light;
+}
+
+// The palette for video and posters: \`media\`, or the forced one inside
+// <MediaDark palette=…> (so posters on the Spotlight stage match it).
+export function useMedia(): Palette {
+  return useContext(ForceDark) ?? media;
 }
 
 // Poster caps for headlines, a grotesk for text, mono for numbers and tags.
@@ -78,6 +85,22 @@ export const media: Palette = {
   accent: "#40f4f5",
   accentInk: "#04213a",
   accentEdge: "#1aa9b0",
+  heart: "#e5826f",
+  danger: "#f08c78",
+};
+
+// The Spotlight stage in dark mode: deep mint-tinted greens with the mint
+// accent, like the website's --stage-* tokens. Light mode keeps \`media\`.
+export const stageMint: Palette = {
+  bg: "#0c1611",
+  surface: "#13201a",
+  surface2: "#1a2a21",
+  line: "#24382c",
+  ink: "#ffffff",
+  muted: "#a3b8aa",
+  accent: "#82ed9d",
+  accentInk: "#0b1b12",
+  accentEdge: "#4fb86a",
   heart: "#e5826f",
   danger: "#f08c78",
 };

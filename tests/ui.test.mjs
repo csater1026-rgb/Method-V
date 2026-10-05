@@ -516,12 +516,10 @@ await run("swaps", desktop, async (page) => {
   ok(await page.getByText("Swaps are off in demo mode.").isVisible(), "swaps page explains demo mode");
 });
 
-await run("pixel coder", phone, async (page) => {
+await run("footer", phone, async (page) => {
   await go(page, "/");
   const footer = page.locator("footer");
-  ok(await footer.getByRole("img", { name: "A pixel builder coding at their desk" }).isVisible(), "footer masthead shows the pixel coder");
-  const running = await footer.locator(".pc-dust").first().evaluate((el) => getComputedStyle(el).animationName);
-  ok(running === "pc-float", "pixels drift away (animation running)");
+  ok((await footer.locator("svg.pc-animated, .pc-dust, .bot-eyes").count()) === 0, "no animated pixel art in the footer (off for now)");
   ok((await page.locator("header svg.pc-animated").count()) === 0, "no pixel coder next to the logo at the top");
   ok((await page.getByText(/Then try it/i).count()) === 0, "the old tagline is gone");
   const footerLinks = await footer.locator("a").allTextContents();
@@ -534,50 +532,11 @@ await run("pixel coder", phone, async (page) => {
     ok(tag.y > logo.y + logo.height - 2, "tagline sits right under the logo");
   }
   ok((await page.title()).includes("Show off your app. Get real feedback. Get traction."), "and in the browser tab title");
-  const coder = await footer.getByRole("img", { name: "A pixel builder coding at their desk" }).boundingBox();
-  const pageHeight = await page.evaluate(() => document.documentElement.scrollHeight - parseFloat(getComputedStyle(document.body).paddingBottom));
-  ok(coder.x < 16 && Math.abs(coder.y + coder.height - pageHeight) < 2, `pixel coder sits in the bottom-left corner (x ${Math.round(coder.x)})`);
-  ok(coder.width >= 150 && coder.width <= 170, `and it's small on phones (${Math.round(coder.width)}px wide)`);
-  const bot = footer.getByRole("button", { name: /pixel AI computer/ });
-  const botBox = await bot.boundingBox();
-  ok(botBox.x + botBox.width > phone.width - 16 && Math.abs(coder.y + coder.height - (botBox.y + botBox.height)) < 2, "pixel AI computer sits in the bottom-right corner, level with the coder");
-  ok(botBox.width >= 150 && botBox.width <= 170 && botBox.x > coder.x + coder.width, `and the two don't overlap (${Math.round(botBox.width)}px wide)`);
-  await footer.scrollIntoViewIfNeeded();
-  const svg = bot.locator("svg");
-  const eyeX = () => bot.locator(".bot-eyes rect").first().getAttribute("x");
-  const onScreen = await bot.boundingBox();
-  await page.mouse.move(0, onScreen.y + 20);
-  await page.waitForTimeout(150);
-  const left = await eyeX();
-  await page.mouse.move(phone.width - 1, onScreen.y + 20);
-  await page.waitForTimeout(150);
-  const right = await eyeX();
-  ok(Number(left) < Number(right), `its eyes follow the pointer (${left} → ${right})`);
-  await page.waitForTimeout(2600);
-  await footer.screenshot({ path: OUT + "footer-coder.png" });
-  await bot.click();
-  ok((await svg.getAttribute("data-mode")) === "building" && (await footer.getByText("Building…").count()) === 1, "pressing it builds");
-  await page.waitForFunction(() => document.querySelector("footer svg[data-mode]")?.getAttribute("data-mode") === "shipped", null, { timeout: 4000 });
-  ok((await footer.getByText("Shipped!").count()) === 1, "then it ships (and says so to screen readers)");
-  await page.waitForTimeout(600);
-  await footer.screenshot({ path: OUT + "footer-shipped.png" });
-  await page.waitForFunction(() => document.querySelector("footer svg[data-mode]")?.getAttribute("data-mode") === "coding", null, { timeout: 5000 });
-  ok(true, "and goes back to coding");
   await go(page, "/drops");
   ok((await page.locator("footer").count()) === 0, "no footer under the full-screen Drops feed");
   await go(page, "/browse");
   ok((await page.getByRole("navigation", { name: "More on Method V" }).count()) === 0, "no More on Method V row on Browse");
 });
-
-{
-  const ctx = await browser.newContext({ viewport: phone, reducedMotion: "reduce" });
-  await bonusSeen(ctx);
-  const page = await ctx.newPage();
-  await go(page, "/");
-  const count = await page.locator("footer .pc-dust").first().evaluate((el) => getComputedStyle(el).animationIterationCount);
-  ok(count === "1", "reduced motion: the pixel coder doesn't loop");
-  await ctx.close();
-}
 
 await run("connect + inbox", desktop, async (page) => {
   await go(page, "/u/june_designs");
