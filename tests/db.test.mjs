@@ -1444,6 +1444,15 @@ ok(!!(await fails("anon", null, "insert into public.sponsorships (sponsor_brand,
   ok(true, "once the oldest is 30 days old, the next one opens");
   await db.query("insert into public.apps (owner_id, slug, name, tagline, url, category) values ($1, 'limit-admin', 'x', 'x', 'https://example.com', 'games')", [LIM]);
   ok(true, "the server's own key isn't limited");
+  // Someone already over the limit (posted before it existed): the date is when they're back under 3.
+  const OVER = "adadadad-0000-0000-0000-000000000000";
+  await db.exec(`insert into auth.users (id) values ('${OVER}')`);
+  for (const [n, days] of [[1, 29], [2, 20], [3, 10], [4, 5], [5, 1]]) {
+    await db.query(`insert into public.apps (owner_id, slug, name, tagline, url, category, created_at) values ($1, $2, $2, 'x', 'https://example.com', 'games', now() - interval '${days} days')`, [OVER, `over-${n}`]);
+  }
+  const expected = (await db.query("select to_char((now() + interval '20 days') at time zone 'America/Los_Angeles', 'FMMon FMDD') d")).rows[0].d;
+  const overMsg = (await fails("authenticated", OVER, "insert into public.apps (owner_id, slug, name, tagline, url, category) values ($1, 'over-6', 'x', 'x', 'https://example.com', 'games')", [OVER])) ?? "";
+  ok(overMsg.includes(`opens on ${expected}.`), `with 5 apps this month, the next opens when their 3rd newest turns 30 days old (${overMsg})`);
 }
 
 // Security hardening (20261011000000_security_hardening.sql).

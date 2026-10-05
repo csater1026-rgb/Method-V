@@ -6815,7 +6815,7 @@ grant execute on function public.my_referrals() to authenticated;
 -- Keeps the feed and the Spotlight fair: nobody can flood Method V with
 -- apps. It counts apps posted in the last 30 days (so the next one opens 30
 -- days after the oldest of the 3). Adding a new Drop to an app you already
--- posted is never limited. Mirrors APP_LIMIT in src/lib/constants.ts.
+-- posted is never limited. Mirrors APP_LIMIT in src/lib/app-limit.ts.
 --
 -- Only people posting for themselves are limited (the site and the phone
 -- app); the server's own key and the Supabase dashboard aren't.
@@ -6832,17 +6832,24 @@ set search_path = ''
 as $$
 declare
   recent integer;
-  oldest timestamptz;
+  opens timestamptz;
 begin
   if auth.uid() is null then
     return new;
   end if;
-  select count(*), min(created_at) into recent, oldest
+  select count(*) into recent
   from public.apps
   where owner_id = new.owner_id and created_at > now() - interval '30 days';
   if recent >= 3 then
+    -- The next one opens when they're down to 2 in the last 30 days: when
+    -- their 3rd newest app turns 30 days old.
+    select created_at + interval '30 days' into opens
+    from public.apps
+    where owner_id = new.owner_id
+    order by created_at desc
+    offset 2 limit 1;
     raise exception 'You can post 3 apps every 30 days. Your next one opens on %. You can still add new Drops to the apps you''ve posted.',
-      to_char((oldest + interval '30 days') at time zone 'America/Los_Angeles', 'FMMon FMDD')
+      to_char(opens at time zone 'America/Los_Angeles', 'FMMon FMDD')
       using errcode = 'P0001';
   end if;
   return new;
