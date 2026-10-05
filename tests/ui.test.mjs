@@ -82,9 +82,9 @@ await run("home (phone)", phone, async (page) => {
   ok((await justPosted.locator("article").first().getAttribute("class")).includes("snap-start"), "Just posted swipes sideways too");
   ok((await justPosted.locator("article .tag-accent").count()) === 0, "Just posted cards have no Featured-style labels");
   const order = await page.locator("main section[aria-label]").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
-  ok(order.join(" > ") === "Challenge > Show off your app > In the Spotlight > Builders like you > Just posted", `Home order: ${order.join(" > ")}`);
-  const pitch = page.getByRole("region", { name: "Show off your app" });
-  ok((await pitch.getByRole("link", { name: "Post your app →" }).getAttribute("href")) === "/submit", "Home invites you to show off your app");
+  ok(order.join(" > ") === "Challenge > In the Spotlight > Builders like you > Just posted", `Home order: the Spotlight comes first, no "post your app" box (${order.join(" > ")})`);
+  // (Hidden on phones, which use the + tab; it shows from tablet width up.)
+  ok((await page.locator("header a[href='/submit']", { hasText: "Post your project" }).count()) === 1, "the top-right button says Post your project");
   ok((await page.getByRole("link", { name: /Monthly leaderboards/ }).getAttribute("href")) === "/browse#leaderboards", "Home links to the leaderboards on Browse");
   await go(page, "/browse");
   const boards = page.getByRole("region", { name: "Leaderboards" });
@@ -807,7 +807,7 @@ await run("credits", phone, async (page) => {
 
 await run("+ opens the camera/library", phone, async (page) => {
   await go(page, "/");
-  const plus = page.getByRole("navigation", { name: "Main" }).getByLabel("Post a Drop");
+  const plus = page.getByRole("navigation", { name: "Main" }).getByLabel("Post your project");
   ok((await plus.getAttribute("type")) === "file" && (await plus.getAttribute("accept")) === "video/*", "+ is a video picker on phones");
   await plus.setInputFiles(CLIPS + "clip-20s.webm");
   await page.waitForURL(/\/submit$/);

@@ -41,30 +41,6 @@ export default async function HomePage() {
         </div>
       )}
       <DropBonusPopup promo={dropBonus} userId={viewer?.id ?? null} />
-      {/* What Method V is for: show off your app, get feedback, get traction. */}
-      <section aria-label="Show off your app" className="mx-4 mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-accent/40 bg-accent/10 p-4">
-        {latestApp ? (
-          <>
-            <div className="min-w-0">
-              <p className="font-semibold">Get more eyes on {latestApp.name}</p>
-              <p className="text-sm text-muted">Put it on Featured with the Spotlight, post a bounty to get people trying it, or ask people a question about it.</p>
-            </div>
-            <Link href={`/apps/${latestApp.slug}#spotlight`} className="btn-accent shrink-0">
-              ⭐ Get on Featured →
-            </Link>
-          </>
-        ) : (
-          <>
-            <div className="min-w-0">
-              <p className="font-semibold">Built something? Show it off.</p>
-              <p className="text-sm text-muted">Post a 60-second Drop, get honest feedback from real people, and get traction.</p>
-            </div>
-            <Link href="/submit" className="btn-accent shrink-0">
-              Post your app →
-            </Link>
-          </>
-        )}
-      </section>
 
       <header className="flex items-center justify-between gap-3 px-4">
         <div>

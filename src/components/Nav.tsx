@@ -40,7 +40,7 @@ export async function Nav() {
             <ThemeToggle />
             {!gated && (
               <Link href="/submit" data-tour="post" className="btn-accent hidden sm:inline-flex">
-                Post a Drop
+                Post your project
               </Link>
             )}
             {viewer && !mustAgree ? (
