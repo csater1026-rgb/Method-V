@@ -1070,3 +1070,22 @@ export async function getMyAppLimit(viewerId: string | null): Promise<{ left: nu
     Number(row?.extra_app_posts ?? 0),
   );
 }
+
+// Your V Store state: Pro (until when, if on), extra app posts saved, and how
+// many you bought in the last 30 days. Demo mode: nothing bought yet.
+export async function getMyStore(viewerId: string | null): Promise<{ proUntil: string | null; extraAppPosts: number; appPostsBought: number; ready: boolean }> {
+  if (!supabase || !viewerId) return { proUntil: null, extraAppPosts: 0, appPostsBought: 0, ready: true };
+  const [{ data: profile }, store] = await Promise.all([
+    supabase.from("profiles").select("pro_until").eq("id", viewerId).maybeSingle(),
+    supabase.rpc("my_store"),
+  ]);
+  const until = (profile as { pro_until: string | null } | null)?.pro_until ?? null;
+  const row = (Array.isArray(store.data) ? store.data[0] : store.data) as { extra_app_posts?: number; app_posts_bought?: number } | null;
+  return {
+    proUntil: until && new Date(until).getTime() > Date.now() ? until : null,
+    extraAppPosts: Number(row?.extra_app_posts ?? 0),
+    appPostsBought: Number(row?.app_posts_bought ?? 0),
+    // false before the V Store SQL is run.
+    ready: !store.error,
+  };
+}

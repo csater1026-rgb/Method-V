@@ -1,7 +1,6 @@
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import * as WebBrowser from "expo-web-browser";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useState } from "react";
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from "react-native";
@@ -12,7 +11,7 @@ import { APP_LIMIT, limitMessage } from "@shared/app-limit";
 
 import { Body, Button, Card, Display, ErrorText, Mono, tap } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
-import { SITE_URL, isLive } from "@/lib/config";
+import { isLive } from "@/lib/config";
 import { getMyAppLimit, getPromotion, postDrop, previewLink } from "@/lib/data";
 import { useLoad } from "@/lib/useLoad";
 import { fonts, media, useTheme, type Palette } from "@/theme";
@@ -130,13 +129,7 @@ export default function PostScreen() {
             <Body muted size={13}>
               {limitMessage(full)}
             </Body>
-            {SITE_URL ? (
-              <Button
-                label={`Get an extra post · ${V_STORE.appPost.cost} Methodium ↗`}
-                kind="ghost"
-                onPress={() => void WebBrowser.openBrowserAsync(`${SITE_URL}/store`)}
-              />
-            ) : null}
+            <Button label={`Get an extra post · ${V_STORE.appPost.cost} Methodium`} kind="ghost" onPress={() => router.push("/store")} />
           </Card>
         ) : null}
         <Pressable accessibilityRole="link" onPress={() => router.push("/ask")} hitSlop={8} style={{ marginTop: -10, alignSelf: "flex-start" }}>

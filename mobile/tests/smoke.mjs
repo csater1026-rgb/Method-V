@@ -239,6 +239,32 @@ ok(await page.getByText("Tap + to share what you built", { exact: false }).isVis
 await page.getByRole("button", { name: "Skip tour" }).click();
 ok((await page.getByText("Tap + to share what you built", { exact: false }).count()) === 0, "Skip tour closes it");
 
+// The V Store screen: the same tiles and badges as the website's.
+await visit("/store", "store");
+ok(await page.getByText("V STORE", { exact: true }).isVisible(), "the V Store screen opens");
+ok(
+  (await page.getByRole("button", { name: /^Method V Pro, 50 Methodium$/ }).count()) === 1 &&
+    (await page.getByRole("button", { name: /^Extra app post, 15 Methodium$/ }).count()) === 1,
+  "it sells Pro and an extra app post at the website's prices",
+);
+{
+  const tile = await page.getByRole("button", { name: /^Method V Pro/ }).evaluate((el) => getComputedStyle(el).borderTopColor);
+  ok(tile === "rgb(79, 184, 106)", `the featured tile is mint in dark mode (${tile})`);
+}
+await page.getByRole("button", { name: /^Extra app post/ }).click();
+await page.waitForTimeout(500);
+ok(await page.getByText("Post one more app past the limit", { exact: false }).isVisible(), "tapping an item opens it");
+await page.screenshot({ path: `${OUT}store-item.png` });
+await page.getByRole("button", { name: "Close" }).last().click();
+await page.waitForTimeout(300);
+await page.emulateMedia({ colorScheme: "light" });
+await visit("/store", "store-light");
+{
+  const tile = await page.getByRole("button", { name: /^Method V Pro/ }).evaluate((el) => getComputedStyle(el).borderTopColor);
+  ok(tile === "rgb(3, 121, 217)", `and blue in light mode (${tile})`);
+}
+await page.emulateMedia({ colorScheme: "dark" });
+
 // Light mode renders too.
 await page.emulateMedia({ colorScheme: "light" });
 await visit("/", "home-light");

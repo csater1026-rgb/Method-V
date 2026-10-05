@@ -81,16 +81,14 @@ export default function MeScreen() {
         <Mono muted={false}>{viewer.credits} Methodium</Mono>
       </View>
       <Button label="View your profile" onPress={() => router.push(`/u/${viewer.username}`)} />
-      {/* The V Store (spending Methodium on upgrades) is on the website, like buying Methodium. */}
-      {SITE_URL ? (
-        <Card style={{ gap: 10 }}>
-          <Body bold>V Store</Body>
-          <Body muted size={13}>
-            Spend your Methodium on upgrades: Pro for {V_STORE.pro.cost} Methodium, an extra app post for {V_STORE.appPost.cost}, or a spot in the Spotlight.
-          </Body>
-          <Button label="Open the V Store ↗" onPress={() => web("/store")} />
-        </Card>
-      ) : null}
+      {/* The V Store: its own screen (buying finishes on the website, like buying Methodium). */}
+      <Card style={{ gap: 10 }}>
+        <Body bold>V Store</Body>
+        <Body muted size={13}>
+          Spend your Methodium on upgrades: Pro for {V_STORE.pro.cost} Methodium, an extra app post for {V_STORE.appPost.cost}, or a spot in the Spotlight.
+        </Body>
+        <Button label="Open the V Store" onPress={() => router.push("/store")} />
+      </Card>
       {/* More ways to earn and spend Methodium (bounties and perks live on the website). */}
       {SITE_URL ? (
         <Card style={{ gap: 10 }}>

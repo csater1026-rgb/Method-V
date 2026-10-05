@@ -95,6 +95,7 @@ function Screens() {
           <Stack.Screen name="q/[id]" options={{ title: "" }} />
           <Stack.Screen name="ask" options={{ title: "Ask a question" }} />
           <Stack.Screen name="follows" options={{ title: "" }} />
+          <Stack.Screen name="store" options={{ title: "" }} />
         </Stack.Protected>
         <Stack.Protected guard={mustAgree}>
           <Stack.Screen name="agree" options={{ headerShown: false, gestureEnabled: false, animation: "fade" }} />
