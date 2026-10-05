@@ -441,8 +441,9 @@ await run("manage an app", desktop, async (page) => {
 await run("launch days + boosts", desktop, async (page) => {
   await go(page, "/");
   const featured = page.getByRole("region", { name: "In the Spotlight" });
-  const labels = (await featured.locator("article .tag-accent").allTextContents()).filter((l) => /Spotlight|pick|Launch/.test(l));
+  const labels = (await featured.locator("article .spot-label").allTextContents()).filter((l) => /Spotlight|pick|Launch/.test(l));
   ok(labels[0]?.includes("Spotlight"), `the paid Spotlight app has the top spot (${labels.join(" | ")})`);
+  ok((await featured.locator("article .spot-gold").count()) === 1 && (await featured.locator("article .spot-glass").count()) === 3, "paid wears gold, Today's picks wear glass");
   ok(labels.slice(1).length === 3 && labels.slice(1).every((l) => l.includes("Today's pick")), `the other spots are random daily picks (${labels.join(" | ")})`);
   await go(page, "/browse");
   const soon = page.getByRole("region", { name: "Upcoming launches" });

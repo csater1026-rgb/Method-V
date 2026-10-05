@@ -38,7 +38,14 @@ export function FeaturedCard({ app, rank, fill = false }: { app: AppCard & { rea
           </>
         )}
         {/* Under the Featured heading, only say why when it's something else. */}
-        {app.reason && app.reason !== "featured" && <span className="tag-accent absolute top-2 left-2">{FEATURED_LABELS[app.reason]}</span>}
+        {app.reason && app.reason !== "featured" && (
+          <span
+            className={`spot-label absolute top-2 left-2 ${app.reason === "boosted" ? "tag spot-gold" : app.reason === "pick" ? "tag spot-glass" : "tag-accent"}`}
+          >
+            {app.reason === "boosted" ? "★ " : ""}
+            {FEATURED_LABELS[app.reason]}
+          </span>
+        )}
       </Link>
 
       <div className="flex flex-1 flex-col gap-2 p-3">

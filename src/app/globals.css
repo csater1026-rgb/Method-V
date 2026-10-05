@@ -378,54 +378,87 @@ body {
   }
 }
 
-/* The Spotlight stage on Home (components/SpotlightStage.tsx): a dark stage,
-   warm light falling from the lamps, and pools of light under each app. */
+/* The Spotlight stage on Home (components/SpotlightStage.tsx): a deep night
+   stage in the brand's colors, a thin light rail on top, and cool cyan light
+   falling BEHIND each app (so the apps stay crisp and readable), with a glow
+   on the floor under them. Paid Spotlights get a gold tag; Today's picks a
+   quiet glass one. */
 .stage {
   background:
-    radial-gradient(ellipse 70% 55% at 50% 0%, rgb(255 231 168 / 0.14), transparent 70%),
-    radial-gradient(ellipse at 50% 100%, #0d1826 0%, #060b13 70%);
+    radial-gradient(ellipse 75% 55% at 50% -8%, rgb(64 244 245 / 0.2), transparent 68%),
+    radial-gradient(ellipse 70% 45% at 50% 108%, rgb(3 121 217 / 0.22), transparent 70%),
+    linear-gradient(180deg, #0b1727 0%, #070e19 55%, #050a12 100%);
+}
+/* The rail the lights hang on. */
+.stage-rail {
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.22) 20%, rgb(64 244 245 / 0.55) 50%, rgb(255 255 255 / 0.22) 80%, transparent);
+}
+/* A small light on the rail: a dark housing with a glowing strip. */
+.stage-light {
+  background: #142235;
+  border: 1px solid rgb(255 255 255 / 0.12);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.5);
+}
+.stage-light::after {
+  content: "";
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  bottom: -1px;
+  height: 3px;
+  border-radius: 9999px;
+  background: #effeff;
+  box-shadow:
+    0 0 6px 1px rgb(255 255 255 / 0.9),
+    0 0 18px 6px rgb(64 244 245 / 0.65);
 }
 .stage-beam {
   pointer-events: none;
-  /* A cone of warm light from the lamp: bright at the top, still lit at the
-     bottom, wider than the card so it covers all of it, with soft edges (a
-     blurred cone used as a mask). */
-  background: linear-gradient(to bottom, rgb(255 236 186 / 0.75), rgb(255 236 186 / 0.4) 45%, rgb(255 236 186 / 0.26) 82%, rgb(255 236 186 / 0) 100%);
-  --cone: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cfilter id='b'%3E%3CfeGaussianBlur stdDeviation='3'/%3E%3C/filter%3E%3Cpolygon points='36,0 64,0 100,100 0,100' fill='white' filter='url(%23b)'/%3E%3C/svg%3E");
+  /* A soft cone of cool light from the rail, behind the card: it shows around
+     the card's edges and in the gap above it, never over the app itself. */
+  background: linear-gradient(to bottom, rgb(225 254 255 / 0.55), rgb(64 244 245 / 0.22) 45%, rgb(64 244 245 / 0.06) 85%, transparent);
+  --cone: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cfilter id='b'%3E%3CfeGaussianBlur stdDeviation='4'/%3E%3C/filter%3E%3Cpolygon points='38,0 62,0 100,100 0,100' fill='white' filter='url(%23b)'/%3E%3C/svg%3E");
   -webkit-mask: var(--cone) center / 100% 100% no-repeat;
   mask: var(--cone) center / 100% 100% no-repeat;
-  mix-blend-mode: screen;
-  opacity: 0.6;
 }
 .stage-beam-wide {
-  --cone: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cfilter id='b'%3E%3CfeGaussianBlur stdDeviation='3'/%3E%3C/filter%3E%3Cpolygon points='41,0 59,0 100,100 0,100' fill='white' filter='url(%23b)'/%3E%3C/svg%3E");
-  opacity: 0.5;
+  --cone: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cfilter id='b'%3E%3CfeGaussianBlur stdDeviation='4'/%3E%3C/filter%3E%3Cpolygon points='43,0 57,0 100,100 0,100' fill='white' filter='url(%23b)'/%3E%3C/svg%3E");
 }
-/* The glow on the app itself, so the whole card reads as lit. */
-.stage-lit {
-  pointer-events: none;
-  background: radial-gradient(ellipse 85% 95% at 50% 0%, rgb(255 236 186 / 0.22), rgb(255 236 186 / 0.08) 60%, transparent 100%);
-  mix-blend-mode: screen;
-}
+/* The glow on the floor under each app. */
 .stage-pool {
   pointer-events: none;
-  background: radial-gradient(ellipse at center, rgb(255 231 168 / 0.45), transparent 70%);
-  filter: blur(4px);
+  background: radial-gradient(ellipse at center, rgb(64 244 245 / 0.35), rgb(3 121 217 / 0.12) 45%, transparent 72%);
+  filter: blur(6px);
+}
+/* The top spot: a glowing border in the brand's colors. */
+.stage-hero {
+  background: linear-gradient(135deg, rgb(64 244 245 / 0.9), rgb(255 255 255 / 0.12) 40%, rgb(3 121 217 / 0.85));
+  box-shadow:
+    0 0 0 1px rgb(64 244 245 / 0.15),
+    0 20px 60px -20px rgb(64 244 245 / 0.55);
+}
+.spot-gold {
+  background: linear-gradient(180deg, #ffe08a, #f5b93b);
+  color: #2a1a00;
+  border-color: #f5b93b;
+}
+.spot-glass {
+  background: rgb(7 14 25 / 0.6);
+  color: #dffcff;
+  border-color: rgb(64 244 245 / 0.45);
+  backdrop-filter: blur(6px);
 }
 @media (prefers-reduced-motion: no-preference) {
   .stage-beam {
-    animation: stage-flicker 7s ease-in-out infinite;
+    animation: stage-breathe 6s ease-in-out infinite;
   }
 }
-@keyframes stage-flicker {
+@keyframes stage-breathe {
   0%,
   100% {
-    opacity: 0.62;
+    opacity: 0.85;
   }
-  48% {
-    opacity: 0.52;
-  }
-  52% {
-    opacity: 0.68;
+  50% {
+    opacity: 1;
   }
 }
