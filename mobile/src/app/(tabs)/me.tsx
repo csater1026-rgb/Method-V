@@ -3,11 +3,11 @@ import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useState } from "react";
-import { Pressable, ScrollView, Switch, TextInput, View } from "react-native";
+import { Pressable, ScrollView, Share, Switch, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { confirmMatches } from "@shared/account";
-import { ROLES } from "@shared/constants";
+import { BOUNTIES, REFERRALS, ROLES } from "@shared/constants";
 
 import { Avatar, Body, Button, Card, Coin, Display, ErrorText, Handle, Mono, StatusBadge, tap } from "@/components/ui";
 import { useTour } from "@/components/Tour";
@@ -81,6 +81,29 @@ export default function MeScreen() {
         <Mono muted={false}>{viewer.credits} V Coin</Mono>
       </View>
       <Button label="View your profile" onPress={() => router.push(`/u/${viewer.username}`)} />
+      {/* More ways to earn and spend V Coin (bounties and perks live on the website). */}
+      {SITE_URL ? (
+        <Card style={{ gap: 10 }}>
+          <Body bold>Invite friends, both get {REFERRALS.bonus} V Coin</Body>
+          <Body muted size={13}>
+            When a friend who joins with your link posts their first Drop or gives their first paid feedback, you each get {REFERRALS.bonus} V Coin.
+          </Body>
+          <Button
+            label="Share your invite link"
+            onPress={() => void Share.share({ message: `Join me on Method V, where builders show off their apps and get real feedback: ${SITE_URL}/?ref=${viewer.username}` })}
+          />
+        </Card>
+      ) : null}
+      {SITE_URL ? (
+        <Card style={{ gap: 10 }}>
+          <Body bold>Bounties and perks</Body>
+          <Body muted size={13}>
+            Earn bigger with bounties (builders pay {BOUNTIES.minReward} to {BOUNTIES.maxReward} V Coin for a job), and spend V Coin on real deals
+            on apps.
+          </Body>
+          <Button label="See them on the website ↗" kind="ghost" onPress={() => web("/credits#bounties")} />
+        </Card>
+      ) : null}
       {/* Money is set up on the website (payouts go through Stripe there). */}
       {SITE_URL ? (
         <Card style={{ gap: 10 }}>

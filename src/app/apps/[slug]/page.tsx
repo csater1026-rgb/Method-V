@@ -9,7 +9,10 @@ import { AppCoverEditor } from "@/components/AppCover";
 import { PackageEditor, SponsorPackages } from "@/components/Packages";
 import { SponsoredBy } from "@/components/Sponsored";
 import { Countdown } from "@/components/Countdown";
+import { BountiesSection } from "@/components/Bounties";
 import { DropFrame } from "@/components/DropFrame";
+import { PerksSection } from "@/components/Perks";
+import { TipButton } from "@/components/TipButton";
 import { DropPlaceholder } from "@/components/DropVideo";
 import { FeedbackPanel } from "@/components/FeedbackPanel";
 import { FollowButton } from "@/components/FollowButton";
@@ -37,6 +40,8 @@ import {
   getSwapPartners,
   getUpdates,
   gotDropBonus,
+  getAppBounties,
+  getAppPerks,
   getViewer,
   isFollowing,
   isPro,
@@ -60,7 +65,7 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
   const [app, viewer] = await Promise.all([getApp(slug), getViewer()]);
   if (!app) notFound();
 
-  const [following, feedbackPanel, updates, partners, myApps, questions, backers, myBrands] = await Promise.all([
+  const [following, feedbackPanel, updates, partners, myApps, questions, backers, myBrands, perks, bounties] = await Promise.all([
     isFollowing(viewer, app.owner_id),
     getFeedbackPanel(app, viewer),
     getUpdates({ appId: app.id, limit: 10 }),
@@ -69,6 +74,8 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
     getQuestions(app.id, viewer),
     getBackers(app.id),
     viewer && viewer.id !== app.owner_id ? getMyBrands(viewer) : Promise.resolve([]),
+    getAppPerks(app, viewer),
+    getAppBounties(app, viewer),
   ]);
   // You can sponsor with one of your apps or a verified brand.
   const sponsors = [
@@ -210,6 +217,16 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
         {/* Test & earn for this app, right under what it is. */}
         <FeedbackPanel panel={feedbackPanel} app={{ id: app.id, slug: app.slug, name: app.name }} />
 
+        {/* More ways to earn and spend V Coin on this app. In demo mode everyone sees the builder's side too. */}
+        <BountiesSection
+          app={{ id: app.id, slug: app.slug, name: app.name }}
+          bounties={bounties}
+          isOwner={isOwner}
+          signedIn={Boolean(viewer) || !isSupabaseConfigured}
+          preview={!isSupabaseConfigured}
+        />
+        <PerksSection app={{ id: app.id, slug: app.slug, name: app.name }} perks={perks} isOwner={isOwner} preview={!isSupabaseConfigured} />
+
         {app.tech_stack.length > 0 && (
           <div>
             <h2 className="mb-2 text-sm font-semibold text-muted">Built with</h2>
@@ -236,7 +253,10 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
             </div>
           </Link>
           {!isOwner && (
-            <FollowButton profileId={app.owner.id} initialFollowing={following} signedIn={Boolean(viewer)} />
+            <div className="flex flex-wrap items-center gap-2">
+              <FollowButton profileId={app.owner.id} initialFollowing={following} signedIn={Boolean(viewer)} />
+              {(viewer || !isSupabaseConfigured) && <TipButton to={{ id: app.owner.id, username: app.owner.username }} appId={app.id} label="Tip the builder" />}
+            </div>
           )}
         </div>
 

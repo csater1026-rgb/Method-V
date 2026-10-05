@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-import { agreeUrl, isOpenPath, landingFor, mustAgree, previewFor, welcomeUrl } from "@/lib/gate";
+import { REF_COOKIE, REF_MAX_AGE, REF_PATTERN, agreeUrl, isOpenPath, landingFor, mustAgree, previewFor, welcomeUrl } from "@/lib/gate";
 import { isSupabaseConfigured, supabasePublishableKey, supabaseUrl } from "@/lib/supabase/env";
 
 // Refreshes the Supabase session cookie before each page renders, shows
@@ -29,6 +29,11 @@ export async function proxy(request: NextRequest) {
   const { data } = await supabase.auth.getClaims();
   const { pathname, search } = request.nextUrl;
   const claims = data?.claims;
+  // Invite links (?ref=username): remember who sent a signed-out visitor.
+  const ref = request.nextUrl.searchParams.get("ref")?.toLowerCase();
+  if (!claims && ref && REF_PATTERN.test(ref)) {
+    response.cookies.set(REF_COOKIE, ref, { path: "/", maxAge: REF_MAX_AGE, sameSite: "lax", httpOnly: true, secure: true });
+  }
   // A link-preview bot asking for an app's page gets the app's preview card.
   const preview = claims ? null : previewFor(pathname, request.headers.get("user-agent"));
   if (preview) return NextResponse.rewrite(new URL(preview, request.url));

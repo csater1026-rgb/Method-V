@@ -19,6 +19,7 @@ const AFTER_LATE = [
   "20261016000000_drop_bonus.sql",
   "20261017000000_spotlight_fill.sql",
   "20261018000000_leaderboard_prizes.sql",
+  "20261019000000_v_coin_economy.sql",
 ];
 const migrations = readdirSync(migrationsDir)
   .filter((f) => f.endsWith(".sql") && !LATE.includes(f) && !AFTER_LATE.includes(f))
@@ -1330,6 +1331,101 @@ ok(!!(await fails("anon", null, "insert into public.sponsorships (sponsor_brand,
   ok(!!(await fails("authenticated", W4, "insert into public.leaderboard_prizes (month, board, place, user_id, amount) values (current_date, 'testers', 1, $1, 25)", [W4])), "people can't add themselves as winners");
   ok(!!(await fails("authenticated", W4, "insert into public.credit_events (user_id, delta, reason) values ($1, 25, 'leaderboard_prize')", [W4])), "…or pay themselves a prize");
   ok(!!(await fails("anon", null, "select * from public.leaderboard_builders(now() - interval '1 year', now(), 3)")), "the ranking helpers aren't callable directly");
+
+  // More to do with V Coin (20261019000000_v_coin_economy.sql).
+  const [VB, VT, VU, VX] = ["d1", "d2", "d3", "d4"].map((x) => `${x}${x}${x}${x}-0000-0000-0000-000000000000`);
+  await db.exec(`insert into auth.users (id) values ('${VB}'), ('${VT}'), ('${VU}'), ('${VX}')`);
+  const fund = async (who, n) => db.query("insert into public.credit_events (user_id, delta, reason) values ($1, $2, 'credit_pack')", [who, n]);
+  await fund(VB, 200);
+  await fund(VT, 100);
+  const vApp = await makeApp(VB, "economy");
+  const err = async (role, who, sql, params) => (await fails(role, who, sql, params)) ?? "";
+
+  // 1. Perks.
+  ok(/own apps/.test(await err("authenticated", VT, "select public.save_perk(null, $1, 'Free month', '', 'CODE', 20, null)", [vApp])), "only the builder adds perks to an app");
+  const perk = (await as("authenticated", VB, "select public.save_perk(null, $1, 'A free month of Pro', 'Use it at checkout', 'METHODV-FREE', 20, 2) as id", [vApp])).rows[0].id;
+  ok(!!perk, "a builder adds a perk");
+  ok(!!(await fails("authenticated", VT, "select secret from public.perks where id = $1", [perk])), "nobody can read a perk's code directly");
+  ok((await as("authenticated", VT, "select title, cost from public.perks where id = $1", [perk])).rows[0]?.cost === 20, "members see the perk and its price");
+  ok((await as("authenticated", VT, "select public.perk_secret($1) as s", [perk])).rows[0].s === null, "…but not the code until they unlock it");
+  ok(!!(await fails("anon", null, "select title from public.perks limit 1")), "perks are for members only");
+  let vt = await credits(VT), vb = await credits(VB);
+  ok((await as("authenticated", VT, "select public.claim_perk($1) as s", [perk])).rows[0].s === "METHODV-FREE", "unlocking a perk shows the code");
+  ok((await credits(VT)) === vt - 20 && (await credits(VB)) === vb + 20, "the V Coin goes to the builder");
+  ok((await as("authenticated", VT, "select public.claim_perk($1) as s", [perk])).rows[0].s === "METHODV-FREE" && (await credits(VT)) === vt - 20, "unlocking it again just shows the code (no charge)");
+  ok((await as("authenticated", VT, "select public.perk_secret($1) as s", [perk])).rows[0].s === "METHODV-FREE", "the code stays visible to you");
+  ok(/V Coin/.test(await err("authenticated", VU, "select public.claim_perk($1)", [perk])), "not enough V Coin: a friendly no");
+  await fund(VU, 30);
+  await as("authenticated", VU, "select public.claim_perk($1)", [perk]);
+  await fund(VX, 30);
+  ok(/all claimed/.test(await err("authenticated", VX, "select public.claim_perk($1)", [perk])), "limited perks run out");
+  ok((await db.query("select count(*)::int n from public.notifications where user_id = $1 and kind = 'perk_claimed'", [VB])).rows[0].n >= 1, "the builder is told");
+  for (const t of ["Two", "Three"]) await as("authenticated", VB, `select public.save_perk(null, $1, '${t} perk', '', 'X', 10, null)`, [vApp]);
+  ok(/3 perks/.test(await err("authenticated", VB, "select public.save_perk(null, $1, 'Four perk', '', 'X', 10, null)", [vApp])), "up to 3 active perks per app");
+
+  // 2. Bounties.
+  vb = await credits(VB);
+  const bounty = (await as("authenticated", VB, "select public.post_bounty($1, 'Find a bug in checkout', 'Anything that breaks', 30) as id", [vApp])).rows[0].id;
+  ok((await credits(VB)) === vb - 30, "posting a bounty holds the reward");
+  ok(/own bounty/.test(await err("authenticated", VB, "select public.answer_bounty($1, 'I found that the pay button does nothing on Safari.')", [bounty])), "builders can't answer their own bounty");
+  ok(/20 characters/.test(await err("authenticated", VT, "select public.answer_bounty($1, 'bug lol')", [bounty])), "answers have to be real");
+  const ansT = (await as("authenticated", VT, "select public.answer_bounty($1, 'The pay button does nothing on Safari 17 when the cart has 2 items.', 'https://example.com/video') as id", [bounty])).rows[0].id;
+  await as("authenticated", VU, "select public.answer_bounty($1, 'Coupon field accepts expired codes and still applies the discount.')", [bounty]);
+  ok(/already answered/.test(await err("authenticated", VT, "select public.answer_bounty($1, 'Another answer from the same person here.')", [bounty])), "one answer per person");
+  ok((await as("authenticated", VX, "select id from public.bounty_answers where bounty_id = $1", [bounty])).rows.length === 0, "answers are private to the builder and whoever wrote them");
+  ok((await as("authenticated", VB, "select id from public.bounty_answers where bounty_id = $1", [bounty])).rows.length === 2, "the builder sees every answer");
+  ok(/pick the best/.test(await err("authenticated", VB, "select public.cancel_bounty($1)", [bounty])), "once people answer, the builder can't just take it back");
+  ok(/Only the builder/.test(await err("authenticated", VU, "select public.award_bounty($1)", [ansT])), "only the builder picks the winner");
+  vt = await credits(VT);
+  await as("authenticated", VB, "select public.award_bounty($1)", [ansT]);
+  ok((await credits(VT)) === vt + 30, "the best answer gets the whole reward");
+  ok(/already settled/.test(await err("authenticated", VB, "select public.award_bounty($1)", [ansT])), "…once");
+  vb = await credits(VB);
+  const quiet = (await as("authenticated", VB, "select public.post_bounty($1, 'Record your first signup', '', 10) as id", [vApp])).rows[0].id;
+  await as("authenticated", VB, "select public.cancel_bounty($1)", [quiet]);
+  ok((await credits(VB)) === vb, "a bounty nobody answered can be taken down for a full refund");
+  const late = (await as("authenticated", VB, "select public.post_bounty($1, 'Tell us what confused you', '', 25) as id", [vApp])).rows[0].id;
+  const unanswered = (await as("authenticated", VB, "select public.post_bounty($1, 'Try it on Android', '', 15) as id", [vApp])).rows[0].id;
+  await as("authenticated", VT, "select public.answer_bounty($1, 'The onboarding never says what a workspace is.')", [late]);
+  await as("authenticated", VU, "select public.answer_bounty($1, 'I could not find where to change my password.')", [late]);
+  await db.query("update public.bounties set expires_at = now() - interval '1 minute' where id in ($1, $2)", [late, unanswered]);
+  vt = await credits(VT); const vu = await credits(VU); vb = await credits(VB);
+  ok((await as("anon", null, "select public.settle_bounties() as n")).rows[0].n === 2, "past the deadline, bounties settle (anyone's visit does it)");
+  ok((await credits(VT)) === vt + 12 && (await credits(VU)) === vu + 12, "no winner picked: the reward is split between everyone who answered");
+  ok((await credits(VB)) === vb + 1 + 15, "the leftover and unanswered rewards go back to the builder");
+  ok((await as("anon", null, "select public.settle_bounties() as n")).rows[0].n === 0, "…and only once");
+  ok(!!(await fails("authenticated", VT, "insert into public.bounties (app_id, owner_id, title, reward) values ($1, $2, 'Free money please', 200)", [vApp, VT])), "bounties only go through post_bounty");
+
+  // 3. Tips.
+  vt = await credits(VT); vb = await credits(VB);
+  await as("authenticated", VT, "select public.send_tip($1, 5, $2, 'Love this app')", [VB, vApp]);
+  ok((await credits(VT)) === vt - 5 && (await credits(VB)) === vb + 5, "a tip moves V Coin to the builder");
+  ok((await db.query("select count(*)::int n from public.notifications where user_id = $1 and kind = 'tip'", [VB])).rows[0].n === 1, "…who is told");
+  ok(/yourself/.test(await err("authenticated", VT, "select public.send_tip($1, 5)", [VT])), "you can't tip yourself");
+  ok(/1 to 50/.test(await err("authenticated", VT, "select public.send_tip($1, 51)", [VB])), "tips are 1 to 50 V Coin");
+  await fund(VT, 200);
+  await as("authenticated", VT, "select public.send_tip($1, 50)", [VB]);
+  ok(/100 V Coin a day/.test(await err("authenticated", VT, "select public.send_tip($1, 50)", [VB])), "up to 100 V Coin of tips a day");
+  ok((await as("authenticated", VX, "select id from public.tips")).rows.length === 0, "tips are private to the two people");
+
+  // 4. Referrals.
+  const [RA, RB] = ["e1", "e2"].map((x) => `${x}${x}${x}${x}-0000-0000-0000-000000000000`);
+  await db.exec(`insert into auth.users (id) values ('${RA}'), ('${RB}')`);
+  const raName = (await db.query("select username from public.profiles where id = $1", [RA])).rows[0].username;
+  ok((await as("authenticated", RA, "select public.set_referrer($1) as ok", [raName])).rows[0].ok === false, "you can't invite yourself");
+  ok((await as("authenticated", RB, "select public.set_referrer($1) as ok", [raName])).rows[0].ok === true, "a new member records who invited them");
+  ok((await as("authenticated", RB, "select public.set_referrer($1) as ok", [raName])).rows[0].ok === false, "…once");
+  ok(!!(await fails("authenticated", RA, "select referred_by from public.profiles where id = $1", [RB])), "who invited whom is private");
+  const ra = await credits(RA), rb = await credits(RB);
+  const rApp = await makeApp(RB, "referred");
+  await as("authenticated", RB, "insert into public.drops (app_id, owner_id, video_path, duration_seconds) values ($1, $2, $3, 30)", [rApp, RB, `${RB}/r1.mp4`]);
+  ok((await credits(RA)) === ra + 10, "their first Drop earns whoever invited them 10 V Coin");
+  ok((await credits(RB)) - rb >= 10, "…and the new member 10 too");
+  const ra2 = await credits(RA);
+  await as("authenticated", RB, "insert into public.drops (app_id, owner_id, video_path, duration_seconds) values ($1, $2, $3, 30)", [rApp, RB, `${RB}/r2.mp4`]);
+  ok((await credits(RA)) === ra2, "the invite bonus is paid once per friend");
+  const mine = (await as("authenticated", RA, "select * from public.my_referrals()")).rows[0];
+  ok(mine.joined === 1 && mine.rewarded === 1, "you can see how many friends joined and earned you the bonus");
 }
 
 // Security hardening (20261011000000_security_hardening.sql).

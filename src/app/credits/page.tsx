@@ -2,9 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { headers } from "next/headers";
+
+import { BountyList } from "@/components/Bounties";
 import { BuyCredits } from "@/components/Earn";
-import { CREDITS, CREDIT_REASONS, SPOTLIGHT, STREAK_BONUS, TESTER_GUARANTEE } from "@/lib/constants";
-import { getCreditHistory, getViewer } from "@/lib/data";
+import { InviteCard } from "@/components/InviteCard";
+import { PerkList } from "@/components/Perks";
+import { BOUNTIES, CREDITS, CREDIT_REASONS, REFERRALS, SPOTLIGHT, STREAK_BONUS, TESTER_GUARANTEE, TIPS } from "@/lib/constants";
+import { getCreditHistory, getMyInvites, getOpenBounties, getPerkListings, getViewer } from "@/lib/data";
 import { timeAgo } from "@/lib/format";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { Coin } from "@/components/Coin";
@@ -15,7 +20,16 @@ export default async function CreditsPage({ searchParams }: PageProps<"/credits"
   const params = await searchParams;
   const viewer = await getViewer();
   if (isSupabaseConfigured && !viewer) redirect("/login?next=/credits");
-  const history = viewer ? await getCreditHistory(viewer) : [];
+  const [history, bounties, perks, invites] = await Promise.all([
+    viewer ? getCreditHistory(viewer) : Promise.resolve([]),
+    getOpenBounties(6),
+    getPerkListings(viewer, 6),
+    getMyInvites(viewer),
+  ]);
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "methodv.app";
+  const origin = (process.env.NEXT_PUBLIC_SITE_URL ?? `${host.startsWith("localhost") ? "http" : "https"}://${host}`).replace(/\/$/, "");
+  const inviteLink = `${origin}/?ref=${viewer?.username ?? "you"}`;
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-8">
@@ -43,6 +57,41 @@ export default async function CreditsPage({ searchParams }: PageProps<"/credits"
         </p>
       )}
 
+      {invites && (
+        <div className="mt-8">
+          <InviteCard link={inviteLink} joined={invites.joined} rewarded={invites.rewarded} />
+        </div>
+      )}
+
+      <section id="bounties" aria-labelledby="bounties-title" className="mt-10 scroll-mt-24">
+        <h2 id="bounties-title" className="display text-4xl">
+          Bounties: earn bigger
+        </h2>
+        <p className="mt-1 text-sm text-muted">
+          Builders pay V Coin for a specific job: find a bug, record a first try, review a page. The best answer gets the whole reward; if the
+          builder doesn&apos;t pick one in time, everyone who answered splits it.
+        </p>
+        {bounties.length > 0 ? (
+          <BountyList bounties={bounties} />
+        ) : (
+          <p className="mt-3 text-sm text-muted">No open bounties right now. Builders post them from their app&apos;s page.</p>
+        )}
+      </section>
+
+      <section id="perks" aria-labelledby="perks-title" className="mt-10 scroll-mt-24">
+        <h2 id="perks-title" className="display text-4xl">
+          Perks: spend it on real deals
+        </h2>
+        <p className="mt-1 text-sm text-muted">
+          Builders offer deals on their apps (free months, lifetime deals, promo codes) that you unlock with V Coin.
+        </p>
+        {perks.length > 0 ? (
+          <PerkList perks={perks} />
+        ) : (
+          <p className="mt-3 text-sm text-muted">No perks on offer right now. Builders add them from their app&apos;s page.</p>
+        )}
+      </section>
+
       <section id="buy" aria-label="Buy V Coin" className="mt-10 scroll-mt-24">
         <h2 className="display text-4xl">Buy V Coin</h2>
         <p className="mt-1 mb-4 text-sm text-muted">
@@ -69,6 +118,22 @@ export default async function CreditsPage({ searchParams }: PageProps<"/credits"
         <li>
           • Tester Passport perks: Testers earn <Coin />3 per paid feedback, Pro Testers can earn from 20 a day, and{" "}
           {STREAK_BONUS.weeks} weeks in a row earns a <Coin />{STREAK_BONUS.credits} bonus.
+        </li>
+        <li>
+          • Answer a <a href="#bounties" className="text-accent hover:underline">bounty</a>: rewards of <Coin />
+          {BOUNTIES.minReward} to <Coin />
+          {BOUNTIES.maxReward}, set by the builder.
+        </li>
+        <li>
+          • Invite friends: you both get <Coin />
+          {REFERRALS.bonus} when they post their first Drop or give their first paid feedback.
+        </li>
+        <li>
+          • Tip a builder you love or a tester who helped: <Coin />1 to <Coin />
+          {TIPS.max} at a time, up to {TIPS.perDay} a day.
+        </li>
+        <li>
+          • Unlock <a href="#perks" className="text-accent hover:underline">perks</a>: deals on apps, paid to their builders in V Coin.
         </li>
         <li>
           • Book the Spotlight: one of {SPOTLIGHT.slots} spots in the Featured row for {SPOTLIGHT.days} days, <Coin />{SPOTLIGHT.cost}{" "}

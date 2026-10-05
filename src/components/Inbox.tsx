@@ -51,6 +51,18 @@ function describe(n: Notification): { text: string; href: string } {
       return { text: `marked your feedback on ${app} helpful`, href: appHref };
     case "feedback_reply":
       return { text: `replied to your feedback on ${app}`, href: `${appHref}#feedback` };
+    case "perk_claimed":
+      return { text: `unlocked your perk on ${app}. The V Coin is yours.`, href: "/credits" };
+    case "bounty_answer":
+      return { text: `answered your bounty on ${app}`, href: `${appHref}#bounties` };
+    case "bounty_won":
+      return { text: `picked your answer on ${app}. You won the bounty!`, href: "/credits" };
+    case "bounty_split":
+      return { text: `didn't pick a winner on ${app}, so you got a share of the bounty`, href: "/credits" };
+    case "tip":
+      return { text: n.app ? `tipped you V Coin for ${app}` : "tipped you V Coin", href: "/credits" };
+    case "referral_joined":
+      return { text: "joined with your invite. You both got V Coin!", href: "/credits#invite" };
     case "connection_request":
       return { text: "wants to connect", href: "/inbox?tab=requests" };
     case "connection_accepted":

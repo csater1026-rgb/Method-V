@@ -62,7 +62,22 @@ export const CREDIT_REASONS: Record<string, string> = {
   credit_pack: "Bought V Coin",
   drop_bonus: "Bonus for posting a Drop",
   leaderboard_prize: "Leaderboard prize",
+  perk_claimed: "Unlocked a perk",
+  perk_sold: "Someone unlocked your perk",
+  bounty_posted: "Posted a bounty",
+  bounty_won: "Won a bounty",
+  bounty_refunded: "Bounty reward returned",
+  bounty_split: "Share of a bounty",
+  tip_sent: "Sent a tip",
+  tip_received: "Got a tip",
+  referral_bonus: "Invited a friend",
 };
+
+// More to do with V Coin. Must match supabase/migrations/20261019000000_v_coin_economy.sql.
+export const PERKS = { minCost: 5, maxCost: 500, perApp: 3 } as const;
+export const BOUNTIES = { minReward: 5, maxReward: 200, perApp: 3, days: 14, minDays: 3, maxDays: 30, minAnswer: 20 } as const;
+export const TIPS = { max: 50, perDay: 100, amounts: [2, 5, 10, 25] } as const;
+export const REFERRALS = { bonus: 10, perMonth: 20 } as const;
 
 // V Coin for 1st, 2nd and 3rd on each monthly leaderboard (top builders and
 // top testers), paid when the month ends. Must match settle_leaderboards()

@@ -40,6 +40,7 @@ import { DEMO_MODE_MESSAGE, DROPS_BUCKET, authProviders, isSupabaseConfigured, t
 import { dbMessage, withVCoin } from "@/lib/db-errors";
 import { deleteAccount } from "@/lib/delete-account";
 import { removePost } from "@/lib/remove-post";
+import { applyReferral } from "@/lib/referral";
 import * as manage from "@/lib/manage-app";
 import { safeNextPath } from "@/lib/gate";
 import { PROFILE_LATER_COOKIE, USERNAME_HINT, USERNAME_PATTERN, isDefaultUsername } from "@/lib/username";
@@ -385,12 +386,14 @@ export async function saveWelcome(value: string, displayName: string): Promise<A
     if (error.code === "23505") return { ok: false, error: "That username was just taken. Try another." };
     return { ok: false, error: dbMessage(error, "Couldn't save your profile.") };
   }
+  await applyReferral();
   revalidatePath("/", "layout");
   return { ok: true };
 }
 
 // "Skip for now": don't ask again on this browser. A reminder stays on their profile.
 export async function skipWelcome(): Promise<void> {
+  await applyReferral();
   (await cookies()).set(PROFILE_LATER_COOKIE, "1", { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax", httpOnly: true });
 }
 
@@ -1396,4 +1399,109 @@ export async function deleteBrand(brandId: string): Promise<ActionResult> {
   if (error) return { ok: false, error: rpcError(error.message, "Couldn't delete the brand.") };
   revalidatePath("/brands");
   return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// More to do with V Coin: perks, bounties, tips (20261019000000_v_coin_economy.sql)
+// ---------------------------------------------------------------------------
+
+export type PerkInput = { id: string | null; title: string; details: string; secret: string; cost: number; quantity: number | null; active: boolean };
+
+export async function savePerk(appId: string, appSlug: string, input: PerkInput): Promise<ActionResult> {
+  const title = String(input.title ?? "").trim();
+  const secret = String(input.secret ?? "").trim();
+  const cost = Math.round(Number(input.cost));
+  const quantity = input.quantity == null || String(input.quantity) === "" ? null : Math.round(Number(input.quantity));
+  const invalid =
+    unknownApp(appId) ??
+    (input.id && !UUID.test(input.id) ? "Unknown perk." : null) ??
+    (title.length < 3 || title.length > 80 ? "Give the perk a name (3 to 80 characters)." : null) ??
+    (!secret ? "Add the code or link people get when they unlock it." : null) ??
+    (secret.length > 500 ? "Keep the code or link under 500 characters." : null) ??
+    (!Number.isFinite(cost) || cost < 5 || cost > 500 ? "Perks cost 5 to 500 V Coin." : null) ??
+    (quantity !== null && (!Number.isFinite(quantity) || quantity < 1 || quantity > 1000) ? "How many: 1 to 1,000 (or leave it empty for no limit)." : null);
+  return callRpc(
+    "save_perk",
+    {
+      p_id: input.id || null,
+      p_app: appId,
+      p_title: title,
+      p_details: String(input.details ?? "").trim().slice(0, 500),
+      p_secret: secret,
+      p_cost: cost,
+      p_quantity: quantity,
+      p_active: input.active !== false,
+    },
+    "Couldn't save the perk.",
+    [`/apps/${appSlug}`, "/credits"],
+    invalid,
+  );
+}
+
+export async function claimPerk(perkId: string, appSlug: string): Promise<ActionResult & { secret?: string }> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  if (!UUID.test(perkId)) return { ok: false, error: "Unknown perk." };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("claim_perk", { p_perk: perkId });
+  if (error) return { ok: false, error: rpcError(error.message, "Couldn't unlock the perk.") };
+  revalidatePath(`/apps/${appSlug}`);
+  revalidatePath("/credits");
+  revalidatePath("/", "layout");
+  return { ok: true, secret: String(data ?? "") };
+}
+
+export async function postBounty(
+  appId: string,
+  appSlug: string,
+  input: { title: string; details: string; reward: number; days: number },
+): Promise<ActionResult> {
+  const title = String(input.title ?? "").trim();
+  const reward = Math.round(Number(input.reward));
+  const days = Math.round(Number(input.days) || 14);
+  const invalid =
+    unknownApp(appId) ??
+    (title.length < 5 || title.length > 100 ? "Say what you want done (5 to 100 characters)." : null) ??
+    (!Number.isFinite(reward) || reward < 5 || reward > 200 ? "Rewards are 5 to 200 V Coin." : null);
+  return callRpc(
+    "post_bounty",
+    { p_app: appId, p_title: title, p_details: String(input.details ?? "").trim().slice(0, 1000), p_reward: reward, p_days: days },
+    "Couldn't post the bounty.",
+    [`/apps/${appSlug}`, "/credits"],
+    invalid,
+  );
+}
+
+export async function answerBounty(bountyId: string, appSlug: string, body: string, link: string): Promise<ActionResult> {
+  const text = String(body ?? "").trim();
+  const url = String(link ?? "").trim();
+  const invalid =
+    (!UUID.test(bountyId) ? "Unknown bounty." : null) ??
+    (text.length < 20 ? "Write a real answer (at least 20 characters)." : null) ??
+    (text.length > 2000 ? "Keep your answer under 2,000 characters." : null) ??
+    (url && !/^https?:\/\//i.test(url) ? "Links start with https://" : null);
+  return callRpc("answer_bounty", { p_bounty: bountyId, p_body: text, p_link: url || null }, "Couldn't send your answer.", [`/apps/${appSlug}`], invalid);
+}
+
+export async function awardBounty(answerId: string, appSlug: string): Promise<ActionResult> {
+  return callRpc("award_bounty", { p_answer: answerId }, "Couldn't pay the reward.", [`/apps/${appSlug}`], UUID.test(answerId) ? null : "Unknown answer.");
+}
+
+export async function cancelBounty(bountyId: string, appSlug: string): Promise<ActionResult> {
+  return callRpc("cancel_bounty", { p_bounty: bountyId }, "Couldn't take the bounty down.", [`/apps/${appSlug}`], UUID.test(bountyId) ? null : "Unknown bounty.");
+}
+
+export async function sendTip(toId: string, amount: number, appId: string | null, note: string, path: string): Promise<ActionResult> {
+  const n = Math.round(Number(amount));
+  const invalid =
+    (!UUID.test(toId) ? "Unknown person." : null) ??
+    (appId && !UUID.test(appId) ? "Unknown app." : null) ??
+    (!Number.isFinite(n) || n < 1 || n > 50 ? "Tips are 1 to 50 V Coin." : null);
+  return callRpc(
+    "send_tip",
+    { p_to: toId, p_amount: n, p_app: appId || null, p_note: String(note ?? "").trim().slice(0, 140) },
+    "Couldn't send the tip.",
+    [safeNextPath(path), "/credits"],
+    invalid,
+  );
 }

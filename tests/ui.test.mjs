@@ -996,6 +996,45 @@ await run(
   { popups: true },
 );
 
+await run("V Coin: bounties, perks, tips, invites", desktop, async (page) => {
+  await go(page, "/apps/noteflow");
+  const bounties = page.getByRole("region", { name: "Bounties" });
+  ok(await bounties.getByText("Find a bug in the to-do export").isVisible(), "app pages show their bounties");
+  ok((await bounties.getByText("9 days left · 3 answers").count()) === 1, "with time left and how many answered");
+  await bounties.getByRole("button", { name: "Answer it" }).click();
+  const answer = bounties.getByRole("form", { name: "Answer the bounty" });
+  ok(await answer.getByRole("button", { name: "Send answer" }).isDisabled(), "a too-short answer can't be sent");
+  await answer.getByLabel("Your answer").fill("Exporting to Linear drops every to-do after the first one.");
+  await answer.getByRole("button", { name: "Send answer" }).click();
+  await bounties.getByText(/demo mode/i).first().waitFor({ timeout: 5000 });
+  ok(true, "answering explains demo mode");
+  await bounties.getByRole("button", { name: "+ Post a bounty" }).click();
+  ok(await bounties.getByRole("form", { name: "Post a bounty" }).getByRole("button", { name: /Post · hold 20 V Coin/ }).isVisible(), "builders post a bounty, holding the reward");
+
+  const perks = page.getByRole("region", { name: "Perks" });
+  ok(await perks.getByText("3 months of NoteFlow Pro").isVisible() && (await perks.getByText("38 of 50 left").count()) === 1, "app pages show perks and how many are left");
+  await perks.getByRole("button", { name: /Unlock/ }).click();
+  await perks.getByRole("button", { name: "Spend 30 V Coin" }).click();
+  await perks.getByText(/demo mode/i).first().waitFor({ timeout: 5000 });
+  ok(true, "unlocking asks to confirm, then explains demo mode");
+  await perks.getByRole("button", { name: "+ Add a perk" }).click();
+  ok(await perks.getByRole("form", { name: "Add a perk" }).getByText("Only shown to people who unlock it.").isVisible(), "builders add a perk with a private code");
+
+  await page.getByRole("button", { name: /Tip the builder/ }).click();
+  const tip = page.getByRole("group", { name: "Tip @ada_builds" });
+  await tip.getByRole("button", { name: "10" }).click();
+  ok(await tip.getByRole("button", { name: "Send 10 V Coin" }).isVisible(), "tip the builder, picking an amount");
+
+  await go(page, "/credits");
+  const invite = page.getByRole("region", { name: /Invite friends/ });
+  ok((await invite.getByLabel("Your invite link").textContent()).includes("/?ref="), "the V Coin page has your invite link");
+  ok((await page.getByRole("region", { name: "Bounties: earn bigger" }).locator("article").count()) === 3, "open bounties across Method V");
+  const rewards = await page.getByRole("region", { name: "Bounties: earn bigger" }).locator("article .tag-accent").allTextContents();
+  ok(rewards.map((r) => Number(r.replace(/\D/g, ""))).join(",") === "40,25,10", `biggest rewards first (${rewards.join(",")})`);
+  ok((await page.getByRole("region", { name: "Perks: spend it on real deals" }).locator("article").count()) === 3, "perks to unlock across Method V");
+  await noSideScroll(page, "credits");
+});
+
 await run("first-time tour", desktop, async (page) => {
   await go(page, "/");
   await page.waitForTimeout(900);

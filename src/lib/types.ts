@@ -215,6 +215,43 @@ export type Swap = {
   to: SwapApp;
 };
 
+// A deal on an app that people unlock with V Coin. `secret` (the code or
+// link) is only set for the builder and for people who unlocked it.
+export type Perk = {
+  id: string;
+  app_id: string;
+  title: string;
+  details: string;
+  cost: number;
+  quantity: number | null;
+  claimed_count: number;
+  active: boolean;
+  claimed: boolean;
+  secret: string | null;
+};
+
+export type BountyAnswer = { id: string; body: string; link: string | null; created_at: string; user: ProfileSummary };
+
+// A paid task on an app. `answers` are every answer for the builder, and
+// just your own for anyone else.
+export type Bounty = {
+  id: string;
+  app_id: string;
+  title: string;
+  details: string;
+  reward: number;
+  status: "open" | "awarded" | "refunded" | "split" | "cancelled";
+  answer_count: number;
+  winner_id: string | null;
+  expires_at: string;
+  created_at: string;
+  answers: BountyAnswer[];
+};
+
+// Open bounties and perks across Method V, for the V Coin page.
+export type BountyListing = Bounty & { app: { slug: string; name: string } };
+export type PerkListing = Perk & { app: { slug: string; name: string } };
+
 export type Notification = {
   id: number;
   kind: string;

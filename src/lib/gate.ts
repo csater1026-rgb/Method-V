@@ -53,6 +53,12 @@ export function previewFor(pathname: string, userAgent: string | null | undefine
   return app ? `/preview/apps/${app[1]}` : null;
 }
 
+// Invite links (methodv.app/?ref=<username>): the username is kept in this
+// cookie until the new member signs in (see lib/referral.ts).
+export const REF_COOKIE = "mv_ref";
+export const REF_PATTERN = /^[a-z0-9_]{3,24}$/;
+export const REF_MAX_AGE = 60 * 60 * 24 * 30;
+
 // A signed-out visitor opening the home page sees what Method V is first
 // (/about, shown at "/"), not the sign-in form.
 export function landingFor(pathname: string): string | null {

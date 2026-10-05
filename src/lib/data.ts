@@ -6,6 +6,7 @@ import { CATEGORIES, PRICING, STAGES, TESTER_RANKS, isOneOf, testerRank } from "
 import {
   demoApps,
   demoBackers,
+  demoBounties,
   demoBrands,
   demoChallenges,
   demoDay,
@@ -13,6 +14,7 @@ import {
   demoCommentDate,
   demoDrops,
   demoFeaturedIds,
+  demoPerks,
   demoProfiles,
   demoQuestions,
   demoSchedule,
@@ -27,6 +29,11 @@ import { FEEDBACK_BUCKET, isSupabaseConfigured, publicFileUrl } from "./supabase
 import { createClient } from "./supabase/server";
 import type {
   Analytics,
+  Bounty,
+  BountyAnswer,
+  BountyListing,
+  Perk,
+  PerkListing,
   App,
   AppCard,
   Brand,
@@ -1975,4 +1982,149 @@ export async function getAnalytics(appId: string, days: number): Promise<Analyti
   return { days, daily: (daily.data ?? []) as Analytics["daily"], sources: (sources.data ?? []) as Analytics["sources"] };
 }
 
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+
+// ---------------------------------------------------------------------------
+// More to do with V Coin: perks, bounties, invites
+// (20261019000000_v_coin_economy.sql). Each read is quiet (empty) until that
+// file has been run.
+// ---------------------------------------------------------------------------
+
+/* eslint-disable @typescript-eslint/no-explicit-any -- rows come back untyped without generated types */
+
+const DAY = 24 * 60 * 60 * 1000;
+const PERK_COLS = "id, app_id, title, details, cost, quantity, claimed_count, active";
+
+function demoPerk(p: (typeof demoPerks)[number]): Perk {
+  return { ...p, active: true, claimed: false, secret: null };
+}
+
+function demoBounty(b: (typeof demoBounties)[number]): Bounty {
+  const { days_left, ...rest } = b;
+  return {
+    ...rest,
+    status: "open",
+    winner_id: null,
+    expires_at: new Date(Date.now() + days_left * DAY).toISOString(),
+    created_at: new Date(Date.now() - 2 * DAY).toISOString(),
+    answers: [],
+  };
+}
+
+const demoAppRef = (appId: string) => {
+  const a = demoApps.find((x) => x.id === appId)!;
+  return { slug: a.slug, name: a.name };
+};
+
+// An app's perks. The builder sees all of them (with codes); everyone else
+// sees the ones switched on, and the code for any they've unlocked.
+export async function getAppPerks(app: { id: string; owner_id: string }, viewer: Viewer | null): Promise<Perk[]> {
+  if (!isSupabaseConfigured) return demoPerks.filter((p) => p.app_id === app.id).map(demoPerk);
+  const supabase = await createClient();
+  const isOwner = viewer?.id === app.owner_id;
+  let query = supabase.from("perks").select(PERK_COLS).eq("app_id", app.id).order("created_at");
+  if (!isOwner) query = query.eq("active", true);
+  const { data, error } = await query;
+  if (error || !data) return [];
+  const ids = data.map((p: any) => p.id as string);
+  const claimed = new Set<string>();
+  if (viewer && !isOwner && ids.length > 0) {
+    const { data: mine } = await supabase.from("perk_claims").select("perk_id").eq("user_id", viewer.id).in("perk_id", ids);
+    for (const c of mine ?? []) claimed.add(c.perk_id as string);
+  }
+  return Promise.all(
+    data.map(async (p: any) => {
+      const visible = isOwner || claimed.has(p.id);
+      const secret = visible ? ((await supabase.rpc("perk_secret", { p_perk: p.id })).data as string | null) : null;
+      return { ...p, claimed: claimed.has(p.id), secret } as Perk;
+    }),
+  );
+}
+
+// Pays out bounties past their deadline (see settle_bounties()). Quiet if
+// the database doesn't have it yet.
+export async function settleBounties(): Promise<void> {
+  if (!isSupabaseConfigured) return;
+  const { error } = await (await createClient()).rpc("settle_bounties");
+  if (error && error.code !== "PGRST202" && error.code !== "42883") console.error("settle_bounties failed", error.code, error.message);
+}
+
+function toAnswer(row: any): BountyAnswer {
+  return { id: row.id, body: row.body, link: row.link ?? null, created_at: row.created_at, user: toSummary(row.user) };
+}
+
+// An app's bounties: open ones first, then the last few settled. The
+// builder gets every answer; anyone else just their own.
+export async function getAppBounties(app: { id: string }, viewer: Viewer | null): Promise<Bounty[]> {
+  if (!isSupabaseConfigured) return demoBounties.filter((b) => b.app_id === app.id).map(demoBounty);
+  await settleBounties();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("bounties")
+    .select("id, app_id, title, details, reward, status, answer_count, winner_id, expires_at, created_at")
+    .eq("app_id", app.id)
+    .order("created_at", { ascending: false })
+    .limit(12);
+  if (error || !data) return [];
+  const rows = [...data.filter((b: any) => b.status === "open"), ...data.filter((b: any) => b.status !== "open").slice(0, 3)];
+  const answers = new Map<string, BountyAnswer[]>();
+  if (viewer && rows.length > 0) {
+    const { data: found } = await supabase
+      .from("bounty_answers")
+      .select(`id, bounty_id, body, link, created_at, user:profiles!bounty_answers_user_id_fkey(${summaryCols()})`)
+      .in("bounty_id", rows.map((b: any) => b.id))
+      .order("created_at");
+    for (const a of found ?? []) answers.set(a.bounty_id as string, [...(answers.get(a.bounty_id as string) ?? []), toAnswer(a)]);
+  }
+  return rows.map((b: any) => ({ ...b, answers: answers.get(b.id) ?? [] }) as Bounty);
+}
+
+// Open bounties across Method V, biggest rewards first (V Coin page).
+export async function getOpenBounties(limit = 12): Promise<BountyListing[]> {
+  if (!isSupabaseConfigured) {
+    return demoBounties.map((b) => ({ ...demoBounty(b), app: demoAppRef(b.app_id) })).sort((a, b) => b.reward - a.reward).slice(0, limit);
+  }
+  await settleBounties();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("bounties")
+    .select("id, app_id, title, details, reward, status, answer_count, winner_id, expires_at, created_at, app:apps!bounties_app_id_fkey(slug, name)")
+    .eq("status", "open")
+    .gt("expires_at", new Date().toISOString())
+    .order("reward", { ascending: false })
+    .limit(limit);
+  if (error || !data) return [];
+  return data.map((b: any) => ({ ...b, answers: [] }) as BountyListing);
+}
+
+// Perks you can unlock across Method V, newest first (V Coin page).
+export async function getPerkListings(viewer: Viewer | null, limit = 12): Promise<PerkListing[]> {
+  if (!isSupabaseConfigured) return demoPerks.map((p) => ({ ...demoPerk(p), app: demoAppRef(p.app_id) })).slice(0, limit);
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("perks")
+    .select(`${PERK_COLS}, app:apps!perks_app_id_fkey(slug, name, owner_id)`)
+    .eq("active", true)
+    .order("created_at", { ascending: false })
+    .limit(limit * 2);
+  if (error || !data) return [];
+  const open = data.filter((p: any) => (p.quantity === null || p.claimed_count < p.quantity) && p.app?.owner_id !== viewer?.id);
+  const claimed = new Set<string>();
+  if (viewer && open.length > 0) {
+    const { data: mine } = await supabase.from("perk_claims").select("perk_id").eq("user_id", viewer.id).in("perk_id", open.map((p: any) => p.id));
+    for (const c of mine ?? []) claimed.add(c.perk_id as string);
+  }
+  return open.slice(0, limit).map((p: any) => ({ ...p, app: { slug: p.app.slug, name: p.app.name }, claimed: claimed.has(p.id), secret: null }) as PerkListing);
+}
+
+// How many friends joined with your invite link, and how many earned you the bonus.
+export async function getMyInvites(viewer: Viewer | null): Promise<{ joined: number; rewarded: number } | null> {
+  if (!isSupabaseConfigured) return { joined: 0, rewarded: 0 };
+  if (!viewer) return null;
+  const { data, error } = await (await createClient()).rpc("my_referrals");
+  if (error) return { joined: 0, rewarded: 0 };
+  const row = (Array.isArray(data) ? data[0] : data) as { joined: number; rewarded: number } | undefined;
+  return { joined: Number(row?.joined ?? 0), rewarded: Number(row?.rewarded ?? 0) };
+}
 /* eslint-enable @typescript-eslint/no-explicit-any */

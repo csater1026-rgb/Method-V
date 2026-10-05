@@ -4,6 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { safeNextPath } from "@/lib/gate";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
+import { applyReferral } from "@/lib/referral";
 
 const OTP_TYPES: EmailOtpType[] = ["signup", "email", "magiclink", "recovery", "email_change", "invite"];
 
@@ -27,7 +28,10 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get("type") as EmailOtpType | null;
   if (tokenHash && type && OTP_TYPES.includes(type)) {
     const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
-    if (!error) return NextResponse.redirect(new URL(next, origin));
+    if (!error) {
+      await applyReferral();
+      return NextResponse.redirect(new URL(next, origin));
+    }
     console.error("email link failed", type, error.code, error.message);
     return toLogin("error=expired");
   }
@@ -35,7 +39,10 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get("code");
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) return NextResponse.redirect(new URL(next, origin));
+    if (!error) {
+      await applyReferral();
+      return NextResponse.redirect(new URL(next, origin));
+    }
     console.error("email link opened in another browser", error.code, error.message);
     return toLogin("confirmed=1");
   }

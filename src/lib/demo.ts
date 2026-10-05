@@ -331,3 +331,17 @@ export const demoChallenges = [
 ];
 
 export const demoDay = ago;
+
+// Perks people unlock with V Coin, and bounties builders post (V Coin page,
+// app pages). Codes are never shown in demo mode.
+export const demoPerks = [
+  { id: "demo-perk-noteflow", app_id: "demo-app-noteflow", title: "3 months of NoteFlow Pro", details: "Unlimited meetings and the Slack integration.", cost: 30, quantity: 50, claimed_count: 12 },
+  { id: "demo-perk-quizpop", app_id: "demo-app-quizpop", title: "Lifetime QuizPop for teachers", details: "Every feature, forever. Use the code at checkout.", cost: 60, quantity: 20, claimed_count: 17 },
+  { id: "demo-perk-splitsy", app_id: "demo-app-splitsy", title: "Splitsy Plus for a year", details: "", cost: 15, quantity: null, claimed_count: 4 },
+];
+
+export const demoBounties = [
+  { id: "demo-bounty-noteflow", app_id: "demo-app-noteflow", title: "Find a bug in the to-do export", details: "Export a meeting to Todoist, Linear or Notion and tell me exactly what broke.", reward: 25, answer_count: 3, days_left: 9 },
+  { id: "demo-bounty-quizpop", app_id: "demo-app-quizpop", title: "Record yourself making your first quiz", details: "A screen recording with your voice, thinking out loud. Under 3 minutes is perfect.", reward: 40, answer_count: 1, days_left: 4 },
+  { id: "demo-bounty-palettepal", app_id: "demo-app-palettepal", title: "Tell me what confused you on the first screen", details: "", reward: 10, answer_count: 0, days_left: 12 },
+];

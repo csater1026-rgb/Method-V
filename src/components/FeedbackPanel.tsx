@@ -16,6 +16,7 @@ import { Avatar } from "./Avatar";
 import { RankTag } from "./Passport";
 import { Handle } from "./Handle";
 import { Coin } from "./Coin";
+import { TipButton } from "./TipButton";
 
 type AppRef = { id: string; slug: string; name: string };
 
@@ -589,14 +590,17 @@ function FeedbackItem({ item, appSlug, canMarkHelpful }: { item: Feedback; appSl
       )}
       {canMarkHelpful && (
         <div className="mt-3">
-          {helpful ? (
-            <span className="text-xs text-accent">✓ Marked helpful</span>
-          ) : (
-            <button type="button" onClick={mark} disabled={pending} className="btn-ghost px-3 py-1 text-xs">
-              Mark helpful · gives them <Coin />
-              {CREDITS.helpfulBonus}
-            </button>
-          )}
+          <div className="flex flex-wrap items-center gap-2">
+            {helpful ? (
+              <span className="text-xs text-accent">✓ Marked helpful</span>
+            ) : (
+              <button type="button" onClick={mark} disabled={pending} className="btn-ghost px-3 py-1 text-xs">
+                Mark helpful · gives them <Coin />
+                {CREDITS.helpfulBonus}
+              </button>
+            )}
+            <TipButton to={{ id: item.user.id, username: item.user.username }} label="Tip them" small />
+          </div>
           {error && <p className="mt-1 text-xs text-danger">{error}</p>}
         </div>
       )}
