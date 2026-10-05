@@ -2,28 +2,48 @@ import "server-only";
 
 import { NextResponse } from "next/server";
 
-import { publicFileUrl } from "./supabase/env";
+import { clientFromBearer } from "./supabase/bearer";
+import { isSupabaseConfigured, publicFileUrl } from "./supabase/env";
+import { createClient } from "./supabase/server";
 import type { AppCard, AppDetail, Challenge, Profile } from "./types";
 
-// The public, read-only API (/api/v1). Everything here is already public on
-// the site; nothing private (feedback, earnings, messages) is ever included.
-// Anyone can call it from anywhere, and the CDN caches each answer for a
-// minute, which also keeps heavy callers off the database.
+// The read-only API (/api/v1), for members only, like the site itself: the
+// caller must be signed in to Method V (the site's sign-in cookie), or send
+// their sign-in token as "Authorization: Bearer <token>" (see memberOnly).
+// Nothing private (feedback, earnings, messages) is ever included. Answers
+// are never cached, so one member's answer can't be handed to anyone else.
 
 const HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
-  "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Cache-Control": "private, no-store",
+  Vary: "Authorization, Cookie",
   "X-Content-Type-Options": "nosniff",
 };
+
+export const MEMBERS_ONLY_MESSAGE =
+  "Method V's API is for members. Sign in at methodv.app, or send your sign-in token as \"Authorization: Bearer <token>\".";
+
+// Null when the caller is a signed-in member (go ahead), else the 401 to send.
+// Demo mode has no accounts, so it's open there.
+export async function memberOnly(request: Request): Promise<NextResponse | null> {
+  if (!isSupabaseConfigured) return null;
+  if (request.headers.get("authorization")) {
+    if (await clientFromBearer(request)) return null;
+  } else {
+    const { data } = await (await createClient()).auth.getClaims();
+    if (data?.claims?.sub) return null;
+  }
+  return apiError(MEMBERS_ONLY_MESSAGE, 401);
+}
 
 export function apiJson(data: unknown, status = 200) {
   return NextResponse.json(data, { status, headers: HEADERS });
 }
 
 export function apiError(message: string, status: number) {
-  return NextResponse.json({ error: message }, { status, headers: { ...HEADERS, "Cache-Control": "no-store" } });
+  return NextResponse.json({ error: message }, { status, headers: HEADERS });
 }
 
 export function apiOptions() {

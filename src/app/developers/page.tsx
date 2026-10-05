@@ -31,15 +31,16 @@ export default function DevelopersPage() {
       <p className="eyebrow">API · embeds · badges</p>
       <h1 className="display rise mt-1 text-6xl">Developers</h1>
       <p className="mt-1 text-muted">
-        Put Method V apps on your own site: a read-only JSON API, an embeddable app card and a badge. All free, no key
-        needed.
+        Put Method V apps on your own site: an embeddable app card and a badge, free, no key needed. Members can also use a
+        read-only JSON API.
       </p>
 
       <section aria-label="API" className="mt-10">
         <h2 className="display text-4xl">API</h2>
         <p className="mt-1 text-sm text-muted">
-          <code className="font-mono text-ink">GET</code> requests, JSON back, open to any website (CORS). Answers are
-          cached for about a minute. Only public information is included, never feedback, earnings or messages.
+          <strong className="text-ink">Members only.</strong> Call it while signed in to Method V, or send your sign-in token as{" "}
+          <code className="font-mono text-ink">Authorization: Bearer &lt;token&gt;</code>. Without one you get a 401.{" "}
+          <code className="font-mono text-ink">GET</code> requests, JSON back. Never feedback, earnings or messages.
         </p>
         <ul className="mt-4 divide-y divide-line rounded-xl border border-line bg-surface">
           {ENDPOINTS.map((e) => (

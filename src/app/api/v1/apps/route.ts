@@ -1,9 +1,12 @@
 import type { NextRequest } from "next/server";
 
-import { apiJson, apiOptions, apiOrigin, clampLimit, publicApp } from "@/lib/api";
+import { apiJson, apiOptions, apiOrigin, clampLimit, memberOnly, publicApp } from "@/lib/api";
 import { getApps } from "@/lib/data";
 
 export async function GET(request: NextRequest) {
+  // Members only, like the site (see lib/api.ts).
+  const denied = await memberOnly(request);
+  if (denied) return denied;
   const p = request.nextUrl.searchParams;
   const get = (k: string) => p.get(k)?.slice(0, 100) || undefined;
   const sort = get("sort");

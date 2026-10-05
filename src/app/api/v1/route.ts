@@ -1,10 +1,12 @@
 import { apiJson, apiOptions, apiOrigin } from "@/lib/api";
 
-// A map of the public API. Docs for people live at /developers.
+// A map of the API (just the addresses, so it's open). The data itself is for
+// members only. Docs for people live at /developers.
 export function GET(request: Request) {
   const origin = apiOrigin(request);
   return apiJson({
-    name: "Method V public API",
+    name: "Method V API",
+    access: "Members only: sign in at methodv.app, or send your sign-in token as \"Authorization: Bearer <token>\".",
     version: 1,
     docs: `${origin}/developers`,
     endpoints: {

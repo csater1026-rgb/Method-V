@@ -68,7 +68,7 @@ Builder tools (launch day, the Spotlight, share kit) live in the *Grow* panel on
 
 - **Get the app (`/app`):** Method V installs to the home screen on iPhone (Safari → Share → Add to Home Screen) and Android/desktop Chrome (Install). It opens full screen with the tab bar and shows a friendly page when offline. Native App Store and Google Play apps come later.
 - **Stats (`/dashboard`):** for each of your apps: tries, likes, feedback and sponsored tries per day, and where tries come from (Drops feed, app page, embeds, cards, sponsor cards, shared links, API, direct). The last 7 days are free; 30 and 90 days and CSV export come with Pro.
-- **Public API (`/api/v1`) and embeds:** read-only JSON for apps, builders and challenges, open to any site. There's an embeddable app card (`/embed/<app>`, an iframe with a Try it button) and the badge. Builders get the embed snippet in their Share kit, and the docs are at `/developers`.
+- **Members-only API (`/api/v1`) and embeds:** read-only JSON for apps, builders and challenges. The data needs a signed-in member (the site's sign-in cookie, or their sign-in token as `Authorization: Bearer <token>`); otherwise it answers 401, and answers are never cached. Only the address list at `/api/v1` is open. There's an embeddable app card (`/embed/<app>`, an iframe with a Try it button) and the badge. Builders get the embed snippet in their Share kit, and the docs are at `/developers`.
 - **Brand sponsors (`/brands`):** companies outside Method V list a brand (its site is link-checked). Once the Method V team verifies it, the brand can make pay-per-try offers on any app, with the same rules and labels as app-to-app deals. To verify a brand, set `verified_at` on its row in the `brands` table.
 
 **Native app (in progress):** the iPhone and Android app lives in [`mobile/`](../mobile/README.md) and is built with Expo. It has Home, the Drops feed, posting with the camera, Browse, app pages, profiles and sign-in. Store builds run on EAS, so no Mac is needed. See [`mobile/README.md`](../mobile/README.md) to run it or ship it.
@@ -142,7 +142,7 @@ To deploy, import the repo into [Vercel](https://vercel.com) and add the same en
 | Back it, sponsor offers, deal rows, payouts, Pro buttons | `src/components/Earn.tsx`, `src/components/Sponsored.tsx`, `src/components/Backers.tsx` |
 | Earn `/earn`, Pro `/pro`, Challenges `/challenges` | `src/app/earn/`, `src/app/pro/`, `src/app/challenges/`, `src/components/Challenges.tsx` |
 | Stats dashboard and CSV export | `src/app/dashboard/`, `src/lib/dashboard.ts`, `src/components/StatsChart.tsx` |
-| Public API, embed card, developer docs | `src/app/api/v1/`, `src/lib/api.ts`, `src/app/embed/[slug]/route.ts`, `src/app/developers/` |
+| Members-only API, embed card, developer docs | `src/app/api/v1/`, `src/lib/api.ts`, `src/app/embed/[slug]/route.ts`, `src/app/developers/` |
 | Installable app: manifest, icons, service worker, install page | `src/app/manifest.ts`, `src/app/app-icon/`, `src/app/apple-icon.tsx`, `public/sw.js`, `src/components/InstallApp.tsx`, `src/app/app/` |
 | Mobile app (Expo) and the endpoints it posts through | `mobile/`, `src/app/api/mobile/`, `src/lib/publish.ts`, `src/lib/supabase/bearer.ts` |
 | Brands and brand links | `src/app/brands/`, `src/components/Brands.tsx`, `src/app/go/[slug]/route.ts` |

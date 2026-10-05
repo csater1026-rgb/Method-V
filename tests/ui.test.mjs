@@ -1152,6 +1152,8 @@ await run("developers + install (phone)", phone, async (page) => {
   const index = await fetch(BASE + "/api/v1");
   ok(index.headers.get("access-control-allow-origin") === "*", "API is open to other sites (CORS)");
   ok(Boolean((await index.json()).endpoints.apps), "API index lists endpoints");
+  const appsRes = await fetch(BASE + "/api/v1/apps");
+  ok(/no-store/.test(appsRes.headers.get("cache-control") ?? "") && /private/.test(appsRes.headers.get("cache-control") ?? ""), "API answers are never cached (members only)");
   const apps = await (await fetch(BASE + "/api/v1/apps")).json();
   ok(apps.apps.length === 4 && apps.apps.every((a) => a.try_url.endsWith(`/try/${a.slug}?via=api`)), "apps list with counted try links");
   ok(!JSON.stringify(apps).includes("owner_id") && !JSON.stringify(apps).includes('"url":"https://example.com"'), "API leaves out internal ids and raw links");
@@ -1168,6 +1170,7 @@ await run("developers + install (phone)", phone, async (page) => {
   ok((await (await fetch(BASE + "/api/v1/challenges")).json()).challenges.length === 2, "challenges endpoint");
   const pre = await fetch(BASE + "/api/v1/apps", { method: "OPTIONS" });
   ok(pre.status === 204 && pre.headers.get("access-control-allow-methods")?.includes("GET"), "CORS preflight");
+  ok(/Authorization/.test(pre.headers.get("access-control-allow-headers") ?? ""), "members can send their sign-in token");
   ok((await fetch(BASE + "/go/pixelhost", { redirect: "manual" })).status === 303, "brand links redirect");
   ok((await fetch(BASE + "/go/nope", { redirect: "manual" })).status === 404, "unknown brand is 404");
   {
