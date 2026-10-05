@@ -72,7 +72,7 @@ export default function AboutPage() {
 
       {/* 3. What members get to see. No real apps here: they're for members only. */}
       <section aria-labelledby="inside-title" className="mx-auto max-w-6xl px-4 py-4">
-        <div className="media-dark stage relative overflow-hidden rounded-2xl border border-[rgb(64_244_245/0.25)] px-6 py-12 text-center text-white">
+        <div className="media-dark stage relative overflow-hidden rounded-2xl border border-[rgb(var(--stage-glow)/0.25)] px-6 py-12 text-center text-white">
           <p className="eyebrow">Members only</p>
           <h2 id="inside-title" className="display mt-1 text-5xl">
             See what people are building
@@ -186,7 +186,7 @@ function PhonePreview() {
   return (
     <div aria-hidden className="mx-auto w-[230px] rotate-2 rounded-[44px] border-2 border-white/20 bg-black p-3 shadow-2xl sm:w-[290px]">
       <div className="relative aspect-[9/19] overflow-hidden rounded-[34px] bg-[#0f1b29]">
-        <div className="absolute inset-0 bg-[repeating-linear-gradient(135deg,transparent_0_14px,rgb(64_244_245/0.08)_14px_16px)]" />
+        <div className="absolute inset-0 bg-[repeating-linear-gradient(135deg,transparent_0_14px,rgb(var(--stage-glow)/0.08)_14px_16px)]" />
         <div className="absolute -right-10 -bottom-10 h-48 w-48 rounded-full bg-accent/25 blur-3xl" />
         <div className="absolute inset-x-0 top-0 flex justify-center gap-4 pt-6 font-mono text-[10px] tracking-wider text-white/60 uppercase">
           <span className="border-b-2 border-accent pb-0.5 text-white">For you</span>

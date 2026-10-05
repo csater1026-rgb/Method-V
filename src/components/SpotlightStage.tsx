@@ -29,7 +29,7 @@ export function SpotlightStage({
     <section
       aria-label="In the Spotlight"
       data-tour="featured"
-      className="stage media-dark relative mx-4 mt-3 overflow-hidden rounded-2xl border border-[rgb(64_244_245/0.25)] px-3 pt-24 pb-8 sm:px-6"
+      className="stage media-dark relative mx-4 mt-3 overflow-hidden rounded-2xl border border-[rgb(var(--stage-glow)/0.25)] px-3 pt-24 pb-8 sm:px-6"
     >
       <span aria-hidden className="stage-rail absolute inset-x-6 top-9 h-px" />
 
@@ -69,7 +69,7 @@ export function SpotlightStage({
               aria-hidden
               className="stage-pool absolute -bottom-5 left-1/2 h-8 w-full -translate-x-1/2"
             />
-            <div className="relative rounded-xl shadow-[0_18px_40px_-22px_rgb(64_244_245/0.55)]">
+            <div className="relative rounded-xl shadow-[0_18px_40px_-22px_rgb(var(--stage-glow)/0.55)]">
               <FeaturedCard app={app} rank={i + 1} fill />
             </div>
           </div>

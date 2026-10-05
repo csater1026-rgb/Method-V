@@ -57,6 +57,10 @@
      striped Drop placeholders, as an r g b triplet. */
   --accent-edge: #4fb86a;
   --glow: 130 237 157;
+  /* The Spotlight stage's light (r g b): mint in dark mode, cyan in light. */
+  --stage-glow: 130 237 157;
+  --stage-glow-2: 79 184 106;
+  --stage-glow-hi: 232 255 238;
   /* Height of the phone bottom tab bar (MobileTabs); none on larger screens. */
   --tabbar: calc(3.5rem + env(safe-area-inset-bottom));
 }
@@ -82,6 +86,9 @@
     --color-danger: #b2412f;
     --accent-edge: #02589f;
     --glow: 3 121 217;
+    --stage-glow: 64 244 245;
+    --stage-glow-2: 3 121 217;
+    --stage-glow-hi: 225 254 255;
   }
 }
 
@@ -99,6 +106,9 @@
   --color-danger: #b2412f;
   --accent-edge: #02589f;
   --glow: 3 121 217;
+  --stage-glow: 64 244 245;
+  --stage-glow-2: 3 121 217;
+  --stage-glow-hi: 225 254 255;
 }
 
 /* Video, posters and anything drawn on top of them: always the dark palette. */
@@ -381,19 +391,20 @@ body {
 }
 
 /* The Spotlight stage on Home (components/SpotlightStage.tsx): a deep night
-   stage in the brand's colors, a thin light rail on top, and cool cyan light
+   stage in the brand's colors, a thin light rail on top, and light (mint in
+   dark mode, cyan in light mode: --stage-glow)
    falling BEHIND each app (so the apps stay crisp and readable), with a glow
    on the floor under them. Paid Spotlights get a gold tag; Today's picks a
    quiet glass one. */
 .stage {
   background:
-    radial-gradient(ellipse 75% 55% at 50% -8%, rgb(64 244 245 / 0.2), transparent 68%),
-    radial-gradient(ellipse 70% 45% at 50% 108%, rgb(3 121 217 / 0.22), transparent 70%),
+    radial-gradient(ellipse 75% 55% at 50% -8%, rgb(var(--stage-glow) / 0.2), transparent 68%),
+    radial-gradient(ellipse 70% 45% at 50% 108%, rgb(var(--stage-glow-2) / 0.22), transparent 70%),
     linear-gradient(180deg, #0b1727 0%, #070e19 55%, #050a12 100%);
 }
 /* The rail the lights hang on. */
 .stage-rail {
-  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.22) 20%, rgb(64 244 245 / 0.55) 50%, rgb(255 255 255 / 0.22) 80%, transparent);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.22) 20%, rgb(var(--stage-glow) / 0.55) 50%, rgb(255 255 255 / 0.22) 80%, transparent);
 }
 /* A small light on the rail: a dark housing with a glowing strip. */
 .stage-light {
@@ -409,16 +420,16 @@ body {
   bottom: -1px;
   height: 3px;
   border-radius: 9999px;
-  background: #effeff;
+  background: rgb(var(--stage-glow-hi));
   box-shadow:
     0 0 6px 1px rgb(255 255 255 / 0.9),
-    0 0 18px 6px rgb(64 244 245 / 0.65);
+    0 0 18px 6px rgb(var(--stage-glow) / 0.65);
 }
 .stage-beam {
   pointer-events: none;
   /* A soft cone of cool light from the rail, behind the card: it shows around
      the card's edges and in the gap above it, never over the app itself. */
-  background: linear-gradient(to bottom, rgb(225 254 255 / 0.55), rgb(64 244 245 / 0.22) 45%, rgb(64 244 245 / 0.06) 85%, transparent);
+  background: linear-gradient(to bottom, rgb(var(--stage-glow-hi) / 0.55), rgb(var(--stage-glow) / 0.22) 45%, rgb(var(--stage-glow) / 0.06) 85%, transparent);
   --cone: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cfilter id='b'%3E%3CfeGaussianBlur stdDeviation='4'/%3E%3C/filter%3E%3Cpolygon points='38,0 62,0 100,100 0,100' fill='white' filter='url(%23b)'/%3E%3C/svg%3E");
   -webkit-mask: var(--cone) center / 100% 100% no-repeat;
   mask: var(--cone) center / 100% 100% no-repeat;
@@ -429,15 +440,15 @@ body {
 /* The glow on the floor under each app. */
 .stage-pool {
   pointer-events: none;
-  background: radial-gradient(ellipse at center, rgb(64 244 245 / 0.35), rgb(3 121 217 / 0.12) 45%, transparent 72%);
+  background: radial-gradient(ellipse at center, rgb(var(--stage-glow) / 0.35), rgb(var(--stage-glow-2) / 0.12) 45%, transparent 72%);
   filter: blur(6px);
 }
 /* The top spot: a glowing border in the brand's colors. */
 .stage-hero {
-  background: linear-gradient(135deg, rgb(64 244 245 / 0.9), rgb(255 255 255 / 0.12) 40%, rgb(3 121 217 / 0.85));
+  background: linear-gradient(135deg, rgb(var(--stage-glow) / 0.9), rgb(255 255 255 / 0.12) 40%, rgb(var(--stage-glow-2) / 0.85));
   box-shadow:
-    0 0 0 1px rgb(64 244 245 / 0.15),
-    0 20px 60px -20px rgb(64 244 245 / 0.55);
+    0 0 0 1px rgb(var(--stage-glow) / 0.15),
+    0 20px 60px -20px rgb(var(--stage-glow) / 0.55);
 }
 .spot-gold {
   background: linear-gradient(180deg, #ffe08a, #f5b93b);
@@ -447,7 +458,7 @@ body {
 .spot-glass {
   background: rgb(7 14 25 / 0.6);
   color: #dffcff;
-  border-color: rgb(64 244 245 / 0.45);
+  border-color: rgb(var(--stage-glow) / 0.45);
   backdrop-filter: blur(6px);
 }
 @media (prefers-reduced-motion: no-preference) {

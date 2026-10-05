@@ -12,7 +12,7 @@ import Svg, {
 import { STAGE_SPOTS } from "@shared/spotlight-stage";
 import type { AppCard as Card, FeaturedReason } from "@shared/types";
 
-import { MediaDark, fonts } from "@/theme";
+import { MediaDark, fonts, useColorSchemeName } from "@/theme";
 
 import { AppCard } from "./AppCard";
 import { Body, Display } from "./ui";
@@ -35,7 +35,16 @@ const LABELS: Record<FeaturedReason, string> = {
 // falls behind the apps (so they stay crisp) in the brand's cyan; paid
 // Spotlights wear a gold tag, Today's picks a quiet glass one. Paid
 // Spotlights come first (see src/lib/spotlight-stage.ts).
+// The stage's light: mint in dark mode, cyan in light mode (like the website).
+function useGlow() {
+  const dark = useColorSchemeName() === "dark";
+  return dark
+    ? { hex: "#82ed9d", rgb: "130,237,157", hi: "#e8ffee" }
+    : { hex: "#40f4f5", rgb: "64,244,245", hi: "#e1feff" };
+}
+
 export function SpotlightStage({ apps }: { apps: StageApp[] }) {
+  const g = useGlow();
   const router = useRouter();
   const [top, ...rest] = apps;
   const under = rest.slice(0, STAGE_SPOTS - 1);
@@ -49,7 +58,7 @@ export function SpotlightStage({ apps }: { apps: StageApp[] }) {
           overflow: "hidden",
           backgroundColor: "#070e19",
           borderWidth: 1,
-          borderColor: "rgba(64,244,245,0.25)",
+          borderColor: `rgba(${g.rgb},0.25)`,
         }}
       >
         <Glow />
@@ -64,9 +73,9 @@ export function SpotlightStage({ apps }: { apps: StageApp[] }) {
             style={{
               borderRadius: 13,
               borderWidth: 1,
-              borderColor: "rgba(64,244,245,0.75)",
+              borderColor: `rgba(${g.rgb},0.75)`,
               backgroundColor: CARD_BG,
-              shadowColor: "#40f4f5",
+              shadowColor: g.hex,
               shadowOpacity: 0.5,
               shadowRadius: 18,
               shadowOffset: { width: 0, height: 8 },
@@ -106,7 +115,7 @@ export function SpotlightStage({ apps }: { apps: StageApp[] }) {
                     style={{
                       borderRadius: 12,
                       backgroundColor: CARD_BG,
-                      shadowColor: "#40f4f5",
+                      shadowColor: g.hex,
                       shadowOpacity: 0.35,
                       shadowRadius: 12,
                       shadowOffset: { width: 0, height: 6 },
@@ -131,7 +140,7 @@ export function SpotlightStage({ apps }: { apps: StageApp[] }) {
               marginTop: under.length ? 0 : 24,
               borderWidth: 1,
               borderStyle: "dashed",
-              borderColor: "rgba(64,244,245,0.35)",
+              borderColor: `rgba(${g.rgb},0.35)`,
               borderRadius: 12,
               padding: 14,
               alignItems: "center",
@@ -152,12 +161,13 @@ export function SpotlightStage({ apps }: { apps: StageApp[] }) {
 
 // Gold for a paid Spotlight, glass for everything else.
 function SpotTag({ reason }: { reason: FeaturedReason }) {
+  const g = useGlow();
   const gold = reason === "boosted";
   return (
     <View
       style={{
         borderWidth: 1,
-        borderColor: gold ? "#f5b93b" : "rgba(64,244,245,0.5)",
+        borderColor: gold ? "#f5b93b" : `rgba(${g.rgb},0.5)`,
         backgroundColor: gold ? "#f8c94f" : "rgba(7,14,25,0.75)",
         borderRadius: 4,
         paddingHorizontal: 6,
@@ -181,6 +191,7 @@ function SpotTag({ reason }: { reason: FeaturedReason }) {
 
 // A soft cyan glow from the top of the stage.
 function Glow() {
+  const g = useGlow();
   return (
     <View
       pointerEvents="none"
@@ -202,8 +213,8 @@ function Glow() {
             fx="50%"
             fy="0%"
           >
-            <Stop offset="0" stopColor="#40f4f5" stopOpacity={0.22} />
-            <Stop offset="1" stopColor="#40f4f5" stopOpacity={0} />
+            <Stop offset="0" stopColor={g.hex} stopOpacity={0.22} />
+            <Stop offset="1" stopColor={g.hex} stopOpacity={0} />
           </RadialGradient>
         </Defs>
         <Rect width={100} height={100} fill="url(#stageGlow)" />
@@ -214,6 +225,7 @@ function Glow() {
 
 // The thin rail the lights hang on.
 function Rail({ top, style }: { top?: number; style?: object }) {
+  const g = useGlow();
   return (
     <View
       pointerEvents="none"
@@ -232,7 +244,7 @@ function Rail({ top, style }: { top?: number; style?: object }) {
         <Defs>
           <LinearGradient id="rail" x1="0" y1="0" x2="1" y2="0">
             <Stop offset="0" stopColor="#ffffff" stopOpacity={0} />
-            <Stop offset="0.5" stopColor="#40f4f5" stopOpacity={0.6} />
+            <Stop offset="0.5" stopColor={g.hex} stopOpacity={0.6} />
             <Stop offset="1" stopColor="#ffffff" stopOpacity={0} />
           </LinearGradient>
         </Defs>
@@ -244,6 +256,7 @@ function Rail({ top, style }: { top?: number; style?: object }) {
 
 // A small light on the rail: a dark housing with a glowing strip.
 function Light({ big = false, style }: { big?: boolean; style?: object }) {
+  const g = useGlow();
   return (
     <View
       pointerEvents="none"
@@ -268,8 +281,8 @@ function Light({ big = false, style }: { big?: boolean; style?: object }) {
           bottom: -1,
           height: 3,
           borderRadius: 999,
-          backgroundColor: "#effeff",
-          shadowColor: "#40f4f5",
+          backgroundColor: g.hi,
+          shadowColor: g.hex,
           shadowOpacity: 1,
           shadowRadius: 8,
           shadowOffset: { width: 0, height: 0 },
@@ -281,6 +294,7 @@ function Light({ big = false, style }: { big?: boolean; style?: object }) {
 
 // Cool light falling from the light, behind the card (doesn't catch taps).
 function Beam({ style, wide = false }: { style: object; wide?: boolean }) {
+  const g = useGlow();
   return (
     <View pointerEvents="none" style={[{ position: "absolute" }, style]}>
       <Svg
@@ -291,9 +305,9 @@ function Beam({ style, wide = false }: { style: object; wide?: boolean }) {
       >
         <Defs>
           <LinearGradient id="beam" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor="#e1feff" stopOpacity={0.38} />
-            <Stop offset="0.45" stopColor="#40f4f5" stopOpacity={0.14} />
-            <Stop offset="1" stopColor="#40f4f5" stopOpacity={0} />
+            <Stop offset="0" stopColor={g.hi} stopOpacity={0.38} />
+            <Stop offset="0.45" stopColor={g.hex} stopOpacity={0.14} />
+            <Stop offset="1" stopColor={g.hex} stopOpacity={0} />
           </LinearGradient>
         </Defs>
         {/* Three cones, wide and faint to narrow and bright, so the edges fade. */}
