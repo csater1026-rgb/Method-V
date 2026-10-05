@@ -59,7 +59,7 @@ ok(await page.getByText("In the Spotlight", { exact: true }).first().isVisible()
 ok((await page.getByText("Today's pick", { exact: true }).count()) > 0, "empty Spotlight spots get Today's picks");
 ok((await page.getByText("NoteFlow").count()) > 0, "Home lists the sample apps");
 ok(await page.getByText("Builders like you").isVisible(), "Home suggests builders to follow");
-ok(await page.getByText("In common: Design · React").isVisible(), "suggestions say what you have in common");
+ok(await page.getByText("Design · React", { exact: true }).isVisible(), "suggestions say what you have in common");
 await page.getByText("Builders like you").scrollIntoViewIfNeeded();
 await page.waitForTimeout(300);
 await page.screenshot({ path: `${OUT}home-suggestions.png` });

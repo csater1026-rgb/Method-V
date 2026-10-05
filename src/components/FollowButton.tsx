@@ -12,11 +12,14 @@ export function FollowButton({
   initialFollowing,
   signedIn,
   small = false,
+  full = false,
 }: {
   profileId: string;
   initialFollowing: boolean;
   signedIn: boolean;
   small?: boolean;
+  // Stretch to the width of its box (the square suggestion tiles).
+  full?: boolean;
 }) {
   const router = useRouter();
   const signIn = useSignIn();
@@ -44,13 +47,13 @@ export function FollowButton({
   }
 
   return (
-    <span className="inline-flex flex-col items-start gap-1">
+    <span className={`${full ? "flex w-full" : "inline-flex"} flex-col items-start gap-1`}>
       <button
         type="button"
         onClick={toggle}
         disabled={pending}
         aria-pressed={following}
-        className={`${following ? "btn-ghost" : "btn-accent"} ${small ? "rounded-full px-4 py-1.5 text-sm" : ""}`}
+        className={`${following ? "btn-ghost" : "btn-accent"} ${small ? "rounded-full px-4 py-1.5 text-sm" : ""} ${full ? "w-full" : ""}`}
       >
         {following ? "Following" : "Follow"}
       </button>

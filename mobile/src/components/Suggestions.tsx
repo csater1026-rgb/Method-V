@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { Pressable, View } from "react-native";
 
 import { CATEGORIES, ROLES, labelFor, primaryStatus } from "@shared/constants";
 import type { Suggestion } from "@shared/types";
@@ -14,6 +14,7 @@ import { Avatar, Body, Display, ErrorText, Handle } from "./ui";
 
 // "Builders like you": people who build in the categories you build, like and
 // test, or share your skills. Same as the website's Home.
+// A 2 by 2 grid of square tiles (the first 4), like the website on phones.
 export function Suggestions({ people }: { people: Suggestion[] }) {
   if (people.length === 0) return null;
   return (
@@ -21,15 +22,18 @@ export function Suggestions({ people }: { people: Suggestion[] }) {
       <Display size={36} style={{ paddingHorizontal: 16 }}>
         Builders like you
       </Display>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: 12, paddingHorizontal: 16 }}
+      <View
+        style={{
+          flexDirection: "row",
+          flexWrap: "wrap",
+          gap: 12,
+          paddingHorizontal: 16,
+        }}
       >
-        {people.map((p) => (
+        {people.slice(0, 4).map((p) => (
           <SuggestionCard key={p.id} person={p} />
         ))}
-      </ScrollView>
+      </View>
     </View>
   );
 }
@@ -61,73 +65,80 @@ function SuggestionCard({ person: p }: { person: Suggestion }) {
   const status = primaryStatus(p.roles);
   const role = status ?? p.roles[0];
 
-  // A compact row, like the website: photo, name, @handle and status, what
-  // you have in common, and a pill Follow button on the right.
+  // A square tile, like the website: photo, name, @handle and status, what
+  // you have in common, and a Follow button across the bottom.
   return (
     <View
       style={{
-        width: 320,
-        flexDirection: "row",
+        flexBasis: "47%",
+        flexGrow: 1,
+        aspectRatio: 1,
+        minHeight: 196,
         alignItems: "center",
-        gap: 12,
+        justifyContent: "center",
+        gap: 4,
         borderWidth: 1,
         borderColor: t.line,
         backgroundColor: t.surface,
         borderRadius: 16,
-        paddingHorizontal: 14,
-        paddingVertical: 12,
+        padding: 12,
       }}
     >
       <Pressable
         accessibilityRole="link"
         accessibilityLabel={`${p.display_name || p.username}'s profile`}
         onPress={() => router.push(`/u/${p.username}`)}
-        style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 12 }}
+        style={{ alignItems: "center", gap: 3, width: "100%" }}
       >
         <View
-          style={{ borderRadius: 999, borderWidth: 2, borderColor: t.line }}
+          style={{
+            borderRadius: 999,
+            borderWidth: 2,
+            borderColor: t.line,
+            marginBottom: 4,
+          }}
         >
           <Avatar
             username={p.username}
             name={p.display_name}
             src={p.avatar_url}
-            size={46}
+            size={52}
           />
         </View>
-        <View style={{ flex: 1, gap: 2 }}>
-          <Body bold numberOfLines={1}>
-            {p.display_name || <Handle username={p.username} />}
-          </Body>
-          <Body muted size={12} numberOfLines={1}>
-            <Handle username={p.username} size={12} />
-            {role ? (
-              <>
-                {" · "}
-                <Body
-                  size={12}
-                  bold={Boolean(status)}
-                  style={{ color: status ? t.accent : t.muted }}
-                >
-                  {labelFor(ROLES, role)}
-                </Body>
-              </>
-            ) : null}
-          </Body>
-          <Body muted size={12} numberOfLines={1} style={{ marginTop: 2 }}>
-            {shared.length > 0
-              ? `In common: ${shared.slice(0, 3).join(" · ")}`
-              : "New on Method V"}
-          </Body>
-          <ErrorText>{error}</ErrorText>
-        </View>
+        <Body bold numberOfLines={1} style={{ textAlign: "center" }}>
+          {p.display_name || <Handle username={p.username} />}
+        </Body>
+        <Body muted size={12} numberOfLines={1} style={{ textAlign: "center" }}>
+          <Handle username={p.username} size={12} />
+          {role ? (
+            <>
+              {" · "}
+              <Body
+                size={12}
+                bold={Boolean(status)}
+                style={{ color: status ? t.accent : t.muted }}
+              >
+                {labelFor(ROLES, role)}
+              </Body>
+            </>
+          ) : null}
+        </Body>
+        <Body muted size={11} numberOfLines={1} style={{ textAlign: "center" }}>
+          {shared.length > 0
+            ? shared.slice(0, 2).join(" · ")
+            : "New on Method V"}
+        </Body>
+        <ErrorText>{error}</ErrorText>
       </Pressable>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`${following ? "Unfollow" : "Follow"} @${p.username}`}
         onPress={() => void toggle()}
         style={{
+          alignSelf: "stretch",
+          alignItems: "center",
+          marginTop: 6,
           borderRadius: 999,
-          paddingHorizontal: 16,
           paddingVertical: 8,
           backgroundColor: following ? "transparent" : t.accent,
           borderWidth: 1,
