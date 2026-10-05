@@ -7,7 +7,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
-    "backgroundColor": "#0a1624",
+    "backgroundColor": "#111312",
     "ios": {
       "bundleIdentifier": "com.methodv.app",
       "supportsTablet": true,
@@ -46,7 +46,7 @@
           "backgroundColor": "#ffffff",
           "dark": {
             "image": "./assets/splash-icon.png",
-            "backgroundColor": "#0a1624"
+            "backgroundColor": "#111312"
           }
         }
       ],

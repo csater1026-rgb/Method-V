@@ -165,9 +165,9 @@ await run("feed (phone)", phone, async (page) => {
   ok(featuredBg === "rgb(15, 32, 49)", `featured poster stays dark in light mode (${featuredBg})`);
   await page.getByRole("button", { name: "Switch between light and dark" }).click();
   ok((await page.evaluate(() => document.documentElement.dataset.theme)) === "dark", "toggle switches to dark");
-  ok((await bgOf(page)) === "rgb(10, 22, 36)", "dark background after toggle");
+  ok((await bgOf(page)) === "rgb(17, 19, 18)", "dark (charcoal) background after toggle");
   await page.reload();
-  ok((await bgOf(page)) === "rgb(10, 22, 36)", "choice is remembered after reload");
+  ok((await bgOf(page)) === "rgb(17, 19, 18)", "choice is remembered after reload");
   await page.waitForTimeout(1200); // let the entrance animation finish
   await page.screenshot({ path: OUT + "home-dark-phone.png" });
   await page.getByRole("button", { name: "Switch between light and dark" }).click();

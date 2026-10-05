@@ -4,16 +4,17 @@ import { useColorScheme } from "react-native";
 // Same blue, mint, white and cyan palette as the website (src/app/globals.css), dark and
 // light. The app follows the phone's setting.
 export const palettes = {
+  // Charcoal with mint buttons, like the V in the logo (same as the website).
   dark: {
-    bg: "#0a1624",
-    surface: "#0f2031",
-    surface2: "#172b3f",
-    line: "#243a50",
-    ink: "#ffffff",
-    muted: "#9db2c7",
-    accent: "#40f4f5",
-    accentInk: "#04213a",
-    accentEdge: "#1aa9b0",
+    bg: "#111312",
+    surface: "#1a1d1b",
+    surface2: "#222624",
+    line: "#313733",
+    ink: "#f1f5f2",
+    muted: "#a3ada6",
+    accent: "#82ed9d",
+    accentInk: "#0b1b12",
+    accentEdge: "#4fb86a",
     heart: "#e5826f",
     danger: "#f08c78",
   },
@@ -38,8 +39,8 @@ export function useColorSchemeName(): "light" | "dark" {
   return useColorScheme() === "light" ? "light" : "dark";
 }
 
-// Inside <MediaDark> everything uses the dark palette whatever the phone is
-// set to, like the website's media-dark (the Spotlight stage is always dark).
+// Inside <MediaDark> everything uses the media palette (deep navy) whatever
+// the phone is set to, like the website's media-dark (the Spotlight stage).
 const ForceDark = createContext(false);
 
 export function MediaDark({ children }: { children: React.ReactNode }) {
@@ -49,7 +50,8 @@ export function MediaDark({ children }: { children: React.ReactNode }) {
 export function useTheme(): Palette {
   const scheme = useColorScheme();
   const forced = useContext(ForceDark);
-  return forced || scheme !== "light" ? palettes.dark : palettes.light;
+  if (forced) return media;
+  return scheme !== "light" ? palettes.dark : palettes.light;
 }
 
 // Poster caps for headlines, a grotesk for text, mono for numbers and tags.
@@ -64,8 +66,21 @@ export const fonts = {
   eyebrow: "Sora_700Bold",
 };
 
-// Video and posters stay dark in both themes, like the website's media-dark.
-export const media = palettes.dark;
+// Video, posters and the Spotlight stage: a deep navy with a cyan accent in
+// both themes, like the website's media-dark.
+export const media: Palette = {
+  bg: "#0a1624",
+  surface: "#0f2031",
+  surface2: "#172b3f",
+  line: "#243a50",
+  ink: "#ffffff",
+  muted: "#9db2c7",
+  accent: "#40f4f5",
+  accentInk: "#04213a",
+  accentEdge: "#1aa9b0",
+  heart: "#e5826f",
+  danger: "#f08c78",
+};
 
 // Highlight badges (Pro, Launch day…), the same in both themes.
 export const MINT = "#82ed9d";

@@ -2,9 +2,11 @@
 
 /*
  * Method V look: drop culture meets the late-night code editor, in blue,
- * mint, white and cyan. Two themes: dark (deep navy, white ink, cyan accent)
- * and light (white paper, navy ink, blue accent so text and buttons stay
- * readable). Mint marks highlight badges in both. Video and poster areas stay dark in both (`media-dark`).
+ * mint, white and cyan. Two themes: dark (charcoal, soft white ink, mint
+ * accent, like the V in the logo) and light (white paper, navy ink, blue
+ * accent so text and buttons stay readable). Mint marks highlight badges in
+ * both. Video and poster areas, and the Spotlight stage, stay a deep navy
+ * with a cyan accent in both (`media-dark`).
  * Big Shoulders (condensed poster caps) for display, Schibsted Grotesk for
  * reading, Martian Mono for numbers, timers, credits and tags.
  *
@@ -12,15 +14,15 @@
  * toggle, which sets data-theme on <html> (and a cookie so it sticks).
  */
 @theme {
-  /* Dark is the default; the light values are applied below. */
-  --color-bg: #0a1624;
-  --color-surface: #0f2031;
-  --color-surface-2: #172b3f;
-  --color-line: #243a50;
-  --color-ink: #ffffff;
-  --color-muted: #9db2c7;
-  --color-accent: #40f4f5;
-  --color-accent-ink: #04213a;
+  /* Dark is the default (charcoal + mint); the light values are applied below. */
+  --color-bg: #111312;
+  --color-surface: #1a1d1b;
+  --color-surface-2: #222624;
+  --color-line: #313733;
+  --color-ink: #f1f5f2;
+  --color-muted: #a3ada6;
+  --color-accent: #82ed9d;
+  --color-accent-ink: #0b1b12;
   --color-heart: #e5826f;
   --color-danger: #f08c78;
   /* Highlight badges (Launch day, Boosted, Pro, Verified): the same in both themes. */
@@ -53,8 +55,8 @@
   color-scheme: dark;
   /* Pressed-edge shadow under accent buttons, and the glow color used by the
      striped Drop placeholders, as an r g b triplet. */
-  --accent-edge: #1aa9b0;
-  --glow: 64 244 245;
+  --accent-edge: #4fb86a;
+  --glow: 130 237 157;
   /* Height of the phone bottom tab bar (MobileTabs); none on larger screens. */
   --tabbar: calc(3.5rem + env(safe-area-inset-bottom));
 }
