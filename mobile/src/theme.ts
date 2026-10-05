@@ -22,7 +22,7 @@ export const palettes = {
     bg: "#ffffff",
     surface: "#ffffff",
     surface2: "#eef5fc",
-    line: "#7a8fa5",
+    line: "#566a80",
     ink: "#0b1b2b",
     muted: "#56687a",
     accent: "#0379d9",

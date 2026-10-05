@@ -11,7 +11,7 @@ import { publicFileUrl } from "@/lib/supabase/env";
 
 const THEMES = {
   dark: { bg: "#111312", surface: "#1a1d1b", ink: "#f1f5f2", muted: "#a3ada6", accent: "#82ed9d", accentInk: "#0b1b12", line: "#313733" },
-  light: { bg: "#ffffff", surface: "#ffffff", ink: "#0b1b2b", muted: "#56687a", accent: "#0379d9", accentInk: "#ffffff", line: "#7a8fa5" },
+  light: { bg: "#ffffff", surface: "#ffffff", ink: "#0b1b2b", muted: "#56687a", accent: "#0379d9", accentInk: "#ffffff", line: "#566a80" },
 };
 
 function esc(s: string) {

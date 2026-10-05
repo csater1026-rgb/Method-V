@@ -60,6 +60,9 @@ ok((await page.getByText("Today's pick", { exact: true }).count()) > 0, "empty S
 ok((await page.getByText("NoteFlow").count()) > 0, "Home lists the sample apps");
 ok(await page.getByText("Builders like you").isVisible(), "Home suggests builders to follow");
 ok(await page.getByText("In common: Design · React").isVisible(), "suggestions say what you have in common");
+await page.getByText("Builders like you").scrollIntoViewIfNeeded();
+await page.waitForTimeout(300);
+await page.screenshot({ path: `${OUT}home-suggestions.png` });
 ok((await page.getByText("All projects").count()) === 0, "Home leaves the full list to Browse");
 ok(await page.getByText("Just posted").isVisible(), "Home shows the newest projects under the suggestions");
 ok((await page.getByText("Top builders ·", { exact: false }).count()) === 0, "the leaderboards moved off Home");
@@ -244,6 +247,9 @@ await visit("/", "home-light");
   const color = await page.getByText("Meeting notes that turn into to-dos on their own").first().evaluate((el) => getComputedStyle(el).color);
   ok(color !== "rgb(11, 27, 43)" && color !== "rgb(86, 104, 122)", `Spotlight text is readable in light mode (${color})`);
 }
+await page.getByText("Builders like you").scrollIntoViewIfNeeded();
+await page.waitForTimeout(300);
+await page.screenshot({ path: `${OUT}home-suggestions-light.png` });
 await visit("/browse", "browse-light");
 await page.getByText("Top builders ·", { exact: false }).first().scrollIntoViewIfNeeded();
 await page.waitForTimeout(300);
