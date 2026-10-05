@@ -77,7 +77,7 @@ export default function MeScreen() {
       <StatusCard />
       <NotificationsCard />
       <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-        <Coin size={13} />
+        <Coin size={20} />
         <Mono muted={false}>{viewer.credits} Methodium</Mono>
       </View>
       <Button label="View your profile" onPress={() => router.push(`/u/${viewer.username}`)} />
