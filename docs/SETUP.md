@@ -17,7 +17,7 @@ See [PLAN.md](PLAN.md) (in this folder) for the full product plan and build phas
 
 ## Status
 
-**Phase 1 ("Show it") is built:** sign-in by email link, profiles with role tags, posting an app with a 60-second Drop, the Drops feed (For you, which learns what each person is into from what they watch, like, try and skip; Trending; Following), the Browse directory with search and filters, app pages with likes and comments, follows, and a "Try it" button that counts real tries. 
+**Phase 1 ("Show it") is built:** sign-in by email link, profiles with role tags, posting an app with a 60-second Drop, the Drops feed (For you, which learns what each person is into from what they watch, like, try and skip, shuffled every visit; Trending; Following), the Browse directory with search and filters, app pages with likes and comments, follows, and a "Try it" button that counts real tries. 
 
 **Terms and Privacy:** `/terms` and `/privacy` are plain-English pages built from what the site actually stores and charges (fees come from `src/lib/constants.ts`). They stay open to signed-out visitors, and the sign-in page (website and app), the footer and the app's Me tab link to them. New accounts (website and app) must tick a box agreeing to both; the date they agreed to is saved on the account as `agreed_to_terms`. Anyone signed in without that (Google, Apple or GitHub sign-ups, and accounts from before the box) sees a one-time **One more step** screen (`/agree` on the website, `agree` in the app) and can't use anything else until they agree; the rule lives in `src/lib/gate.ts` (`mustAgree`).
 

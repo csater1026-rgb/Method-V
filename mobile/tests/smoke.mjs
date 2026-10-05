@@ -88,7 +88,23 @@ ok((await page.getByText("Sponsored").count()) > 0, "sponsored Drops are labeled
   await page.waitForTimeout(4600);
   const saved = await page.evaluate(() => localStorage.getItem("method-v-interests"));
   ok(/^[a-z_]+:1$/.test(saved ?? ""), `watching a Drop saves an interest (${saved})`);
-  // …and what someone's into comes first.
+  // The order is shuffled on every visit, never opening on the same Drop twice in a row.
+  const firstDrop = async () => {
+    await visit("/drops");
+    const ys = {};
+    for (const name of ["NoteFlow", "QuizPop", "PalettePal", "Splitsy"]) {
+      ys[name] = (await page.getByRole("link", { name, exact: true }).first().boundingBox())?.y ?? Infinity;
+    }
+    return Object.entries(ys).sort((a, b) => a[1] - b[1])[0][0];
+  };
+  const openers = [];
+  for (let i = 0; i < 5; i++) openers.push(await firstDrop());
+  ok(
+    openers.every((n, i) => i === 0 || n !== openers[i - 1]),
+    `Drops opens on a different Drop each visit (${openers.join(", ")})`,
+  );
+  // …and what someone's into comes first (with the shuffle off, demo only).
+  await page.evaluate(() => localStorage.setItem("method-v-feed-shuffle", "off"));
   const topFor = async (interests) => {
     await page.evaluate((v) => localStorage.setItem("method-v-interests", v), interests);
     await visit("/drops");
@@ -100,7 +116,10 @@ ok((await page.getByText("Sponsored").count()) > 0, "sponsored Drops are labeled
   };
   ok((await topFor("finance:20")) === "Splitsy", "into finance: Splitsy's Drop comes first");
   ok((await topFor("education:20")) === "QuizPop", "into education: QuizPop's Drop comes first");
-  await page.evaluate(() => localStorage.removeItem("method-v-interests"));
+  await page.evaluate(() => {
+    localStorage.removeItem("method-v-interests");
+    localStorage.removeItem("method-v-feed-shuffle");
+  });
 }
 
 // Questions: the switch at the top of Drops, polls, and a thread.

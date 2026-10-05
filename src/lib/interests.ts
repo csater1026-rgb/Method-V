@@ -86,7 +86,23 @@ export type RankContext = {
   following?: ReadonlySet<string>;
   viewerId?: string | null;
   now?: number;
+  // How much randomness to add to each Drop's score (0: none). The For you
+  // feed uses FEED_SHUFFLE so it comes out in a different order every visit.
+  shuffle?: number;
+  random?: () => number;
+  // The Drop the feed opened on last time: never open on it twice in a row.
+  avoidFirst?: string | null;
 };
+
+// Enough to reorder the feed on every visit while still leaning towards
+// fresh, popular Drops in the categories you like (a score is roughly 0–3.6).
+export const FEED_SHUFFLE = 1.5;
+
+// Cookie with the id of the Drop the For you feed last opened on.
+export const FEED_FIRST_COOKIE = "mv_feed_first";
+// Demo mode only: "off" turns the shuffle (and the different-opener rule)
+// off, so tests and screenshots can check the ranking itself.
+export const FEED_SHUFFLE_COOKIE = "mv_feed_shuffle";
 
 // A Drop's score: fresh + popular + in the categories this person likes + from
 // people they follow. Their own Drops and ones they've already liked sink.
@@ -104,6 +120,7 @@ export function scoreDrop(drop: RankableDrop, ctx: RankContext): number {
   if (ctx.following?.has(drop.owner_id)) score += 0.8;
   if (drop.liked) score -= 0.5;
   if (ctx.viewerId && drop.owner_id === ctx.viewerId) score -= 1;
+  if (ctx.shuffle) score += ctx.shuffle * (ctx.random ?? Math.random)();
   return score;
 }
 
@@ -128,6 +145,8 @@ export function rankFeed<T extends RankableDrop>(drops: T[], ctx: RankContext): 
     });
     out.push(left.splice(best, 1)[0].drop);
   }
+  // Never open on the same Drop as last time.
+  if (ctx.avoidFirst && out.length > 1 && out[0].id === ctx.avoidFirst) [out[0], out[1]] = [out[1], out[0]];
   return out;
 }
 

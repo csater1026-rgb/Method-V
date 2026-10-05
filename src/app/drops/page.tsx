@@ -4,8 +4,10 @@ import Link from "next/link";
 
 import { DropFeed } from "@/components/DropFeed";
 import { QuestionFeed } from "@/components/QuestionFeed";
+import { RememberFirstDrop } from "@/components/RememberFirstDrop";
 import { getFeed, getFeedItem, getQuestionFeed, getViewer, type FeedTab } from "@/lib/data";
-import { INTERESTS_COOKIE, parseInterests } from "@/lib/interests";
+import { FEED_FIRST_COOKIE, FEED_SHUFFLE_COOKIE, INTERESTS_COOKIE, parseInterests } from "@/lib/interests";
+import { isSupabaseConfigured } from "@/lib/supabase/env";
 
 export const metadata: Metadata = { title: "Drops" };
 
@@ -26,13 +28,17 @@ export default async function DropsPage({ searchParams }: PageProps<"/drops">) {
   const params = await searchParams;
   const tab: Tab = TABS.some((t) => t.slug === params.tab) ? (params.tab as Tab) : "foryou";
   // What this browser has learned this person likes (see DropFeed).
-  const interests = parseInterests((await cookies()).get(INTERESTS_COOKIE)?.value);
+  const jar = await cookies();
+  const interests = parseInterests(jar.get(INTERESTS_COOKIE)?.value);
+  // The Drop For you opened on last time, so it opens on a different one now.
+  const lastFirst = jar.get(FEED_FIRST_COOKIE)?.value ?? null;
+  const shuffle = isSupabaseConfigured || jar.get(FEED_SHUFFLE_COOKIE)?.value !== "off";
 
   const viewer = await getViewer();
   // ?d=<drop id> (from a profile's Drops): open the feed on that Drop.
   const startId = typeof params.d === "string" && tab !== "questions" ? params.d : null;
   const [feed, questions, start] = await Promise.all([
-    tab === "questions" ? Promise.resolve([]) : getFeed({ tab, interests }),
+    tab === "questions" ? Promise.resolve([]) : getFeed({ tab, interests, shuffle, avoidFirst: tab === "foryou" && shuffle ? lastFirst : null }),
     tab === "questions" ? getQuestionFeed(viewer, interests) : Promise.resolve([]),
     startId ? getFeedItem(startId) : Promise.resolve(null),
   ]);
@@ -66,7 +72,10 @@ export default async function DropsPage({ searchParams }: PageProps<"/drops">) {
       {tab === "questions" ? (
         <QuestionFeed items={questions} signedIn={Boolean(viewer)} />
       ) : items.length > 0 ? (
-        <DropFeed items={items} signedIn={Boolean(viewer)} />
+        <>
+          <DropFeed items={items} signedIn={Boolean(viewer)} />
+          {tab === "foryou" && !start && <RememberFirstDrop id={items[0].id} />}
+        </>
       ) : (
         <EmptyFeed tab={tab} signedIn={Boolean(viewer)} />
       )}

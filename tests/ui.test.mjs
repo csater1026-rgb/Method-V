@@ -204,13 +204,25 @@ await run("feed tabs + For you", desktop, async (page) => {
   ok((await page.getByRole("navigation", { name: "Categories" }).count()) === 0, "no category filter row on Drops");
   await page.screenshot({ path: OUT + "feed-desktop.png" });
 
-  // What someone's into moves those Drops to the top.
+  // The order changes on every visit, and never opens on the same Drop twice.
+  const openers = [];
+  for (let i = 0; i < 8; i++) {
+    await go(page, "/drops");
+    openers.push(await page.locator("article").first().getAttribute("aria-label"));
+    await page.waitForTimeout(150);
+  }
+  ok(new Set(openers).size > 1 && openers.every((o, i) => i === 0 || o !== openers[i - 1]), `For you opens on a different Drop each visit (${openers.join(" > ")})`);
+
+  // What someone's into moves those Drops to the top (with the shuffle off,
+  // which demo mode allows, to see the ranking on its own).
+  await page.context().addCookies([{ name: "mv_feed_shuffle", value: "off", url: BASE }]);
   const firstFor = async (value) => {
     await page.context().addCookies([{ name: "mv-interests", value, url: BASE }]);
     await go(page, "/drops");
     return page.locator("article").first().getAttribute("aria-label");
   };
-  ok((await firstFor("education:20")) === "QuizPop Drop", "into education: QuizPop first");
+  const eduFirst = await firstFor("education:20");
+  ok(eduFirst === "QuizPop Drop", `into education: QuizPop first (${eduFirst})`);
   ok((await firstFor("finance:20")) === "Splitsy Drop", "into finance: Splitsy first");
   ok((await firstFor("finance:20,education:40")) === "QuizPop Drop", "the stronger interest wins");
 
@@ -241,6 +253,7 @@ await run("feed tabs + For you", desktop, async (page) => {
 
   // And it learns: watching a Drop for a few seconds counts toward its category.
   await page.context().clearCookies();
+  await page.context().addCookies([{ name: "mv_feed_shuffle", value: "off", url: BASE }]);
   await go(page, "/drops");
   const top = await page.locator("article").first().getAttribute("aria-label");
   await page.waitForTimeout(4600);

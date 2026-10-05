@@ -139,6 +139,16 @@ ok(formatCents(500) === "$5" && formatCents(1425) === "$14.25" && formatCents(10
   const same = [drop("a1", "games", "a", 1), drop("a2", "games", "a", 1.1), drop("b1", "design", "b", 3)];
   ok(ids(rankFeed(same, { now })) === "a1,b1,a2", `the same builder twice in a row gets split up (${ids(rankFeed(same, { now }))})`);
   ok(rankFeed(pool, { now }).length === 3, "nothing is dropped");
+  // Shuffled every visit: a different order across visits, the same Drops, and
+  // never the same opener twice in a row.
+  const seeded = (seed: number) => () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
+  const firsts = new Set(Array.from({ length: 30 }, (_, i) => rankFeed(pool, { now, shuffle: 1.5, random: seeded(i + 1) })[0].id));
+  ok(firsts.size === pool.length, `shuffled, any Drop can open the feed (${[...firsts].join(",")})`);
+  ok(ids(rankFeed(pool, { now, shuffle: 1.5, random: seeded(7) })).split(",").sort().join() === ids(pool).split(",").sort().join(), "shuffling keeps every Drop");
+  ok(ids(rankFeed(pool, { now, shuffle: 0 })) === ids(rankFeed(pool, { now })), "no shuffle: the same order as before");
+  const opener = rankFeed(pool, { now })[0].id;
+  ok(rankFeed(pool, { now, avoidFirst: opener })[0].id !== opener, "it never opens on the Drop it opened on last time");
+
 }
 
 // --- Social handles ---

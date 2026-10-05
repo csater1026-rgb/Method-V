@@ -21,7 +21,7 @@ import {
   demoSwaps,
   demoUpdates,
 } from "./demo";
-import { SIGNALS, bumpInterest, mergeInterests, rankFeed, rankQuestions, type Interests } from "./interests";
+import { FEED_SHUFFLE, SIGNALS, bumpInterest, mergeInterests, rankFeed, rankQuestions, type Interests } from "./interests";
 import { APP_LIMIT, appLimit } from "./app-limit";
 import { RANDOM_STAGE, buildStage, stageDay } from "./spotlight-stage";
 import { SUGGESTION_LIMIT, setUpFirst, topUpSuggestions } from "./suggest";
@@ -234,7 +234,19 @@ async function likedDropIds(viewer: Viewer | null, dropIds: string[]): Promise<S
 
 // "interests" is what this visitor's browser has learned (see lib/interests);
 // signed-in people's likes, comments, feedback and follows are added to it.
-export async function getFeed({ tab, interests = {} }: { tab: FeedTab; interests?: Interests }): Promise<FeedItem[]> {
+// For you comes out in a different order on every visit (FEED_SHUFFLE), and
+// never opens on "avoidFirst", the Drop it opened on last time.
+export async function getFeed({
+  tab,
+  interests = {},
+  shuffle = true,
+  avoidFirst = null,
+}: {
+  tab: FeedTab;
+  interests?: Interests;
+  shuffle?: boolean;
+  avoidFirst?: string | null;
+}): Promise<FeedItem[]> {
   if (!isSupabaseConfigured) {
     if (tab === "following") return [];
     const items = demoDrops.map((d) => {
@@ -242,7 +254,7 @@ export async function getFeed({ tab, interests = {} }: { tab: FeedTab; interests
       return { ...d, app, owner: toSummary(demoProfile(d.owner_id)), liked: false, sponsor: demoSponsorCard(app.id) };
     });
     if (tab === "trending") return items.sort((a, b) => b.like_count - a.like_count);
-    return rankFeed(items, { interests });
+    return rankFeed(items, { interests, shuffle: shuffle ? FEED_SHUFFLE : 0, avoidFirst });
   }
 
   const viewer = await getViewer();
@@ -293,7 +305,7 @@ export async function getFeed({ tab, interests = {} }: { tab: FeedTab; interests
   });
   const page =
     tab === "foryou"
-      ? rankFeed(all, { interests: mergeInterests(interests, learned), following, viewerId: viewer?.id }).slice(0, PAGE_SIZE)
+      ? rankFeed(all, { interests: mergeInterests(interests, learned), following, viewerId: viewer?.id, shuffle: shuffle ? FEED_SHUFFLE : 0, avoidFirst }).slice(0, PAGE_SIZE)
       : all;
   const sponsors = await getSponsorCards(page.map((d) => d.app_id));
   return page.map((d) => ({ ...d, sponsor: sponsors.get(d.app_id) ?? null }));

@@ -3,6 +3,7 @@
 // and to the website only for posting, which needs the server's link check.
 // In demo mode it returns the website's own sample data.
 
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { File, UploadType } from "expo-file-system";
 import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import { Platform } from "react-native";
@@ -40,7 +41,7 @@ import type {
 } from "@shared/types";
 import { PROFILE_COLUMNS } from "@shared/types";
 
-import { SIGNALS, bumpInterest, mergeInterests, rankFeed, rankQuestions, type Interests } from "@shared/interests";
+import { FEED_SHUFFLE, SIGNALS, bumpInterest, mergeInterests, rankFeed, rankQuestions, type Interests } from "@shared/interests";
 import { APP_LIMIT, appLimit } from "@shared/app-limit";
 import { RANDOM_STAGE, buildStage, stageDay } from "@shared/spotlight-stage";
 import { SUGGESTION_LIMIT, setUpFirst, topUpSuggestions } from "@shared/suggest";
@@ -246,16 +247,30 @@ export async function getHome(
   return { featured: top, suggestions, newest: (newest.data ?? []).map(toCard) };
 }
 
+// The Drop the feed opened on last time, so it opens on a different one.
+const FEED_FIRST_KEY = "method-v-feed-first";
+// Demo mode only: "off" keeps the order fixed so tests can check the ranking.
+const FEED_SHUFFLE_KEY = "method-v-feed-shuffle";
+
 // "For you": recent Drops ranked by how new and popular they are and what
 // this person is into (learned on the device, plus their likes, comments,
-// feedback and follows when signed in). Same ranking as the website.
+// feedback and follows when signed in), shuffled so the order changes on every
+// visit and never opens on the same Drop twice in a row. Same as the website.
 export async function getFeed(viewerId: string | null, interests: Interests = {}): Promise<FeedItem[]> {
+  const fixed = !supabase && (await AsyncStorage.getItem(FEED_SHUFFLE_KEY).catch(() => null)) === "off";
+  const avoidFirst = fixed ? null : await AsyncStorage.getItem(FEED_FIRST_KEY).catch(() => null);
+  const feed = await loadFeed(viewerId, interests, avoidFirst, fixed ? 0 : FEED_SHUFFLE);
+  if (feed[0] && !fixed) void AsyncStorage.setItem(FEED_FIRST_KEY, feed[0].id).catch(() => {});
+  return feed;
+}
+
+async function loadFeed(viewerId: string | null, interests: Interests, avoidFirst: string | null, shuffle: number): Promise<FeedItem[]> {
   if (!supabase) {
     const items = demoDrops.map((d) => {
       const app = demoApps.find((a) => a.id === d.app_id)!;
       return { ...d, app, owner: toSummary(demoProfile(d.owner_id)), liked: false, sponsor: demoSponsor(app.id) };
     });
-    return rankFeed(items, { interests });
+    return rankFeed(items, { interests, shuffle, avoidFirst });
   }
   const [{ data, error }, following, learned] = await Promise.all([
     supabase
@@ -280,7 +295,7 @@ export async function getFeed(viewerId: string | null, interests: Interests = {}
     owner: toSummary(r.owner),
     liked: liked.has(r.id),
   }));
-  const page = rankFeed(all, { interests: mergeInterests(interests, learned), following, viewerId }).slice(0, 30);
+  const page = rankFeed(all, { interests: mergeInterests(interests, learned), following, viewerId, shuffle, avoidFirst }).slice(0, 30);
   const sponsors = await sponsorCards(page.map((d) => d.app_id));
   return page.map((d) => ({ ...d, sponsor: sponsors.get(d.app_id) ?? null }));
 }
