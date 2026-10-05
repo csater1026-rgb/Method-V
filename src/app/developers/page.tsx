@@ -21,7 +21,7 @@ const SAMPLE = `{
     "embed_url": "https://…/embed/noteflow",
     "stats": { "tries": 412, "likes": 96, "backers": 12, "testers": 18,
                "would_use_percent": 78, "rating": 4.4 },
-    "builder": { "username": "ada_builds", "display_name": "Ada Park", "url": "https://…/u/ada_builds" }
+    "builder": { "username": "ada_builds", "display_name": "Parkside Labs", "url": "https://…/u/ada_builds" }
   }
 }`;
 

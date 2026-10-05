@@ -27,7 +27,7 @@ export default function PrivacyPage() {
             sign in with Google, Apple or GitHub, we get your name and email address from them.
           </li>
           <li>
-            <strong>Your profile:</strong> your username, display name, bio, photo, status and the social links you add.
+            <strong>Your profile:</strong> your username, company name, bio, photo, status and the social links you add.
           </li>
           <li>
             <strong>What you post:</strong> apps, Drops (videos), questions, answers, polls and votes, feedback, and messages you

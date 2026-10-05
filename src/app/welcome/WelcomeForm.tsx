@@ -93,20 +93,20 @@ export function WelcomeForm({ suggestion, name, next, children }: { suggestion: 
       </label>
 
       <label className="flex flex-col gap-1.5">
-        <span className="text-sm font-medium">Display name</span>
+        <span className="text-sm font-medium">Company name</span>
         <input
           id="welcome-name"
           name="display_name"
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
           maxLength={60}
-          autoComplete="name"
+          autoComplete="organization"
           placeholder="Acme Studio"
           className="rounded-lg border border-line bg-surface px-3 py-2.5 outline-none focus:border-accent"
         />
         <span className="text-sm text-muted">
-          Building for a company or brand? Put the <strong className="text-ink">company name</strong> here (like &ldquo;Acme Studio&rdquo;).
-          Otherwise use your own name. It shows above your username on your apps and profile.
+          This is the name people see on Method V: on your profile, your apps, leaderboards and feedback. Use your company or brand
+          (like &ldquo;Acme Studio&rdquo;). No company yet? Your own name or brand works too.
         </span>
       </label>
 

@@ -7,7 +7,7 @@ export const demoProfiles: Profile[] = [
   {
     id: "demo-ada",
     username: "ada_builds",
-    display_name: "Ada Park",
+    display_name: "Parkside Labs",
     bio: "Solo founder. I build small tools that save people an hour a week.",
     roles: ["founder", "open_to_collab"],
     skills: ["Next.js", "Supabase", "Product design"],
@@ -28,7 +28,7 @@ export const demoProfiles: Profile[] = [
   {
     id: "demo-marco",
     username: "marco_ships",
-    display_name: "Marco Díaz",
+    display_name: "Díaz Digital",
     bio: "Vibe coder, ex-teacher. Building things for classrooms.",
     roles: ["looking_for_work", "freelancer"],
     skills: ["Lovable", "Tailwind", "Teaching"],
@@ -49,7 +49,7 @@ export const demoProfiles: Profile[] = [
   {
     id: "demo-june",
     username: "june_designs",
-    display_name: "June Okafor",
+    display_name: "Okafor Studio",
     bio: "Designer who learned to code. Hiring a front-end dev for my studio.",
     roles: ["hiring", "founder"],
     skills: ["Figma", "Motion", "React"],

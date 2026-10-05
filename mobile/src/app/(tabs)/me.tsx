@@ -460,14 +460,14 @@ function AboutCard() {
       <Body muted size={13}>
         Shown on your profile.
       </Body>
-      <Mono>Name</Mono>
+      <Mono>Company name · the name people see</Mono>
       <TextInput
         value={form.display_name}
         onChangeText={set("display_name")}
         maxLength={60}
-        placeholder="Company or your name"
+        placeholder="Acme Studio"
         placeholderTextColor={t.muted}
-        accessibilityLabel="Display name"
+        accessibilityLabel="Company name"
         style={{ borderWidth: 1, borderColor: t.line, backgroundColor: t.bg, color: t.ink, borderRadius: 8, paddingHorizontal: 12, minHeight: 44, fontFamily: fonts.body, fontSize: 16 }}
       />
       <Mono>Bio · up to 280 characters</Mono>

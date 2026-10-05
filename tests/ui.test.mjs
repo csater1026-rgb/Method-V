@@ -89,7 +89,7 @@ await run("home (phone)", phone, async (page) => {
   await go(page, "/browse");
   const boards = page.getByRole("region", { name: "Leaderboards" });
   const builders = await boards.getByRole("region", { name: "Top builders" }).locator("li a").allTextContents();
-  ok(builders[0]?.includes("June Okafor"), `Browse: top builder this month leads (${builders.join(", ")})`);
+  ok(builders[0]?.includes("Okafor Studio"), `Browse: top builder this month leads (${builders.join(", ")})`);
   ok((await boards.getByText("1st wins 25 V Coin · 2nd 15 · 3rd 10", { exact: false }).count()) === 2, "both boards say what the top 3 win");
   const prizes = await boards.getByRole("region", { name: "Top builders" }).locator("li .tag-accent").allTextContents();
   ok(prizes.slice(0, 3).join(",") === "+25,+15,+10", `the top 3 show their prize (${prizes.join(",")})`);
@@ -381,7 +381,7 @@ await run("profile socials", phone, async (page) => {
 
 await run("profile", desktop, async (page) => {
   await go(page, "/u/ada_builds");
-  ok(await page.getByRole("heading", { name: "Ada Park" }).isVisible(), "profile heading");
+  ok(await page.getByRole("heading", { name: "Parkside Labs" }).isVisible(), "profile heading");
   ok((await page.getByText("Open to collab").count()) === 1 && (await page.locator("main .tag-accent", { hasText: "Open to collab" }).isVisible()), "status shows once, as the badge by the avatar");
   ok(await page.locator("main").getByText("Founder", { exact: true }).isVisible(), "other role tags still shown");
   ok((await page.locator("main article").count()) === 2, "profile lists their 2 apps");
@@ -629,7 +629,7 @@ await run("tester passport", desktop, async (page) => {
   await go(page, "/test");
   const top = page.getByRole("region", { name: "Top testers" });
   ok((await top.locator("li").count()) === 3, "top testers board lists testers");
-  ok((await top.locator("li").first().textContent()).includes("Marco"), "most helpful tester is first");
+  ok((await top.locator("li").first().textContent()).includes("Díaz Digital"), "most helpful tester is first");
 });
 
 await run("login", phone, async (page) => {

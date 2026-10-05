@@ -156,7 +156,7 @@ await visit("/browse", "browse");
   // The monthly leaderboards live on Browse; the top 3 win V Coin.
   ok(await page.getByText("Top builders ·", { exact: false }).first().isVisible(), "Browse shows the top builders");
   ok((await page.getByText("Top testers ·", { exact: false }).count()) > 0, "…and the top testers");
-  ok(await page.getByRole("link", { name: /^1\. June Okafor/ }).first().isVisible(), "the top builder leads the board");
+  ok(await page.getByRole("link", { name: /^1\. Okafor Studio/ }).first().isVisible(), "the top builder leads the board");
   ok((await page.getByText("1st wins 25 V Coin", { exact: false }).count()) === 2, "both boards say what the top 3 win");
   ok((await page.getByLabel("wins 25 V Coin").count()) === 2, "1st place on each board shows +25");
   await page.getByText("Top builders ·", { exact: false }).first().scrollIntoViewIfNeeded();

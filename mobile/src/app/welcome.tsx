@@ -137,18 +137,19 @@ export default function WelcomeScreen() {
         {check.text}
       </Body>
 
-      <Mono>Display name · optional</Mono>
+      <Mono>Company name</Mono>
       <TextInput
         value={displayName}
         onChangeText={setDisplayName}
         maxLength={60}
         placeholder="Acme Studio"
         placeholderTextColor={t.muted}
-        accessibilityLabel="Display name"
+        accessibilityLabel="Company name"
         style={[input, { fontFamily: fonts.body }]}
       />
       <Body muted size={13}>
-        Building for a company or brand? Put the company name here (like &ldquo;Acme Studio&rdquo;). Otherwise use your own name.
+        This is the name people see on Method V: on your profile, your apps and leaderboards. Use your company or brand (like &ldquo;Acme
+        Studio&rdquo;). No company yet? Your own name or brand works too.
       </Body>
 
       {pushSupported && (
