@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { CATEGORIES, STREAK_BONUS, TESTER_RANKS, testerRank } from "@/lib/constants";
+import { CATEGORIES, LEADERBOARD_PRIZES, STREAK_BONUS, TESTER_RANKS, testerRank } from "@/lib/constants";
 import { formatCount } from "@/lib/format";
 import type { Passport as PassportData, Profile, TopBuilder, TopTester } from "@/lib/types";
 
@@ -154,17 +154,18 @@ export function RankTag({ rank }: { rank: string }) {
   return <span className={rank === "trusted" || rank === "pro" ? "tag-accent" : "tag"}>{r?.label ?? rank}</span>;
 }
 
-export function TopBuilders({ builders }: { builders: TopBuilder[] }) {
+export function TopBuilders({ builders, limit = 10 }: { builders: TopBuilder[]; limit?: number }) {
   const month = new Date().toLocaleDateString("en-US", { month: "long" });
   return (
     <section aria-label="Top builders" className="rounded-xl border border-line bg-surface p-4 sm:p-5">
       <h2 className="display text-4xl">Top builders · {month}</h2>
       <p className="mt-1 text-sm text-muted">Ranked by tries on their apps and likes on their Drops this month.</p>
+      <Prizes />
       {builders.length === 0 ? (
         <p className="mt-3 text-sm text-muted">Nobody yet this month. Post a Drop and be the first.</p>
       ) : (
         <ol className="mt-3 divide-y divide-line">
-          {builders.map((b, i) => (
+          {builders.slice(0, limit).map((b, i) => (
             <li key={b.user_id} className="flex items-center gap-3 py-2.5">
               <span className={`w-6 font-mono text-sm font-bold ${i < 3 ? "text-accent" : "text-muted"}`}>{i + 1}</span>
               <Link href={`/u/${b.username}`} className="flex min-w-0 flex-1 items-center gap-2 hover:underline">
@@ -174,6 +175,7 @@ export function TopBuilders({ builders }: { builders: TopBuilder[] }) {
               <span className="shrink-0 font-mono text-xs text-muted">
                 {formatCount(b.tries)} tries<span className="hidden sm:inline"> · {formatCount(b.likes)} likes</span>
               </span>
+              <PrizeTag place={i} />
             </li>
           ))}
         </ol>
@@ -182,17 +184,18 @@ export function TopBuilders({ builders }: { builders: TopBuilder[] }) {
   );
 }
 
-export function TopTesters({ testers }: { testers: TopTester[] }) {
+export function TopTesters({ testers, limit = 10 }: { testers: TopTester[]; limit?: number }) {
   const month = new Date().toLocaleDateString("en-US", { month: "long" });
   return (
     <section aria-label="Top testers" className="rounded-xl border border-line bg-surface p-4 sm:p-5">
       <h2 className="display text-4xl">Top testers · {month}</h2>
       <p className="mt-1 text-sm text-muted">Ranked by feedback builders marked helpful, then by feedback given.</p>
+      <Prizes />
       {testers.length === 0 ? (
         <p className="mt-3 text-sm text-muted">Nobody yet this month. Be the first.</p>
       ) : (
         <ol className="mt-3 divide-y divide-line">
-          {testers.map((t, i) => (
+          {testers.slice(0, limit).map((t, i) => (
             <li key={t.user_id} className="flex items-center gap-3 py-2.5">
               <span className={`w-6 font-mono text-sm font-bold ${i < 3 ? "text-accent" : "text-muted"}`}>{i + 1}</span>
               <Link href={`/u/${t.username}`} className="flex min-w-0 flex-1 items-center gap-2 hover:underline">
@@ -202,10 +205,30 @@ export function TopTesters({ testers }: { testers: TopTester[] }) {
               <span className="shrink-0 font-mono text-xs text-muted">
                 {t.helpful_count} helpful<span className="hidden sm:inline"> · {t.feedback_count} given</span>
               </span>
+              <PrizeTag place={i} />
             </li>
           ))}
         </ol>
       )}
     </section>
+  );
+}
+
+// What the top 3 win when the month ends (LEADERBOARD_PRIZES).
+function Prizes() {
+  const [first, second, third] = LEADERBOARD_PRIZES;
+  return (
+    <p className="mt-2 inline-flex flex-wrap items-center gap-x-2 rounded-lg border border-accent/50 bg-accent/10 px-2.5 py-1 text-xs font-semibold">
+      🏆 At the end of the month: 1st wins {first} V Coin · 2nd {second} · 3rd {third}
+    </p>
+  );
+}
+
+function PrizeTag({ place }: { place: number }) {
+  if (place > 2) return null;
+  return (
+    <span title={`Wins ${LEADERBOARD_PRIZES[place]} V Coin if the month ended now`} className="tag-accent shrink-0 font-mono">
+      +{LEADERBOARD_PRIZES[place]}
+    </span>
   );
 }

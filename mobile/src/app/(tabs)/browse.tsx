@@ -5,12 +5,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CATEGORIES } from "@shared/constants";
 
 import { AppCard } from "@/components/AppCard";
+import { Leaderboard, builderStat, testerStat } from "@/components/Leaderboard";
 import { Body, Display, ErrorText } from "@/components/ui";
-import { browseApps } from "@/lib/data";
+import { browseApps, getLeaderboards } from "@/lib/data";
 import { useLoad } from "@/lib/useLoad";
 import { fonts, useTheme } from "@/theme";
 
-// Search and filter every app on Method V.
+// Search and filter every app on Method V, with this month's leaderboards on
+// top (when not searching).
 export default function BrowseScreen() {
   const t = useTheme();
   const insets = useSafeAreaInsets();
@@ -18,6 +20,8 @@ export default function BrowseScreen() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string | undefined>();
   const { data, error, refreshing, reload } = useLoad(() => browseApps({ q: query, category }), [query, category]);
+  const boards = useLoad(getLeaderboards, []);
+  const showBoards = !query && !category && boards.data;
 
   return (
     <FlatList
@@ -25,7 +29,10 @@ export default function BrowseScreen() {
       keyExtractor={(a) => a.id}
       keyboardShouldPersistTaps="handled"
       contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: 32, gap: 14 }}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={reload} tintColor={t.muted} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => {
+            reload();
+            boards.reload();
+          }} tintColor={t.muted} />}
       ListHeaderComponent={
         <View style={{ gap: 12 }}>
           <Display size={52} style={{ paddingHorizontal: 16 }}>
@@ -60,6 +67,28 @@ export default function BrowseScreen() {
             })}
           </ScrollView>
           <ErrorText>{error}</ErrorText>
+          {showBoards && (
+            <View style={{ gap: 14 }}>
+              <Display size={36} style={{ paddingHorizontal: 16 }}>
+                Leaderboards
+              </Display>
+              <Leaderboard
+                title="Top builders"
+                note="Ranked by tries on their apps and likes on their Drops this month."
+                empty="Nobody yet this month. Post a Drop and be the first."
+                rows={boards.data!.builders.map((b) => ({ ...b, stat: builderStat(b) }))}
+              />
+              <Leaderboard
+                title="Top testers"
+                note="Ranked by feedback builders marked helpful, then by feedback given."
+                empty="Nobody yet this month. Be the first."
+                rows={boards.data!.testers.map((x) => ({ ...x, stat: testerStat(x) }))}
+              />
+              <Display size={36} style={{ paddingHorizontal: 16, marginTop: 6 }}>
+                All apps
+              </Display>
+            </View>
+          )}
         </View>
       }
       renderItem={({ item }) => (

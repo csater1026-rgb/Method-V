@@ -62,15 +62,8 @@ ok(await page.getByText("Builders like you").isVisible(), "Home suggests builder
 ok(await page.getByText("In common: Design · React").isVisible(), "suggestions say what you have in common");
 ok((await page.getByText("All projects").count()) === 0, "Home leaves the full list to Browse");
 ok(await page.getByText("Just posted").isVisible(), "Home shows the newest projects under the suggestions");
-{
-  const y = async (text) => (await page.getByText(text, { exact: false }).first().boundingBox())?.y ?? -1;
-  const [posted, builders, testers] = [await y("Just posted"), await y("Top builders ·"), await y("Top testers ·")];
-  ok(posted < builders && builders < testers, "Home ends with Top builders, then Top testers");
-  ok(await page.getByRole("link", { name: /^1\. June Okafor/ }).first().isVisible(), "the top builder leads the board");
-  await page.getByText("Top builders ·", { exact: false }).first().scrollIntoViewIfNeeded();
-  await page.waitForTimeout(400);
-  await page.screenshot({ path: `${OUT}home-leaderboards.png` });
-}
+ok((await page.getByText("Top builders ·", { exact: false }).count()) === 0, "the leaderboards moved off Home");
+ok(await page.getByText("🏆 Monthly leaderboards").isVisible(), "Home links to the leaderboards");
 {
   const y = async (text) => (await page.getByText(text, { exact: true }).first().boundingBox()).y;
   ok((await y("In the Spotlight")) < (await y("Builders like you")) && (await y("Builders like you")) < (await y("Just posted")), "Home order: Spotlight, Builders like you, Just posted");
@@ -159,6 +152,17 @@ for (const [path, title] of [["/q/nope", "Question not found"], ["/apps/nope", "
 }
 
 await visit("/browse", "browse");
+{
+  // The monthly leaderboards live on Browse; the top 3 win V Coin.
+  ok(await page.getByText("Top builders ·", { exact: false }).first().isVisible(), "Browse shows the top builders");
+  ok((await page.getByText("Top testers ·", { exact: false }).count()) > 0, "…and the top testers");
+  ok(await page.getByRole("link", { name: /^1\. June Okafor/ }).first().isVisible(), "the top builder leads the board");
+  ok((await page.getByText("1st wins 25 V Coin", { exact: false }).count()) === 2, "both boards say what the top 3 win");
+  ok((await page.getByLabel("wins 25 V Coin").count()) === 2, "1st place on each board shows +25");
+  await page.getByText("Top builders ·", { exact: false }).first().scrollIntoViewIfNeeded();
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: `${OUT}browse-leaderboards.png` });
+}
 await page.getByRole("button", { name: "Education" }).click();
 await page.waitForTimeout(400);
 ok((await page.getByText("QuizPop").count()) > 0 && (await page.getByText("NoteFlow").count()) === 0, "Browse filters by category");

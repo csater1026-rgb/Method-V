@@ -4,7 +4,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppCard } from "@/components/AppCard";
 import { DropBonusPopup } from "@/components/DropBonusPopup";
-import { Leaderboard, builderStat, testerStat } from "@/components/Leaderboard";
 import { Loading } from "@/components/Loading";
 import { Suggestions } from "@/components/Suggestions";
 import { Body, Button, Card, Display, ErrorText, Eyebrow, Mono, Wordmark } from "@/components/ui";
@@ -14,10 +13,11 @@ import { getHome } from "@/lib/data";
 import { useLoad } from "@/lib/useLoad";
 import { useTheme } from "@/theme";
 import { SpotlightStage } from "@/components/SpotlightStage";
+import { LEADERBOARD_PRIZES } from "@shared/constants";
 import { STAGE_SPOTS } from "@shared/spotlight-stage";
 
-// Home: Featured, builders to follow, the newest projects, then this month's
-// top builders and top testers. Everything else is on Browse.
+// Home: the Spotlight, builders to follow, the newest projects, then a link to
+// the monthly leaderboards (on Browse). Everything else is on Browse.
 export default function HomeScreen() {
   const t = useTheme();
   const router = useRouter();
@@ -105,22 +105,15 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {data && (
-        <View style={{ gap: 14, marginTop: 10 }}>
-          <Leaderboard
-            title="Top builders"
-            note="Ranked by tries on their apps and likes on their Drops this month."
-            empty="Nobody yet this month. Post a Drop and be the first."
-            rows={data.builders.map((b) => ({ ...b, stat: builderStat(b) }))}
-          />
-          <Leaderboard
-            title="Top testers"
-            note="Ranked by feedback builders marked helpful, then by feedback given."
-            empty="Nobody yet this month. Be the first."
-            rows={data.testers.map((x) => ({ ...x, stat: testerStat(x) }))}
-          />
-        </View>
-      )}
+      {/* The leaderboards live on Browse; this just points there. */}
+      <Pressable accessibilityRole="link" onPress={() => router.push("/browse")} style={{ marginHorizontal: 16, marginTop: 10 }}>
+        <Card style={{ gap: 4, borderColor: t.accent }}>
+          <Body bold>🏆 Monthly leaderboards</Body>
+          <Body muted size={13}>
+            Top builders and top testers, on Browse. 1st, 2nd and 3rd win {LEADERBOARD_PRIZES.join(", ")} V Coin when the month ends.
+          </Body>
+        </Card>
+      </Pressable>
     </ScrollView>
   );
 }

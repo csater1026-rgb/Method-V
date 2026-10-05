@@ -2,11 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { AppCard } from "@/components/AppCard";
+import { TopBuilders, TopTesters } from "@/components/Passport";
 import { Avatar } from "@/components/Avatar";
 import { StatusBadge } from "@/components/Tags";
 import { UpcomingLaunches } from "@/components/UpcomingLaunches";
 import { CATEGORIES, PRICING, STAGES } from "@/lib/constants";
-import { getApps, getUpcomingLaunches, searchPeople, type BrowseFilters } from "@/lib/data";
+import { getApps, getTopBuilders, getTopTesters, getUpcomingLaunches, searchPeople, settleLeaderboards, type BrowseFilters } from "@/lib/data";
 import { Handle } from "@/components/Handle";
 
 export const metadata: Metadata = { title: "Browse apps" };
@@ -28,10 +29,14 @@ export default async function BrowsePage({ searchParams }: PageProps<"/browse">)
     sort: one(params.sort),
   };
   const hasFilters = Object.entries(filters).some(([k, v]) => v && k !== "sort");
-  const [apps, upcoming, people] = await Promise.all([
+  // A new month's first look at the boards pays last month's prizes.
+  if (!hasFilters) await settleLeaderboards();
+  const [apps, upcoming, people, topBuilders, topTesters] = await Promise.all([
     getApps(filters),
     hasFilters ? Promise.resolve([]) : getUpcomingLaunches(),
     searchPeople(filters.q),
+    hasFilters ? Promise.resolve(null) : getTopBuilders(),
+    hasFilters ? Promise.resolve([]) : getTopTesters(),
   ]);
 
   const categoryHref = (slug?: string) => {
@@ -100,6 +105,25 @@ export default async function BrowsePage({ searchParams }: PageProps<"/browse">)
       </form>
 
       <UpcomingLaunches apps={upcoming} />
+
+      {/* This month's leaderboards: the top 3 on each win V Coin when the month ends. */}
+      {!hasFilters && (
+        <section id="leaderboards" aria-labelledby="leaderboards-title" className="mt-8 scroll-mt-20">
+          <h2 id="leaderboards-title" className="display text-4xl">
+            Leaderboards
+          </h2>
+          <p className="mt-1 text-sm text-muted">
+            Fresh every month. Try apps and give feedback, or post your app and get people trying it.{" "}
+            <Link href="/test" className="text-accent hover:underline">
+              Apps waiting for testers →
+            </Link>
+          </p>
+          <div className="mt-3 grid gap-4 lg:grid-cols-2">
+            {topBuilders && <TopBuilders builders={topBuilders} limit={5} />}
+            <TopTesters testers={topTesters} limit={5} />
+          </div>
+        </section>
+      )}
 
       {hasFilters && (
         <p className="mt-3 text-sm text-muted">

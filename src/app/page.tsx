@@ -7,28 +7,28 @@ import { DropBonusPopup } from "@/components/DropBonusPopup";
 import { FeaturedCard } from "@/components/FeaturedCard";
 import { SpotlightStage } from "@/components/SpotlightStage";
 import { STAGE_SPOTS } from "@/lib/spotlight-stage";
-import { TopBuilders, TopTesters } from "@/components/Passport";
+import { LEADERBOARD_PRIZES } from "@/lib/constants";
 import { Suggestions } from "@/components/Suggestions";
-import { getApps, getFeatured, getMyApps, getPromotion, getRunningChallenge, getSuggestions, getTopBuilders, getTopTesters, getViewer } from "@/lib/data";
+import { getApps, getFeatured, getMyApps, getPromotion, getRunningChallenge, getSuggestions, getViewer, settleLeaderboards } from "@/lib/data";
 import { PROFILE_LATER_COOKIE, isDefaultUsername } from "@/lib/username";
 
 // Home: a running challenge (only while one is on), a nudge to show off your
-// app (or to get more eyes on it), Featured, builders to follow, the newest
-// projects, then this month's top builders and top testers. Everything else
-// lives on Browse.
+// app (or to get more eyes on it), the Spotlight, builders to follow, the
+// newest projects, then a link to the monthly leaderboards. Everything else
+// (the leaderboards included) lives on Browse.
 
 export default async function HomePage() {
   const viewer = await getViewer();
   // First sign-in: pick a username before the tour (unless they skipped it).
   if (viewer && isDefaultUsername(viewer.username) && !(await cookies()).get(PROFILE_LATER_COOKIE)) redirect("/welcome");
-  const [challenge, featured, suggestions, newest, topBuilders, topTesters, myApps] = await Promise.all([
+  const [challenge, featured, suggestions, newest, myApps] = await Promise.all([
     getRunningChallenge(),
     getFeatured(),
     getSuggestions(viewer),
     getApps({}, 10),
-    getTopBuilders(),
-    getTopTesters(),
     getMyApps(viewer),
+    // The busiest page, so a new month's first visit pays last month's prizes.
+    settleLeaderboards(),
   ]);
   const latestApp = myApps[0];
   const dropBonus = await getPromotion("drop_bonus");
@@ -139,16 +139,19 @@ export default async function HomePage() {
         </section>
       )}
 
-      <div className="mt-10 flex flex-col gap-4 px-4">
-        {topBuilders && <TopBuilders builders={topBuilders} />}
-        <TopTesters testers={topTesters} />
-        <p className="mt-2 text-sm text-muted">
-          Try an app and give feedback on its page to get on the board.{" "}
-          <Link href="/test" className="text-accent hover:underline">
-            Apps waiting for testers →
-          </Link>
-        </p>
-      </div>
+      {/* The leaderboards live on Browse; this just points there. */}
+      <Link
+        href="/browse#leaderboards"
+        className="mx-4 mt-10 flex items-center justify-between gap-3 rounded-xl border border-accent/50 bg-accent/10 p-4 transition hover:border-accent"
+      >
+        <span className="min-w-0">
+          <span className="block font-semibold">🏆 Monthly leaderboards</span>
+          <span className="block text-sm text-muted">
+            Top builders and top testers. 1st, 2nd and 3rd win {LEADERBOARD_PRIZES.join(", ")} V Coin when the month ends.
+          </span>
+        </span>
+        <span className="shrink-0 text-sm font-semibold text-accent">See them →</span>
+      </Link>
     </div>
   );
 }

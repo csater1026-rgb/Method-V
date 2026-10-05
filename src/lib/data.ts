@@ -918,6 +918,15 @@ export async function getPassport(profileId: string): Promise<Passport> {
   return { categories: data?.categories ?? {}, streak: data?.streak ?? 0 };
 }
 
+// Pays last month's leaderboard prizes if nobody has yet (the first look at
+// the boards in a new month does it; see 20261018000000_leaderboard_prizes.sql).
+// Quiet if the database doesn't have it yet.
+export async function settleLeaderboards(): Promise<void> {
+  if (!isSupabaseConfigured) return;
+  const { error } = await (await createClient()).rpc("settle_leaderboards");
+  if (error && error.code !== "PGRST202" && error.code !== "42883") console.error("settle_leaderboards failed", error.code, error.message);
+}
+
 export async function getTopTesters(): Promise<TopTester[]> {
   if (!isSupabaseConfigured) {
     return demoProfiles

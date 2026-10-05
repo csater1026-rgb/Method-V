@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import { Pressable, View } from "react-native";
 
+import { LEADERBOARD_PRIZES } from "@shared/constants";
 import { formatCount } from "@shared/format";
 
 import { useTheme } from "@/theme";
@@ -9,9 +10,9 @@ import { Avatar, Body, Card, Display, Handle, Mono } from "./ui";
 
 type Row = { user_id: string; username: string; display_name: string; avatar_url?: string | null; stat: string };
 
-// A monthly leaderboard card on Home (top builders, top testers), like the
-// website's.
-export function Leaderboard({ title, note, empty, rows }: { title: string; note: string; empty: string; rows: Row[] }) {
+// A monthly leaderboard card on Browse (top builders, top testers), like the
+// website's. The top 3 win V Coin when the month ends (LEADERBOARD_PRIZES).
+export function Leaderboard({ title, note, empty, rows, limit = 5 }: { title: string; note: string; empty: string; rows: Row[]; limit?: number }) {
   const t = useTheme();
   const router = useRouter();
   const month = new Date().toLocaleDateString("en-US", { month: "long" });
@@ -23,12 +24,17 @@ export function Leaderboard({ title, note, empty, rows }: { title: string; note:
       <Body muted size={13}>
         {note}
       </Body>
+      <View style={{ alignSelf: "flex-start", borderWidth: 1, borderColor: t.accent, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 }}>
+        <Body size={12} bold>
+          🏆 At the end of the month: 1st wins {LEADERBOARD_PRIZES[0]} V Coin · 2nd {LEADERBOARD_PRIZES[1]} · 3rd {LEADERBOARD_PRIZES[2]}
+        </Body>
+      </View>
       {rows.length === 0 ? (
         <Body muted size={13} style={{ marginTop: 4 }}>
           {empty}
         </Body>
       ) : (
-        rows.map((r, i) => (
+        rows.slice(0, limit).map((r, i) => (
           <Pressable
             key={r.user_id}
             accessibilityRole="link"
@@ -44,6 +50,11 @@ export function Leaderboard({ title, note, empty, rows }: { title: string; note:
               {r.display_name || <Handle username={r.username} />}
             </Body>
             <Mono>{r.stat}</Mono>
+            {i < 3 && (
+              <Mono style={{ color: t.accent, fontSize: 12 }} accessibilityLabel={`wins ${LEADERBOARD_PRIZES[i]} V Coin`}>
+                +{LEADERBOARD_PRIZES[i]}
+              </Mono>
+            )}
           </Pressable>
         ))
       )}

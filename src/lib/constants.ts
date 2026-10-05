@@ -61,7 +61,13 @@ export const CREDIT_REASONS: Record<string, string> = {
   spotlight: "Booked the Spotlight",
   credit_pack: "Bought V Coin",
   drop_bonus: "Bonus for posting a Drop",
+  leaderboard_prize: "Leaderboard prize",
 };
+
+// V Coin for 1st, 2nd and 3rd on each monthly leaderboard (top builders and
+// top testers), paid when the month ends. Must match settle_leaderboards()
+// in supabase/migrations/20261018000000_leaderboard_prizes.sql.
+export const LEADERBOARD_PRIZES = [25, 15, 10] as const;
 
 // Tester Passport ranks. Must match public.tester_rank() in
 // supabase/migrations/*_phase3_grow.sql.

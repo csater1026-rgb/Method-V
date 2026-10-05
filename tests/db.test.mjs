@@ -13,7 +13,13 @@ const migrationsDir = new URL("../supabase/migrations/", import.meta.url);
 const LATE = ["20261008000000_sponsor_packages.sql", "20261009000000_review_fixes.sql"];
 // Newer files that redefine what the LATE ones set (the notification kinds),
 // so they have to come after them, as they do on a real database.
-const AFTER_LATE = ["20261014000000_feedback_replies.sql", "20261015000000_tester_guarantee.sql", "20261016000000_drop_bonus.sql", "20261017000000_spotlight_fill.sql"];
+const AFTER_LATE = [
+  "20261014000000_feedback_replies.sql",
+  "20261015000000_tester_guarantee.sql",
+  "20261016000000_drop_bonus.sql",
+  "20261017000000_spotlight_fill.sql",
+  "20261018000000_leaderboard_prizes.sql",
+];
 const migrations = readdirSync(migrationsDir)
   .filter((f) => f.endsWith(".sql") && !LATE.includes(f) && !AFTER_LATE.includes(f))
   .sort()
@@ -1279,6 +1285,51 @@ ok(!!(await fails("anon", null, "insert into public.sponsorships (sponsor_brand,
   const before = await credits(P2);
   await postDrop(await makeApp(P2, "bonus-late"), 99);
   ok((await credits(P2)) === before, "once it ends, Drops don't earn the bonus");
+
+  // Monthly leaderboard prizes (20261018000000_leaderboard_prizes.sql): last
+  // month's top 3 on each board get 25 / 15 / 10 V Coin, once.
+  const [W1, W2, W3, W4] = ["c1", "c2", "c3", "c4"].map((x) => `${x}${x}${x}${x}-0000-0000-0000-000000000000`);
+  await db.exec(`insert into auth.users (id) values ('${W1}'), ('${W2}'), ('${W3}'), ('${W4}')`);
+  const lastMonth = "date_trunc('month', now()) - interval '10 days'";
+  // Builders: W1's app gets 3 tries from others, W2's 2, W3's 1, W4's 1 (W4 is 4th by name).
+  const lbApps = {};
+  for (const w of [W1, W2, W3, W4]) lbApps[w] = await makeApp(w, `lb-${w.slice(0, 2)}`);
+  const tryLast = async (app, who) => {
+    await db.query("insert into public.try_clicks (app_id, user_id) values ($1, $2)", [app, who]);
+    await db.query(`update public.try_clicks set created_at = ${lastMonth} where app_id = $1 and user_id = $2`, [app, who]);
+  };
+  for (const who of [W2, W3, W4]) await tryLast(lbApps[W1], who);
+  for (const who of [W1, W3]) await tryLast(lbApps[W2], who);
+  await tryLast(lbApps[W3], W1);
+  await tryLast(lbApps[W4], W1);
+  await tryLast(lbApps[W4], W4); // your own tries never count
+  // Testers: W4 gave 4 helpful, W3 3, W2 2, W1 none (clear of any feedback
+  // other tests left in last month).
+  const fbLast = async (who, app, helpful) => {
+    const id = (await db.query("insert into public.feedback (app_id, user_id, would_use, rating, worked) values ($1, $2, 'yes', 4, $3) returning id", [app, who, real])).rows[0].id;
+    await db.query(`update public.feedback set created_at = ${lastMonth}, helpful_at = ${helpful ? "now()" : "null"} where id = $1`, [id]);
+  };
+  const extra = await makeApp(W1, "lb-extra");
+  for (const app of [lbApps[W1], lbApps[W2], lbApps[W3], extra]) await fbLast(W4, app, true);
+  for (const app of [lbApps[W1], lbApps[W2], extra]) await fbLast(W3, app, true);
+  for (const app of [lbApps[W1], lbApps[W3]]) await fbLast(W2, app, true);
+  const lbBefore = Object.fromEntries(await Promise.all([W1, W2, W3, W4].map(async (w) => [w, await credits(w)])));
+  const thisMonth = (await as("anon", null, "select user_id from public.top_builders(50)")).rows.map((r) => r.user_id);
+  ok(!thisMonth.includes(W1), "this month's board doesn't count last month");
+  const settled = (await as("anon", null, "select public.settle_leaderboards() as n")).rows[0].n;
+  ok(settled === 6, `a new month pays last month's top 3 on both boards (${settled} prizes)`);
+  const gained = async (w) => (await credits(w)) - lbBefore[w];
+  ok((await gained(W1)) === 25, "1st place builder gets 25 V Coin");
+  ok((await gained(W2)) === 15 + 10, "2nd place builder gets 15 (plus 10 for 3rd tester)");
+  ok((await gained(W3)) === 10 + 15, "3rd place builder gets 10 (plus 15 for 2nd tester)");
+  ok((await gained(W4)) === 25, "1st place tester gets 25; 4th place builder gets nothing");
+  ok((await as("authenticated", C, "select public.settle_leaderboards() as n")).rows[0].n === 0, "…and only once, whoever visits");
+  ok((await credits(W1)) - lbBefore[W1] === 25, "nobody is paid twice");
+  const winners = (await as("anon", null, "select board, place, user_id, amount from public.leaderboard_prizes order by board, place")).rows;
+  ok(winners.length === 6 && winners[0].user_id === W1 && winners[3].user_id === W4, "everyone can see last month's winners");
+  ok(!!(await fails("authenticated", W4, "insert into public.leaderboard_prizes (month, board, place, user_id, amount) values (current_date, 'testers', 1, $1, 25)", [W4])), "people can't add themselves as winners");
+  ok(!!(await fails("authenticated", W4, "insert into public.credit_events (user_id, delta, reason) values ($1, 25, 'leaderboard_prize')", [W4])), "…or pay themselves a prize");
+  ok(!!(await fails("anon", null, "select * from public.leaderboard_builders(now() - interval '1 year', now(), 3)")), "the ranking helpers aren't callable directly");
 }
 
 // Security hardening (20261011000000_security_hardening.sql).

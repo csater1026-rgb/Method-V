@@ -156,11 +156,10 @@ async function likedIds(viewerId: string | null, dropIds: string[]): Promise<Set
 // Everything else is on Browse.
 export async function getHome(
   viewerId: string | null,
-): Promise<{ featured: FeaturedApp[]; suggestions: Suggestion[]; newest: AppCard[]; builders: TopBuilder[]; testers: TopTester[] }> {
+): Promise<{ featured: FeaturedApp[]; suggestions: Suggestion[]; newest: AppCard[] }> {
   if (!supabase) {
     const cards = demoCards();
     return {
-      ...demoLeaderboards(),
       featured: buildStage({
         paid: cards.filter((c) => c.boosted_until && new Date(c.boosted_until).getTime() > Date.now()),
         team: demoFeaturedIds.map((id) => cards.find((c) => c.id === id)!).filter(Boolean),
@@ -243,7 +242,7 @@ export async function getHome(
       suggestions = topUpSuggestions(suggestions, newestPeople, [viewerId, ...((followed ?? []) as any[]).map((f) => f.following_id as string)]);
     }
   }
-  return { featured: top, suggestions, newest: (newest.data ?? []).map(toCard), ...(await getLeaderboards()) };
+  return { featured: top, suggestions, newest: (newest.data ?? []).map(toCard) };
 }
 
 // "For you": recent Drops ranked by how new and popular they are and what
@@ -431,7 +430,11 @@ function demoLeaderboards(): { builders: TopBuilder[]; testers: TopTester[] } {
   return { builders, testers };
 }
 
-async function getLeaderboards(): Promise<{ builders: TopBuilder[]; testers: TopTester[] }> {
+// This month's leaderboards (on Browse, like the website). Looking at them
+// first pays last month's prizes if nobody has yet (settle_leaderboards()).
+export async function getLeaderboards(): Promise<{ builders: TopBuilder[]; testers: TopTester[] }> {
+  if (!supabase) return demoLeaderboards();
+  await supabase.rpc("settle_leaderboards");
   const [b, t] = await Promise.all([supabase!.rpc("top_builders", { p_limit: 10 }), supabase!.rpc("top_testers", { p_limit: 10 })]);
   const testerRows = (t.data ?? []) as any[];
   // top_testers doesn't return photos: look them up.

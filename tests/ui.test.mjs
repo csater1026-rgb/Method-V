@@ -82,11 +82,20 @@ await run("home (phone)", phone, async (page) => {
   ok((await justPosted.locator("article").first().getAttribute("class")).includes("snap-start"), "Just posted swipes sideways too");
   ok((await justPosted.locator("article .tag-accent").count()) === 0, "Just posted cards have no Featured-style labels");
   const order = await page.locator("main section[aria-label]").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
-  ok(order.join(" > ") === "Challenge > Show off your app > In the Spotlight > Builders like you > Just posted > Top builders > Top testers", `Home order: ${order.join(" > ")}`);
+  ok(order.join(" > ") === "Challenge > Show off your app > In the Spotlight > Builders like you > Just posted", `Home order: ${order.join(" > ")}`);
   const pitch = page.getByRole("region", { name: "Show off your app" });
   ok((await pitch.getByRole("link", { name: "Post your app →" }).getAttribute("href")) === "/submit", "Home invites you to show off your app");
-  const builders = await page.getByRole("region", { name: "Top builders" }).locator("li a").allTextContents();
-  ok(builders[0]?.includes("June Okafor"), `top builder this month leads (${builders.join(", ")})`);
+  ok((await page.getByRole("link", { name: /Monthly leaderboards/ }).getAttribute("href")) === "/browse#leaderboards", "Home links to the leaderboards on Browse");
+  await go(page, "/browse");
+  const boards = page.getByRole("region", { name: "Leaderboards" });
+  const builders = await boards.getByRole("region", { name: "Top builders" }).locator("li a").allTextContents();
+  ok(builders[0]?.includes("June Okafor"), `Browse: top builder this month leads (${builders.join(", ")})`);
+  ok((await boards.getByText("1st wins 25 V Coin · 2nd 15 · 3rd 10", { exact: false }).count()) === 2, "both boards say what the top 3 win");
+  const prizes = await boards.getByRole("region", { name: "Top builders" }).locator("li .tag-accent").allTextContents();
+  ok(prizes.slice(0, 3).join(",") === "+25,+15,+10", `the top 3 show their prize (${prizes.join(",")})`);
+  await go(page, "/browse?category=education");
+  ok((await page.getByRole("region", { name: "Leaderboards" }).count()) === 0, "filtering Browse hides the boards");
+  await go(page, "/");
   ok((await justPosted.getByRole("link", { name: "See all →" }).getAttribute("href")) === "/browse", "Just posted links to Browse");
   for (const gone of ["Upcoming launches", "Build in public", "Get paid"]) {
     ok((await page.getByRole("region", { name: gone }).count()) === 0, `Home has no ${gone} section`);
@@ -249,8 +258,8 @@ await run("menu: Profile, no jobs board", desktop, async (page) => {
   await go(page, "/jobs");
   ok(new URL(page.url()).pathname === "/browse", "the old jobs board sends people to Browse");
   const top = page.getByRole("region", { name: "Top testers" });
-  await go(page, "/");
-  ok(await top.isVisible() && (await top.locator("li").count()) > 0, "Home shows this month's top testers");
+  await go(page, "/browse");
+  ok(await top.isVisible() && (await top.locator("li").count()) > 0, "Browse shows this month's top testers");
   await go(page, "/drops");
   ok(await page.locator("article").first().locator(".tag-accent", { hasText: /Hiring|Looking for work|Open to collab|Freelancer/ }).count() === 1, "Drops show the builder's status by their avatar");
 });
