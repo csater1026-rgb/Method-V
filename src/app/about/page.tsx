@@ -72,7 +72,7 @@ export default function AboutPage() {
 
       {/* 3. What members get to see. No real apps here: they're for members only. */}
       <section aria-labelledby="inside-title" className="mx-auto max-w-6xl px-4 py-4">
-        <div className="media-dark stage relative overflow-hidden rounded-2xl border border-line px-6 py-12 text-center text-white">
+        <div className="media-dark stage relative overflow-hidden rounded-2xl border border-[rgb(64_244_245/0.25)] px-6 py-12 text-center text-white">
           <p className="eyebrow">Members only</p>
           <h2 id="inside-title" className="display mt-1 text-5xl">
             See what people are building

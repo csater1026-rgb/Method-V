@@ -29,7 +29,7 @@ export function SpotlightStage({
     <section
       aria-label="In the Spotlight"
       data-tour="featured"
-      className="stage media-dark relative mx-4 mt-3 overflow-hidden rounded-2xl border border-white/10 px-3 pt-24 pb-8 sm:px-6"
+      className="stage media-dark relative mx-4 mt-3 overflow-hidden rounded-2xl border border-[rgb(64_244_245/0.25)] px-3 pt-24 pb-8 sm:px-6"
     >
       <span aria-hidden className="stage-rail absolute inset-x-6 top-9 h-px" />
 

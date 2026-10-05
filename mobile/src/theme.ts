@@ -1,3 +1,4 @@
+import { createContext, createElement, useContext } from "react";
 import { useColorScheme } from "react-native";
 
 // Same blue, mint, white and cyan palette as the website (src/app/globals.css), dark and
@@ -37,8 +38,18 @@ export function useColorSchemeName(): "light" | "dark" {
   return useColorScheme() === "light" ? "light" : "dark";
 }
 
+// Inside <MediaDark> everything uses the dark palette whatever the phone is
+// set to, like the website's media-dark (the Spotlight stage is always dark).
+const ForceDark = createContext(false);
+
+export function MediaDark({ children }: { children: React.ReactNode }) {
+  return createElement(ForceDark.Provider, { value: true }, children);
+}
+
 export function useTheme(): Palette {
-  return useColorScheme() === "light" ? palettes.light : palettes.dark;
+  const scheme = useColorScheme();
+  const forced = useContext(ForceDark);
+  return forced || scheme !== "light" ? palettes.dark : palettes.light;
 }
 
 // Poster caps for headlines, a grotesk for text, mono for numbers and tags.

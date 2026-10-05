@@ -239,6 +239,16 @@ ok((await page.getByText("Tap + to share what you built", { exact: false }).coun
 // Light mode renders too.
 await page.emulateMedia({ colorScheme: "light" });
 await visit("/", "home-light");
+{
+  // The Spotlight stage stays dark in light mode, and its text stays light on it.
+  const color = await page.getByText("Meeting notes that turn into to-dos on their own").first().evaluate((el) => getComputedStyle(el).color);
+  ok(color !== "rgb(11, 27, 43)" && color !== "rgb(86, 104, 122)", `Spotlight text is readable in light mode (${color})`);
+}
+await visit("/browse", "browse-light");
+await page.getByText("Top builders ·", { exact: false }).first().scrollIntoViewIfNeeded();
+await page.waitForTimeout(300);
+await page.screenshot({ path: `${OUT}browse-leaderboards-light.png` });
+await visit("/", "home-light");
 
 ok(errors.length === 0, `no console errors${errors.length ? ` (${errors.slice(0, 3).join(" | ")})` : ""}`);
 await browser.close();
