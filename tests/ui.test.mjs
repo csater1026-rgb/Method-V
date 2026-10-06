@@ -920,6 +920,9 @@ await run("v store (phone)", phone, async (page) => {
   const community = await page.getByRole("region", { name: "Spend it on the community" }).getByRole("link").allTextContents();
   ok(community.length === 3 && !community.join(" ").includes("Testers"), `3 community tiles, none selling testers (${community.length})`);
   ok((await page.getByText(/guaranteed testers/i).count()) === 0, "the store never promises testers");
+  // Each tile has a picture of the item (drawn shapes, not a big symbol).
+  const art = await page.locator(".shop-tile svg.shop-art").evaluateAll((els) => els.map((el) => el.querySelectorAll("path, polygon, rect, circle").length));
+  ok(art.length === 6 && art.every((n) => n >= 2), `all 6 tiles show a picture (${art.join(",")} shapes)`);
   await noSideScroll(page, "v store");
   await page.screenshot({ path: `${OUT}store-phone.png`, fullPage: true });
   await featured.getByRole("button", { name: /The Spotlight/ }).click();

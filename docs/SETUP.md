@@ -146,7 +146,7 @@ To deploy, import the repo into [Vercel](https://vercel.com) and add the same en
 | All database reads (plus demo data when Supabase isn't set up) | `src/lib/data.ts`, `src/lib/demo.ts` |
 | Link check before an app goes live (blocks private/internal addresses) | `src/lib/link-check.ts` |
 | Back it, sponsor offers, deal rows, payouts, Pro buttons | `src/components/Earn.tsx`, `src/components/Sponsored.tsx`, `src/components/Backers.tsx` |
-| V Store `/store` (item shop + earnings; `/earn` redirects), Pro `/pro`, Challenges `/challenges` | `src/app/store/`, `src/components/VStore.tsx`, `src/app/pro/`, `src/app/challenges/`, `src/components/Challenges.tsx` |
+| V Store `/store` (item shop + earnings; `/earn` redirects), Pro `/pro`, Challenges `/challenges` | `src/app/store/`, `src/components/VStore.tsx`, `src/lib/shop-icons.ts` (the item pictures, shared with the app), `src/app/pro/`, `src/app/challenges/`, `src/components/Challenges.tsx` |
 | Stats dashboard and CSV export | `src/app/dashboard/`, `src/lib/dashboard.ts`, `src/components/StatsChart.tsx` |
 | Members-only API, embed card, developer docs | `src/app/api/v1/`, `src/lib/api.ts`, `src/app/embed/[slug]/route.ts`, `src/app/developers/` |
 | Installable app: manifest, icons, service worker, install page | `src/app/manifest.ts`, `src/app/app-icon/`, `src/app/apple-icon.tsx`, `public/sw.js`, `src/components/InstallApp.tsx`, `src/app/app/` |

@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { bookSpotlight, buyStoreItem } from "@/app/actions";
 import { APP_LIMIT } from "@/lib/app-limit";
 import { SPOTLIGHT, V_STORE } from "@/lib/constants";
+import { SHOP_ICON_SHADOW, SHOP_ICONS, type ShopIconName } from "@/lib/shop-icons";
 import type { ActionResult } from "@/lib/types";
 
 import { Coin } from "./Coin";
@@ -29,7 +30,7 @@ type Item = {
   kind: string;
   tag: string;
   cost: number;
-  icon: IconName;
+  icon: ShopIconName;
   about: React.ReactNode;
   status: React.ReactNode;
   buy: string;
@@ -42,8 +43,8 @@ type Item = {
 const proUntilText = (iso: string) =>
   new Date(iso).getFullYear() > 2090 ? "forever (demo)" : `until ${new Date(iso).toLocaleDateString("en-US", { month: "long", day: "numeric" })}`;
 
-// The V Store as an item shop: bright tiles with dark text, each with a dark
-// badge showing a big symbol (PRO, ★, +1…), the name and the price. Mint in
+// The V Store as an item shop: bright tiles with dark text, each with a bold
+// picture of the item (a check rosette, a podium, layers…), the name and the price. Mint in
 // dark mode, the site's blue in light mode (the --shop-* colors). Tapping a tile opens the item with its Buy
 // button (and an app picker for the Spotlight).
 export function VStore({ credits, proUntil, store, apps, spotlightCost, spotlightWait }: Props) {
@@ -59,7 +60,7 @@ export function VStore({ credits, proUntil, store, apps, spotlightCost, spotligh
       kind: "For your account",
       tag: pro ? `Pro ${proUntilText(proUntil!)}` : `${V_STORE.pro.days} days`,
       cost: V_STORE.pro.cost,
-      icon: "crown",
+      icon: "verified",
       about: (
         <>
           Stats for 30 and 90 days, a pinned app on your profile, a Pro badge, and the Spotlight for {SPOTLIGHT.proCost} Methodium instead of{" "}
@@ -85,7 +86,7 @@ export function VStore({ credits, proUntil, store, apps, spotlightCost, spotligh
       kind: "For your app",
       tag: spotlightWait ? `Next spot in ${spotlightWait}` : "A spot is free now",
       cost: spotlightCost,
-      icon: "star",
+      icon: "podium",
       about: (
         <>
           Put your app on the stage at the top of Home for {SPOTLIGHT.days} days. {SPOTLIGHT.slots} spots, first come, first served.
@@ -104,11 +105,11 @@ export function VStore({ credits, proUntil, store, apps, spotlightCost, spotligh
       kind: "For your app",
       tag: `Up to ${V_STORE.appPost.perWindow} a month`,
       cost: V_STORE.appPost.cost,
-      icon: "post",
+      icon: "layers",
       about: (
         <>
-          Post one more app past the limit of {APP_LIMIT.perWindow} every {APP_LIMIT.days} days. It&apos;s saved until you&apos;re at the
-          limit, then used on your next app.
+          Post one more app past the limit of {APP_LIMIT.perWindow} every {APP_LIMIT.days} days. It&apos;s saved until you&apos;re at the limit, then
+          used on your next app.
         </>
       ),
       status: store ? (
@@ -149,7 +150,7 @@ export function VStore({ credits, proUntil, store, apps, spotlightCost, spotligh
               <Link href={c.href} className="shop-tile group relative flex h-full min-h-[13rem] flex-col overflow-hidden rounded-2xl">
                 <span className="shop-tag">{c.tag}</span>
                 <span className="flex flex-1 items-center justify-center px-6 pt-10 pb-2">
-                  <ShopBadge name={c.icon} className="shop-art w-16 sm:w-20" />
+                  <ShopBadge name={c.icon} className="shop-art w-20 sm:w-24" />
                 </span>
                 <span className="shop-banner">
                   <span className="display block text-2xl leading-none sm:text-3xl">{c.title}</span>
@@ -185,7 +186,7 @@ function ShopTile({ item, big = false, className = "", onOpen }: { item: Item; b
     >
       <span className="shop-tag">{item.tag}</span>
       <span className={`flex flex-1 items-center justify-center ${big ? "px-10 pt-14 pb-4" : "px-5 pt-11 pb-2"}`}>
-        <ShopBadge name={item.icon} className={`shop-art ${big ? "w-24 lg:w-36" : "w-16 lg:w-20"}`} />
+        <ShopBadge name={item.icon} className={`shop-art ${big ? "w-32 lg:w-44" : "w-20 lg:w-24"}`} />
       </span>
       <span className="shop-banner">
         <span className="font-mono text-[10px] tracking-widest text-(--shop-ink)/60 uppercase">{item.kind}</span>
@@ -233,11 +234,16 @@ function ItemDialog({ item, credits, apps, onClose }: { item: Item; credits: num
         onClick={(e) => e.stopPropagation()}
         className="rise shop-tile shop-featured relative w-full max-w-md overflow-hidden rounded-t-2xl pb-[env(safe-area-inset-bottom)] shadow-2xl sm:rounded-2xl"
       >
-        <button type="button" onClick={close} aria-label="Close" className="absolute top-3 right-3 z-10 rounded-lg px-3 py-1.5 text-(--shop-ink)/70 hover:bg-(--shop-ink)/10 hover:text-(--shop-ink)">
+        <button
+          type="button"
+          onClick={close}
+          aria-label="Close"
+          className="absolute top-3 right-3 z-10 rounded-lg px-3 py-1.5 text-(--shop-ink)/70 hover:bg-(--shop-ink)/10 hover:text-(--shop-ink)"
+        >
           ✕
         </button>
         <div className="flex justify-center px-6 pt-8 pb-4">
-          <ShopBadge name={item.icon} className="shop-art w-24" />
+          <ShopBadge name={item.icon} className="shop-art w-28" />
         </div>
         <div className="border-t border-(--shop-ink)/10 bg-white/35 p-5">
           <p className="font-mono text-[10px] tracking-widest text-(--shop-ink)/60 uppercase">
@@ -271,7 +277,12 @@ function ItemDialog({ item, credits, apps, onClose }: { item: Item; credits: num
                     <button type="button" className="shop-buy" disabled={pending} onClick={spend}>
                       {pending ? "Spending…" : `Spend ${item.cost} Methodium`}
                     </button>
-                    <button type="button" className="rounded-lg px-4 py-2.5 text-sm font-semibold text-(--shop-ink)/80 hover:bg-(--shop-ink)/10" disabled={pending} onClick={() => setConfirming(false)}>
+                    <button
+                      type="button"
+                      className="rounded-lg px-4 py-2.5 text-sm font-semibold text-(--shop-ink)/80 hover:bg-(--shop-ink)/10"
+                      disabled={pending}
+                      onClick={() => setConfirming(false)}
+                    >
                       Cancel
                     </button>
                   </div>
@@ -297,7 +308,10 @@ function ItemDialog({ item, credits, apps, onClose }: { item: Item; credits: num
               </>
             )}
             {message && (
-              <p aria-live="polite" className={`rounded-md px-3 py-2 text-sm font-semibold bg-(--shop-badge) ${message.ok ? "text-(--shop-badge-ink)" : "text-[#ffb4a6]"}`}>
+              <p
+                aria-live="polite"
+                className={`rounded-md px-3 py-2 text-sm font-semibold bg-(--shop-badge) ${message.ok ? "text-(--shop-badge-ink)" : "text-[#ffb4a6]"}`}
+              >
                 {message.text}
               </p>
             )}
@@ -309,36 +323,43 @@ function ItemDialog({ item, credits, apps, onClose }: { item: Item; credits: num
 }
 
 // ---------------------------------------------------------------------------
-// Badges for the tiles: a dark rounded square with a big mint symbol, no
-// pictures.
+// Item pictures: one bold dark object per item with bright details (drawn in
+// src/lib/shop-icons.ts, shared with the phone app).
 // ---------------------------------------------------------------------------
 
-type IconName = "crown" | "star" | "post" | "target" | "gift" | "heart";
+const PAINT = { main: "var(--shop-badge)", detail: "var(--shop-badge-ink)" } as const;
 
-const SYMBOL: Record<IconName, string> = { crown: "PRO", star: "★", post: "+1", target: "◎", gift: "%", heart: "♥" };
-
-function ShopBadge({ name, className = "" }: { name: IconName; className?: string }) {
-  const text = SYMBOL[name];
+function ShopBadge({ name, className = "" }: { name: ShopIconName; className?: string }) {
   return (
-    <svg viewBox="0 0 64 64" className={`h-auto ${className}`} aria-hidden>
-      <rect x="2" y="4" width="60" height="60" rx="17" style={{ fill: "var(--shop-badge-edge)" }} />
-      <rect x="2" y="2" width="60" height="60" rx="17" style={{ fill: "var(--shop-badge)" }} />
-      <text
-        x="32"
-        y={text.length > 2 ? 42 : 45}
-        textAnchor="middle"
-        fontWeight={800}
-        fontSize={text.length > 2 ? 26 : 36}
-        style={{ fontFamily: "var(--font-display)", fill: "var(--shop-badge-ink)" }}
-      >
-        {text}
-      </text>
+    <svg viewBox="0 0 64 64" overflow="visible" className={`h-auto ${className}`} aria-hidden>
+      <ellipse
+        cx={SHOP_ICON_SHADOW.cx}
+        cy={SHOP_ICON_SHADOW.cy}
+        rx={SHOP_ICON_SHADOW.rx}
+        ry={SHOP_ICON_SHADOW.ry}
+        opacity={SHOP_ICON_SHADOW.opacity}
+        style={{ fill: PAINT.main }}
+      />
+      {SHOP_ICONS[name].map(({ el: El, attrs, fill, stroke, opacity, text }, i) => (
+        <El
+          key={i}
+          {...attrs}
+          opacity={opacity}
+          style={{
+            fill: fill ? PAINT[fill] : "none",
+            stroke: stroke ? PAINT[stroke] : undefined,
+            fontFamily: El === "text" ? "var(--font-display)" : undefined,
+          }}
+        >
+          {text}
+        </El>
+      ))}
     </svg>
   );
 }
 
-const COMMUNITY: { href: string; title: string; tag: string; body: string; icon: IconName }[] = [
-  { href: "/test", title: "Bounties", tag: "Earn or post", body: "Pay people to try your app or find bugs.", icon: "target" },
-  { href: "/credits#perks", title: "Perks", tag: "Deals", body: "Deals on other builders' apps.", icon: "gift" },
-  { href: "/browse", title: "Tips", tag: "Say thanks", body: "Tip a builder or tester.", icon: "heart" },
+const COMMUNITY: { href: string; title: string; tag: string; body: string; icon: ShopIconName }[] = [
+  { href: "/test", title: "Bounties", tag: "Earn or post", body: "Pay people to try your app or find bugs.", icon: "medal" },
+  { href: "/credits#perks", title: "Perks", tag: "Deals", body: "Deals on other builders' apps.", icon: "sale" },
+  { href: "/browse", title: "Tips", tag: "Say thanks", body: "Tip a builder or tester.", icon: "tipjar" },
 ];

@@ -1,12 +1,13 @@
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import { useState } from "react";
+import { useState, type ComponentType } from "react";
 import { Modal, Pressable, ScrollView, Text, View, type ViewStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
+import Svg, { Circle, Defs, Ellipse, LinearGradient, Path, Polygon, Rect, Stop, Text as SvgText } from "react-native-svg";
 
 import { APP_LIMIT } from "@shared/app-limit";
 import { SPOTLIGHT, V_STORE } from "@shared/constants";
+import { SHOP_ICON_SHADOW, SHOP_ICONS, type ShopIconName, type ShopShape } from "@shared/shop-icons";
 
 import { Body, Coin, Display, Mono, tap } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
@@ -16,7 +17,7 @@ import { useLoad } from "@/lib/useLoad";
 import { fonts, useColorSchemeName, useTheme } from "@/theme";
 
 // The V Store, like the website's (/store): bright tiles with dark ink, each
-// with a dark badge showing a big symbol, the name and the price. Mint in
+// with a bold picture of the item (shared with the website), the name and the price. Mint in
 // dark mode, the site's blue in light mode (the website's --shop-* colors).
 // Tapping an item opens it; buying happens on the website, like buying
 // Methodium, so the app never sells anything itself.
@@ -46,7 +47,7 @@ type Shop = (typeof SHOP)["dark" | "light"];
 
 type Item = {
   id: string;
-  symbol: string;
+  icon: ShopIconName;
   kind: string;
   name: string;
   tag: string;
@@ -76,7 +77,7 @@ export default function StoreScreen() {
   const items: Item[] = [
     {
       id: "pro",
-      symbol: "PRO",
+      icon: "verified",
       kind: "For your account",
       name: "Method V Pro",
       tag: pro ? `Pro ${untilText(pro)}` : `${V_STORE.pro.days} days`,
@@ -87,7 +88,7 @@ export default function StoreScreen() {
     },
     {
       id: "spotlight",
-      symbol: "★",
+      icon: "podium",
       kind: "For your app",
       name: "The Spotlight",
       tag: `${SPOTLIGHT.days} days on Home`,
@@ -98,7 +99,7 @@ export default function StoreScreen() {
     },
     {
       id: "post",
-      symbol: "+1",
+      icon: "layers",
       kind: "For your app",
       name: "Extra app post",
       tag: `Up to ${V_STORE.appPost.perWindow} a month`,
@@ -142,10 +143,10 @@ export default function StoreScreen() {
 
       <Section title="Spend it on the community" />
       <View style={{ flexDirection: "row", gap: 10 }}>
-        <Community c={c} symbol="◎" name="Bounties" body="Pay people to try your app or find bugs." tag="Earn or post" style={{ flex: 1 }} onPress={() => web("/test")} />
-        <Community c={c} symbol="%" name="Perks" body="Deals on other builders' apps." tag="Deals" style={{ flex: 1 }} onPress={() => web("/credits#perks")} />
+        <Community c={c} icon="medal" name="Bounties" body="Pay people to try your app or find bugs." tag="Earn or post" style={{ flex: 1 }} onPress={() => web("/test")} />
+        <Community c={c} icon="sale" name="Perks" body="Deals on other builders' apps." tag="Deals" style={{ flex: 1 }} onPress={() => web("/credits#perks")} />
       </View>
-      <Community c={c} symbol="♥" name="Tips" body="Tip a builder or tester." tag="Say thanks" onPress={() => router.push("/browse")} />
+      <Community c={c} icon="tipjar" name="Tips" body="Tip a builder or tester." tag="Say thanks" onPress={() => router.push("/browse")} />
 
       <Body muted size={13}>
         Methodium can&apos;t be turned into money. Earn it with bounties, or buy a pack on the website.
@@ -182,14 +183,34 @@ function TileBg({ colors }: { colors: readonly string[] }) {
   );
 }
 
-function Badge({ c, symbol, size }: { c: Shop; symbol: string; size: number }) {
+const SHAPE = { path: Path, polygon: Polygon, rect: Rect, circle: Circle, ellipse: Ellipse, text: SvgText } as unknown as Record<
+  ShopShape["el"],
+  ComponentType<Record<string, unknown>>
+>;
+
+// The item's picture: a bold dark object with bright details, drawn from the
+// website's src/lib/shop-icons.ts.
+function Badge({ c, icon, size }: { c: Shop; icon: ShopIconName; size: number }) {
+  const paint = { main: c.badge, detail: c.badgeInk };
   return (
-    <View style={{ width: size, height: size + 3 }}>
-      <View style={{ position: "absolute", top: 3, width: size, height: size, borderRadius: size * 0.28, backgroundColor: c.badgeEdge }} />
-      <View style={{ width: size, height: size, borderRadius: size * 0.28, backgroundColor: c.badge, alignItems: "center", justifyContent: "center" }}>
-        <Text style={{ fontFamily: fonts.display, color: c.badgeInk, fontSize: symbol.length > 2 ? size * 0.4 : size * 0.52, includeFontPadding: false }}>{symbol}</Text>
-      </View>
-    </View>
+    <Svg width={size} height={(size * 67) / 64} viewBox="0 -1 64 67">
+      <Ellipse cx={SHOP_ICON_SHADOW.cx} cy={SHOP_ICON_SHADOW.cy} rx={SHOP_ICON_SHADOW.rx} ry={SHOP_ICON_SHADOW.ry} fill={c.badge} opacity={SHOP_ICON_SHADOW.opacity} />
+      {SHOP_ICONS[icon].map(({ el, attrs, fill, stroke, opacity, text }, i) => {
+        const El = SHAPE[el];
+        return (
+          <El
+            key={i}
+            {...attrs}
+            fill={fill ? paint[fill] : "none"}
+            stroke={stroke ? paint[stroke] : undefined}
+            opacity={opacity}
+            fontFamily={el === "text" ? fonts.display : undefined}
+          >
+            {text}
+          </El>
+        );
+      })}
+    </Svg>
   );
 }
 
@@ -231,7 +252,7 @@ function Tile({ c, item, big = false, style, onPress }: { c: Shop; item: Item; b
       <TileBg colors={big ? c.featured : c.tile} />
       <Tag c={c}>{item.tag}</Tag>
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 12 }}>
-        <Badge c={c} symbol={item.symbol} size={big ? 96 : 64} />
+        <Badge c={c} icon={item.icon} size={big ? 110 : 72} />
       </View>
       <Mono size={9} style={{ color: c.ink, opacity: 0.6, letterSpacing: 1.4, textTransform: "uppercase" }}>
         {item.kind}
@@ -246,7 +267,7 @@ function Tile({ c, item, big = false, style, onPress }: { c: Shop; item: Item; b
   );
 }
 
-function Community({ c, symbol, name, body, tag, style, onPress }: { c: Shop; symbol: string; name: string; body: string; tag: string; style?: ViewStyle; onPress: () => void }) {
+function Community({ c, icon, name, body, tag, style, onPress }: { c: Shop; icon: ShopIconName; name: string; body: string; tag: string; style?: ViewStyle; onPress: () => void }) {
   return (
     <Pressable
       accessibilityRole="link"
@@ -260,7 +281,7 @@ function Community({ c, symbol, name, body, tag, style, onPress }: { c: Shop; sy
       <TileBg colors={c.tile} />
       <Tag c={c}>{tag}</Tag>
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 10 }}>
-        <Badge c={c} symbol={symbol} size={58} />
+        <Badge c={c} icon={icon} size={64} />
       </View>
       <Display size={28} style={{ color: c.ink }}>
         {name.toUpperCase()}
@@ -284,7 +305,7 @@ function ItemSheet({ c, item, credits, onClose, onBuy }: { c: Shop; item: Item; 
             <Body style={{ color: c.ink, fontSize: 18 }}>✕</Body>
           </Pressable>
           <View style={{ alignItems: "center", paddingTop: 26, paddingBottom: 14 }}>
-            <Badge c={c} symbol={item.symbol} size={84} />
+            <Badge c={c} icon={item.icon} size={92} />
           </View>
           <View style={{ backgroundColor: "rgba(255,255,255,0.35)", padding: 18, paddingBottom: insets.bottom + 20, gap: 8 }}>
             <Mono size={10} style={{ color: c.ink, opacity: 0.6, letterSpacing: 1.4, textTransform: "uppercase" }}>
