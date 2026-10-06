@@ -3,11 +3,17 @@
 // Plain shapes on a 64-unit canvas, shared by the website
 // (components/VStore.tsx) and the phone app (app/store.tsx), so both draw the
 // same thing. "main" is the dark ink (--shop-badge), "detail" the bright
-// accent (--shop-badge-ink): mint in dark mode, blue in light mode.
+// accent (--shop-badge-ink): mint in dark mode, blue in light mode. A shape
+// can also use a fixed color, like the Method V logo's mint and blue.
+
+import { V_HEIGHT, V_WIDTH, pixelVRects } from "./pixel-v";
 
 export type ShopIconName = "verified" | "podium" | "layers" | "medal" | "sale" | "tipjar";
 
-export type ShopPaint = "main" | "detail";
+export type ShopPaint = "main" | "detail" | `#${string}`;
+
+// The color to draw a paint with, given this theme's main and detail colors.
+export const shopColor = (paint: ShopPaint, main: string, detail: string) => (paint === "main" ? main : paint === "detail" ? detail : paint);
 
 export type ShopShape = {
   el: "path" | "polygon" | "rect" | "circle" | "ellipse" | "text";
@@ -48,11 +54,17 @@ function percent(cx: number, cy: number, s: number, paint: ShopPaint): ShopShape
   ];
 }
 
+// The logo's pixel size inside the Pro rosette.
+const V_CELL = 3.5;
+
 export const SHOP_ICONS: Record<ShopIconName, ShopShape[]> = {
-  // Pro: a verified rosette with a check.
+  // Pro: a verified rosette with the Method V logo (the pixel V in its own
+  // mint and blue) in the middle.
   verified: [
     { el: "polygon", attrs: { points: burst(32, 32, 28, 24, 14), strokeWidth: 2, ...ROUND }, fill: "main", stroke: "main" },
-    { el: "path", attrs: { d: "M20 32 L28.5 40.5 L44 24", strokeWidth: 6.5, ...ROUND }, stroke: "detail" },
+    ...pixelVRects(V_CELL, 32 - (V_WIDTH * V_CELL) / 2, 32 - (V_HEIGHT * V_CELL) / 2).map(
+      ({ x, y, w, h, fill }): ShopShape => ({ el: "rect", attrs: { x, y, width: w, height: h }, fill: fill as ShopPaint }),
+    ),
   ],
   // The Spotlight: the top step of a podium, with a star over it.
   podium: [

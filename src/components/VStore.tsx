@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { bookSpotlight, buyStoreItem } from "@/app/actions";
 import { APP_LIMIT } from "@/lib/app-limit";
 import { SPOTLIGHT, V_STORE } from "@/lib/constants";
-import { SHOP_ICON_SHADOW, SHOP_ICONS, type ShopIconName } from "@/lib/shop-icons";
+import { SHOP_ICON_SHADOW, SHOP_ICONS, shopColor, type ShopIconName } from "@/lib/shop-icons";
 import type { ActionResult } from "@/lib/types";
 
 import { Coin } from "./Coin";
@@ -346,8 +346,8 @@ function ShopBadge({ name, className = "" }: { name: ShopIconName; className?: s
           {...attrs}
           opacity={opacity}
           style={{
-            fill: fill ? PAINT[fill] : "none",
-            stroke: stroke ? PAINT[stroke] : undefined,
+            fill: fill ? shopColor(fill, PAINT.main, PAINT.detail) : "none",
+            stroke: stroke ? shopColor(stroke, PAINT.main, PAINT.detail) : undefined,
             fontFamily: El === "text" ? "var(--font-display)" : undefined,
           }}
         >

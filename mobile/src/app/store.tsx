@@ -7,7 +7,7 @@ import Svg, { Circle, Defs, Ellipse, LinearGradient, Path, Polygon, Rect, Stop, 
 
 import { APP_LIMIT } from "@shared/app-limit";
 import { SPOTLIGHT, V_STORE } from "@shared/constants";
-import { SHOP_ICON_SHADOW, SHOP_ICONS, type ShopIconName, type ShopShape } from "@shared/shop-icons";
+import { SHOP_ICON_SHADOW, SHOP_ICONS, shopColor, type ShopIconName, type ShopShape } from "@shared/shop-icons";
 
 import { Body, Coin, Display, Mono, tap } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
@@ -191,7 +191,6 @@ const SHAPE = { path: Path, polygon: Polygon, rect: Rect, circle: Circle, ellips
 // The item's picture: a bold dark object with bright details, drawn from the
 // website's src/lib/shop-icons.ts.
 function Badge({ c, icon, size }: { c: Shop; icon: ShopIconName; size: number }) {
-  const paint = { main: c.badge, detail: c.badgeInk };
   return (
     <Svg width={size} height={(size * 67) / 64} viewBox="0 -1 64 67">
       <Ellipse cx={SHOP_ICON_SHADOW.cx} cy={SHOP_ICON_SHADOW.cy} rx={SHOP_ICON_SHADOW.rx} ry={SHOP_ICON_SHADOW.ry} fill={c.badge} opacity={SHOP_ICON_SHADOW.opacity} />
@@ -201,8 +200,8 @@ function Badge({ c, icon, size }: { c: Shop; icon: ShopIconName; size: number })
           <El
             key={i}
             {...attrs}
-            fill={fill ? paint[fill] : "none"}
-            stroke={stroke ? paint[stroke] : undefined}
+            fill={fill ? shopColor(fill, c.badge, c.badgeInk) : "none"}
+            stroke={stroke ? shopColor(stroke, c.badge, c.badgeInk) : undefined}
             opacity={opacity}
             fontFamily={el === "text" ? fonts.display : undefined}
           >
