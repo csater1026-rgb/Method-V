@@ -8,6 +8,7 @@ import { recentPostTimes } from "./app-posts";
 import { dbMessage } from "./db-errors";
 import { parseList, slugify } from "./format";
 import { checkLink } from "./link-check";
+import { DROPS_BUCKET } from "./supabase/env";
 import { createAdminClient } from "./supabase/server";
 
 // Publishing an app with its Drop, shared by the website's Post screen and
@@ -88,6 +89,8 @@ export async function publishApp(
 
   const base = slugify(name);
   let app: { id: string; slug: string } | null = null;
+  // Logos need 20261025000000_app_logos.sql; without it, post without the logo.
+  let withLogo = Boolean(logoPath);
   for (let attempt = 0; attempt < 5 && !app; attempt++) {
     const slug = attempt === 0 ? base : `${base}-${Math.random().toString(36).slice(2, 6)}`;
     const { data, error } = await supabase
@@ -104,13 +107,21 @@ export async function publishApp(
         pricing: input.pricing,
         stage: input.stage,
         ...(coverPath ? { cover_path: coverPath } : {}),
-        ...(logoPath ? { logo_path: logoPath } : {}),
+        ...(withLogo ? { logo_path: logoPath } : {}),
       })
       .select("id, slug")
       .single();
     if (data) app = data;
-    else if (error?.code !== "23505") return { ok: false, error: dbMessage(error, "Couldn't save your app.") };
+    else if (withLogo && (error?.code === "PGRST204" || error?.code === "42703")) {
+      console.error("publish: apps.logo_path is missing, posting without the logo. Run 20261025000000_app_logos.sql.");
+      withLogo = false;
+      attempt--;
+    } else if (error?.code !== "23505") {
+      if (error?.code !== "P0001") console.error("publish: app insert failed", error?.code, error?.message);
+      return { ok: false, error: dbMessage(error, "Couldn't save your app.") };
+    }
   }
+  if (logoPath && !withLogo) await admin.storage.from(DROPS_BUCKET).remove([logoPath]);
   if (!app) return { ok: false, error: "Couldn't pick a link for your app. Try a slightly different name." };
 
   const { error: markError } = await admin
