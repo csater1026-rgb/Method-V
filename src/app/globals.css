@@ -91,6 +91,10 @@
   --shop-badge-ink: #82ed9d;
   --shop-badge-edge: #4fb86a;
   --shop-badge-hover: #13291c;
+  /* Error text on the dark badge, and the see-through panel under an item's
+     name (the same in both themes). */
+  --shop-error: #ffb4a6;
+  --shop-panel: rgb(255 255 255 / 0.35);
   /* Height of the phone bottom tab bar (MobileTabs); none on larger screens. */
   --tabbar: calc(3.5rem + env(safe-area-inset-bottom));
 }

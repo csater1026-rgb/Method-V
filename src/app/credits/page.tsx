@@ -22,7 +22,7 @@ export default async function CreditsPage({ searchParams }: PageProps<"/credits"
   if (isSupabaseConfigured && !viewer) redirect("/login?next=/credits");
   const [history, bounties, perks, invites] = await Promise.all([
     viewer ? getCreditHistory(viewer) : Promise.resolve([]),
-    getOpenBounties(6),
+    getOpenBounties(viewer, 6),
     getPerkListings(viewer, 6),
     getMyInvites(viewer),
   ]);
@@ -35,7 +35,7 @@ export default async function CreditsPage({ searchParams }: PageProps<"/credits"
     <div className="mx-auto w-full max-w-3xl px-4 py-8">
       <h1 className="display rise text-6xl">Credits</h1>
       <p className="mt-1 text-muted">
-        Credits on Method V are called <span className="font-semibold text-ink">Methodium (Mv)</span>, a made-up element (it used to be called V Coin). Earn it by testing apps, or buy a pack.
+        Credits on Method V are called <span className="font-semibold text-ink">Methodium (Mv)</span>, a made-up element (it used to be called V Coin). Earn it by answering bounties, or buy a pack.
       </p>
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-line bg-surface p-5">
@@ -133,11 +133,12 @@ export default async function CreditsPage({ searchParams }: PageProps<"/credits"
           {REFERRALS.bonus} when they post their first Drop or earn their first bounty reward.
         </li>
         <li>
-          • Tip a builder you love or a tester who helped: <Coin />1 to <Coin />
-          {TIPS.max} at a time, up to {TIPS.perDay} a day.
+          • Tip a builder you love or a tester who helped: up to <Coin />
+          {TIPS.perDay} a day, once your account is a week old.
         </li>
         <li>
-          • Unlock <a href="#perks" className="text-accent hover:underline">perks</a>: deals on apps, paid to their builders in Methodium.
+          • Unlock <a href="#perks" className="text-accent hover:underline">perks</a>: deals on apps, paid to their builders in Methodium (once
+          your account is a week old).
         </li>
         <li>
           • Book the Spotlight: one of {SPOTLIGHT.slots} spots in the Featured row for {SPOTLIGHT.days} days, <Coin />{SPOTLIGHT.cost}{" "}

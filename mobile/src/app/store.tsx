@@ -104,7 +104,7 @@ export default function StoreScreen() {
       name: "Extra app post",
       tag: `Up to ${V_STORE.appPost.perWindow} a month`,
       cost: V_STORE.appPost.cost,
-      about: `Post one more app past the limit of ${APP_LIMIT.perWindow} every ${APP_LIMIT.days} days. It's saved until you're at the limit, then used on your next app.`,
+      about: `Post one more app past the limit of ${APP_LIMIT.perWindow} every ${APP_LIMIT.days} days. It's saved until you're at the limit, then used on your next app. You can hold ${V_STORE.appPost.maxSaved} at a time, and nobody posts more than ${APP_LIMIT.withExtras} apps in ${APP_LIMIT.days} days.`,
       status: data?.ready ? `You have ${data.extraAppPosts} saved. ${postsLeft} of ${V_STORE.appPost.perWindow} left to buy this month.` : null,
       path: "/store",
     },

@@ -53,7 +53,7 @@ const STEPS: Step[] = [
   },
   {
     title: "You're all set",
-    body: "Start by testing an app (and earning Methodium), or post your own.",
+    body: "Start by answering a bounty to earn Methodium, or post your own.",
   },
 ];
 

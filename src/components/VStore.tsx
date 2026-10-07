@@ -109,7 +109,8 @@ export function VStore({ credits, proUntil, store, apps, spotlightCost, spotligh
       about: (
         <>
           Post one more app past the limit of {APP_LIMIT.perWindow} every {APP_LIMIT.days} days. It&apos;s saved until you&apos;re at the limit, then
-          used on your next app.
+          used on your next app. You can hold {V_STORE.appPost.maxSaved} at a time, and nobody posts more than {APP_LIMIT.withExtras} apps in{" "}
+          {APP_LIMIT.days} days.
         </>
       ),
       status: store ? (
@@ -124,7 +125,9 @@ export function VStore({ credits, proUntil, store, apps, spotlightCost, spotligh
           ? "The V Store needs the latest database update."
           : postsLeft === 0
             ? `You've bought ${V_STORE.appPost.perWindow} this month. More open up ${V_STORE.appPost.days} days after each one.`
-            : null,
+            : store.extraAppPosts >= V_STORE.appPost.maxSaved
+              ? `You have ${V_STORE.appPost.maxSaved} saved, the most you can hold. Use one before buying another.`
+              : null,
       action: () => buyStoreItem("app_post"),
     },
   ];
@@ -245,7 +248,7 @@ function ItemDialog({ item, credits, apps, onClose }: { item: Item; credits: num
         <div className="flex justify-center px-6 pt-8 pb-4">
           <ShopBadge name={item.icon} className="shop-art w-28" />
         </div>
-        <div className="border-t border-(--shop-ink)/10 bg-white/35 p-5">
+        <div className="border-t border-(--shop-ink)/10 bg-(--shop-panel) p-5">
           <p className="font-mono text-[10px] tracking-widest text-(--shop-ink)/60 uppercase">
             {item.kind} · {item.tag}
           </p>
@@ -310,7 +313,7 @@ function ItemDialog({ item, credits, apps, onClose }: { item: Item; credits: num
             {message && (
               <p
                 aria-live="polite"
-                className={`rounded-md px-3 py-2 text-sm font-semibold bg-(--shop-badge) ${message.ok ? "text-(--shop-badge-ink)" : "text-[#ffb4a6]"}`}
+                className={`rounded-md px-3 py-2 text-sm font-semibold bg-(--shop-badge) ${message.ok ? "text-(--shop-badge-ink)" : "text-(--shop-error)"}`}
               >
                 {message.text}
               </p>

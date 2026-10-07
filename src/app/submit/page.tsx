@@ -45,18 +45,22 @@ export default async function SubmitPage() {
       {limit.nextAt ? (
         // At the limit: say when the next one opens, and what they can do now.
         <section aria-label="App limit" className="mt-6 rounded-xl border border-accent/60 bg-accent/10 p-5">
-          <h2 className="display text-4xl">You&apos;ve posted {APP_LIMIT.perWindow} apps this month</h2>
-          <p className="mt-1 text-sm">{limitMessage(limit.nextAt)}</p>
+          <h2 className="display text-4xl">
+            You&apos;ve posted {limit.capped ? APP_LIMIT.withExtras : APP_LIMIT.perWindow} apps this month
+          </h2>
+          <p className="mt-1 text-sm">{limitMessage(limit.nextAt, limit.capped)}</p>
           <p className="mt-3 flex flex-wrap gap-2">
-            <Link href="/store" className="btn-accent">
-              Get an extra post · <Coin />
-              {V_STORE.appPost.cost}
-            </Link>
+            {!limit.capped && (
+              <Link href="/store" className="btn-accent">
+                Get an extra post · <Coin />
+                {V_STORE.appPost.cost}
+              </Link>
+            )}
             <Link href={viewer ? `/u/${viewer.username}` : "/"} className="btn-ghost">
               Add a Drop to one of your apps
             </Link>
             <Link href="/test" className="btn-ghost">
-              Test apps and earn Methodium
+              Earn Methodium with bounties
             </Link>
           </p>
         </section>
@@ -64,7 +68,7 @@ export default async function SubmitPage() {
         <>
           <p className="mt-4 text-xs text-muted">
             You can post {APP_LIMIT.perWindow} new apps every {APP_LIMIT.days} days ({limit.left} left), so every app gets seen. New Drops on
-            apps you&apos;ve already posted don&apos;t count.
+            apps you&apos;ve already posted don&apos;t count; apps you delete still do.
           </p>
           <SubmitForm userId={viewer?.id ?? null} />
         </>

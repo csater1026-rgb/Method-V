@@ -1,8 +1,8 @@
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -37,9 +37,18 @@ export default function PostScreen() {
   const [reading, setReading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<number | null>(null);
-  // 3 new apps every 30 days: checked up front so nobody uploads a video for nothing.
+  // 3 new apps every 30 days (5 with extra posts): checked up front so nobody
+  // uploads a video for nothing, and again each time the tab is opened (an
+  // extra post may have been bought on the website since).
   const limit = useLoad(() => getMyAppLimit(viewer?.id ?? null), [viewer?.id]);
   const full = limit.data?.nextAt ?? null;
+  const capped = limit.data?.capped ?? false;
+  const { reload: reloadLimit, setData: setLimit } = limit;
+  useFocusEffect(
+    useCallback(() => {
+      void reloadLimit();
+    }, [reloadLimit]),
+  );
 
   if (isLive && !viewer) {
     return (
@@ -96,9 +105,12 @@ export default function PostScreen() {
   ].filter(Boolean);
 
   async function post() {
-    if (full) return setError(limitMessage(full));
     if (!video || missing.length) return;
     setError(null);
+    // Check the limit again right before the upload (it may have changed).
+    const fresh = await getMyAppLimit(viewer?.id ?? null).catch(() => null);
+    if (fresh) setLimit(fresh);
+    if (fresh?.nextAt) return setError(limitMessage(fresh.nextAt, fresh.capped));
     setProgress(0);
     const r = await postDrop(
       { videoUri: video.uri, mimeType: video.mimeType, durationSeconds: video.seconds, url: url.trim(), name, tagline, category, caption, safetyChecked: safe, coverUri: cover },
@@ -115,6 +127,7 @@ export default function PostScreen() {
     setSafe(false);
     setCover(null);
     setTouched({});
+    void reloadLimit();
     router.push(`/apps/${r.data.slug}`);
   }
 
@@ -125,11 +138,11 @@ export default function PostScreen() {
         <DropBonus />
         {full ? (
           <Card style={{ gap: 6, borderColor: t.accent }}>
-            <Body bold>You&apos;ve posted {APP_LIMIT.perWindow} apps this month</Body>
+            <Body bold>You&apos;ve posted {capped ? APP_LIMIT.withExtras : APP_LIMIT.perWindow} apps this month</Body>
             <Body muted size={13}>
-              {limitMessage(full)}
+              {limitMessage(full, capped)}
             </Body>
-            <Button label={`Get an extra post · ${V_STORE.appPost.cost} Methodium`} kind="ghost" onPress={() => router.push("/store")} />
+            {!capped && <Button label={`Get an extra post · ${V_STORE.appPost.cost} Methodium`} kind="ghost" onPress={() => router.push("/store")} />}
           </Card>
         ) : null}
         <Pressable accessibilityRole="link" onPress={() => router.push("/ask")} hitSlop={8} style={{ marginTop: -10, alignSelf: "flex-start" }}>

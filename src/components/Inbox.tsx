@@ -33,8 +33,8 @@ export function InboxIcon({ count }: { count: number }) {
   );
 }
 
-// What each notification says and where it goes.
-function describe(n: Notification): { text: string; href: string } {
+// What each notification says and where it goes (and, for a tip, its note).
+function describe(n: Notification): { text: string; href: string; quote?: string } {
   const app = n.app?.name ?? "your app";
   const appHref = n.app ? `/apps/${n.app.slug}` : "/";
   const who = n.actor ? `/u/${n.actor.username}` : "/";
@@ -59,8 +59,10 @@ function describe(n: Notification): { text: string; href: string } {
       return { text: `picked your answer on ${app}. You won the bounty!`, href: "/credits" };
     case "bounty_split":
       return { text: `didn't pick a winner on ${app}, so you got a share of the bounty`, href: "/credits" };
-    case "tip":
-      return { text: n.app ? `tipped you Methodium for ${app}` : "tipped you Methodium", href: "/credits" };
+    case "tip": {
+      const what = n.tip ? `${n.tip.amount} Methodium` : "Methodium";
+      return { text: n.app ? `tipped you ${what} for ${app}` : `tipped you ${what}`, href: "/credits", quote: n.tip?.note || undefined };
+    }
     case "referral_joined":
       return { text: "joined with your invite. You both got Methodium!", href: "/credits#invite" };
     case "connection_request":
@@ -125,7 +127,7 @@ export function ActivityList({ items }: { items: Notification[] }) {
   return (
     <ul className="mt-3 divide-y divide-line rounded-xl border border-line bg-surface">
       {items.map((n) => {
-        const { text, href } = describe(n);
+        const { text, href, quote } = describe(n);
         return (
           <li key={n.id}>
             <Link href={href} className="flex items-center gap-3 px-4 py-3 hover:bg-surface-2">
@@ -137,6 +139,7 @@ export function ActivityList({ items }: { items: Notification[] }) {
               <span className="min-w-0 flex-1 text-sm">
                 <span className="font-semibold">{n.actor?.display_name || (n.actor ? <Handle username={n.actor.username} /> : "Someone")}</span>{" "}
                 {text}
+                {quote && <span className="mt-0.5 block break-words text-muted">&ldquo;{quote}&rdquo;</span>}
                 <span className="block text-xs text-muted" suppressHydrationWarning>
                   {timeAgo(n.created_at)}
                 </span>

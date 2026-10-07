@@ -71,9 +71,17 @@ export default function TermsPage() {
       </Section>
 
       <Section title="5. Methodium">
-        <p>Methodium (Mv) is what we call credits on Method V. You earn them by testing apps and giving feedback, and you can buy packs. It used to be called V Coin; only the name changed.</p>
+        <p>
+          Methodium (Mv) is what we call credits on Method V. You earn them by answering builders&apos; bounties, from bonuses (like posting
+          your first Drop or inviting a friend), when a builder marks your feedback helpful, and from tips. You can also buy packs. It used to
+          be called V Coin; only the name changed.
+        </p>
         <ul>
-          <li>Methodium only works on Method V. It has no cash value and can&apos;t be turned into money, sold, or moved to another account.</li>
+          <li>
+            Methodium only works on Method V. It has no cash value and can&apos;t be turned into money or sold. It only moves to another
+            account through tips, perks and bounties on Method V, which have limits (for example, an account has to be a week old to send
+            tips or unlock perks).
+          </li>
           <li>Purchases of Methodium are final, except where the law says otherwise.</li>
           <li>We may change how many Methodium things cost or earn. We&apos;ll never take away Methodium you earned or bought fairly.</li>
           <li>If we ever shut Method V down, we&apos;ll give at least 30 days&apos; notice so you can use your Methodium.</li>

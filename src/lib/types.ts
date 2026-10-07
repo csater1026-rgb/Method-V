@@ -252,6 +252,8 @@ export type Notification = {
   ref_id: string | null;
   actor: ProfileSummary | null;
   app: { slug: string; name: string } | null;
+  // For a tip: how much, and the note that came with it.
+  tip?: { amount: number; note: string } | null;
 };
 
 export type ConnectionRequest = {

@@ -23,6 +23,7 @@ import {
 } from "./demo";
 import { FEED_SHUFFLE, SIGNALS, bumpInterest, mergeInterests, rankFeed, rankQuestions, type Interests } from "./interests";
 import { APP_LIMIT, appLimit } from "./app-limit";
+import { recentPostTimes } from "./app-posts";
 import { RANDOM_STAGE, buildStage, stageDay } from "./spotlight-stage";
 import { SUGGESTION_LIMIT, setUpFirst, topUpSuggestions } from "./suggest";
 import { FEEDBACK_BUCKET, isSupabaseConfigured, publicFileUrl } from "./supabase/env";
@@ -1098,7 +1099,15 @@ export async function getNotifications(viewer: Viewer): Promise<Notification[]> 
     .eq("user_id", viewer.id)
     .order("created_at", { ascending: false })
     .limit(60);
-  return (data ?? []).map((row) => ({
+  const rows = data ?? [];
+  // Tips: how much, and the note ("Say why") that came with it.
+  const tipIds = rows.filter((r) => r.kind === "tip" && r.ref_id).map((r) => r.ref_id as string);
+  const tips = new Map<string, { amount: number; note: string }>();
+  if (tipIds.length > 0) {
+    const { data: found } = await supabase.from("tips").select("id, amount, note").in("id", tipIds);
+    for (const t of found ?? []) tips.set(t.id as string, { amount: Number(t.amount), note: (t.note as string) ?? "" });
+  }
+  return rows.map((row) => ({
     id: row.id,
     kind: row.kind,
     created_at: row.created_at,
@@ -1106,6 +1115,7 @@ export async function getNotifications(viewer: Viewer): Promise<Notification[]> 
     ref_id: row.ref_id,
     actor: row.actor ? toSummary(row.actor) : null,
     app: (row.app as unknown as Notification["app"]) ?? null,
+    tip: row.kind === "tip" && row.ref_id ? (tips.get(row.ref_id) ?? null) : null,
   }));
 }
 
@@ -1979,13 +1989,14 @@ export async function getAppPerks(app: { id: string; owner_id: string }, viewer:
   );
 }
 
-// Pays out bounties past their deadline (see settle_bounties()). Quiet if
-// the database doesn't have it yet.
-export async function settleBounties(): Promise<void> {
+// Pays out bounties past their deadline (see settle_bounties()), once per
+// page view however many lists ask for it. Quiet if the database doesn't
+// have it yet.
+export const settleBounties = cache(async (): Promise<void> => {
   if (!isSupabaseConfigured) return;
   const { error } = await (await createClient()).rpc("settle_bounties");
   if (error && error.code !== "PGRST202" && error.code !== "42883") console.error("settle_bounties failed", error.code, error.message);
-}
+});
 
 function toAnswer(row: any): BountyAnswer {
   return { id: row.id, body: row.body, link: row.link ?? null, created_at: row.created_at, user: toSummary(row.user) };
@@ -2017,22 +2028,35 @@ export async function getAppBounties(app: { id: string }, viewer: Viewer | null)
   return rows.map((b: any) => ({ ...b, answers: answers.get(b.id) ?? [] }) as Bounty);
 }
 
-// Open bounties across Method V, biggest rewards first (Methodium page).
-export async function getOpenBounties(limit = 12): Promise<BountyListing[]> {
+// Open bounties across Method V that you could answer, biggest rewards first
+// (Test & earn and the Methodium page). Your own bounties aren't listed (they're
+// on your app's page), and one you've answered shows your answer.
+export async function getOpenBounties(viewer: Viewer | null, limit = 12): Promise<BountyListing[]> {
   if (!isSupabaseConfigured) {
     return demoBounties.map((b) => ({ ...demoBounty(b), app: demoAppRef(b.app_id) })).sort((a, b) => b.reward - a.reward).slice(0, limit);
   }
   await settleBounties();
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("bounties")
     .select("id, app_id, title, details, reward, status, answer_count, winner_id, expires_at, created_at, app:apps!bounties_app_id_fkey(slug, name)")
     .eq("status", "open")
     .gt("expires_at", new Date().toISOString())
     .order("reward", { ascending: false })
     .limit(limit);
+  if (viewer) query = query.neq("owner_id", viewer.id);
+  const { data, error } = await query;
   if (error || !data) return [];
-  return data.map((b: any) => ({ ...b, answers: [] }) as BountyListing);
+  const mine = new Map<string, BountyAnswer>();
+  if (viewer && data.length > 0) {
+    const { data: found } = await supabase
+      .from("bounty_answers")
+      .select(`id, bounty_id, body, link, created_at, user:profiles!bounty_answers_user_id_fkey(${summaryCols()})`)
+      .eq("user_id", viewer.id)
+      .in("bounty_id", data.map((b: any) => b.id));
+    for (const a of found ?? []) mine.set(a.bounty_id as string, toAnswer(a));
+  }
+  return data.map((b: any) => ({ ...b, answers: mine.has(b.id) ? [mine.get(b.id)] : [] }) as BountyListing);
 }
 
 // Perks you can unlock across Method V, newest first (Methodium page).
@@ -2046,13 +2070,20 @@ export async function getPerkListings(viewer: Viewer | null, limit = 12): Promis
     .order("created_at", { ascending: false })
     .limit(limit * 2);
   if (error || !data) return [];
-  const open = data.filter((p: any) => (p.quantity === null || p.claimed_count < p.quantity) && p.app?.owner_id !== viewer?.id);
+  const notMine = data.filter((p: any) => p.app?.owner_id !== viewer?.id);
   const claimed = new Set<string>();
-  if (viewer && open.length > 0) {
-    const { data: mine } = await supabase.from("perk_claims").select("perk_id").eq("user_id", viewer.id).in("perk_id", open.map((p: any) => p.id));
+  if (viewer && notMine.length > 0) {
+    const { data: mine } = await supabase.from("perk_claims").select("perk_id").eq("user_id", viewer.id).in("perk_id", notMine.map((p: any) => p.id));
     for (const c of mine ?? []) claimed.add(c.perk_id as string);
   }
-  return open.slice(0, limit).map((p: any) => ({ ...p, app: { slug: p.app.slug, name: p.app.name }, claimed: claimed.has(p.id), secret: null }) as PerkListing);
+  // Ones you've unlocked stay listed (with your code) even once they're all claimed.
+  const listed = notMine.filter((p: any) => claimed.has(p.id) || p.quantity === null || p.claimed_count < p.quantity).slice(0, limit);
+  return Promise.all(
+    listed.map(async (p: any) => {
+      const secret = claimed.has(p.id) ? ((await supabase.rpc("perk_secret", { p_perk: p.id })).data as string | null) : null;
+      return { ...p, app: { slug: p.app.slug, name: p.app.name }, claimed: claimed.has(p.id), secret } as PerkListing;
+    }),
+  );
 }
 
 // How many friends joined with your invite link, and how many earned you the bonus.
@@ -2069,21 +2100,10 @@ export async function getMyInvites(viewer: Viewer | null): Promise<{ joined: num
 // How many more apps you can post (APP_LIMIT: 3 every 30 days, plus extra
 // posts bought in the V Store), and when the next one opens if you can't
 // right now.
-export async function getMyAppLimit(viewer: Viewer | null): Promise<{ left: number; nextAt: string | null }> {
-  if (!isSupabaseConfigured || !viewer) return { left: APP_LIMIT.perWindow, nextAt: null };
-  const [{ data }, store] = await Promise.all([
-    (await createClient())
-      .from("apps")
-      .select("created_at")
-      .eq("owner_id", viewer.id)
-      .gt("created_at", new Date(Date.now() - APP_LIMIT.days * 24 * 60 * 60 * 1000).toISOString()),
-    getMyStore(viewer),
-  ]);
-  return appLimit(
-    (data ?? []).map((a) => a.created_at as string),
-    Date.now(),
-    store?.extraAppPosts ?? 0,
-  );
+export async function getMyAppLimit(viewer: Viewer | null): Promise<{ left: number; nextAt: string | null; capped: boolean }> {
+  if (!isSupabaseConfigured || !viewer) return { left: APP_LIMIT.perWindow, nextAt: null, capped: false };
+  const [posted, store] = await Promise.all([recentPostTimes(await createClient(), viewer.id), getMyStore(viewer)]);
+  return appLimit(posted, Date.now(), store?.extraAppPosts ?? 0);
 }
 
 // Your V Store state: extra app posts saved, and how many you bought in the

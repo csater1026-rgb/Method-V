@@ -459,6 +459,14 @@ ok(!confirmMatches("ada", "ada_builds") && !confirmMatches("", "ada_builds") && 
   const full = appLimit([daysAgo(1), daysAgo(5), daysAgo(16)], now);
   ok(full.left === 0 && full.nextAt === new Date(now + 14 * 86_400_000).toISOString(), "3 in 30 days: the next opens when the oldest turns 30 days old");
   ok(/3 apps every 30 days\. Your next one opens on Nov 3\./.test(limitMessage(full.nextAt!)), `the message says when (${limitMessage(full.nextAt!)})`);
+  // Extra posts from the V Store: they add room, but never past 5 in 30 days.
+  ok(appLimit([daysAgo(1), daysAgo(5), daysAgo(16)], now, 2).left === 2, "2 extra posts saved at the limit: 2 more");
+  ok(appLimit([daysAgo(1)], now, 2).left === 4, "1 posted with 2 saved: 4 more (5 at most)");
+  const capped = appLimit([daysAgo(1), daysAgo(2), daysAgo(5), daysAgo(16), daysAgo(20)], now, 2);
+  ok(capped.left === 0 && capped.capped && capped.nextAt === new Date(now + 10 * 86_400_000).toISOString(), "5 in 30 days: full even with extra posts saved, until the oldest of the 5 turns 30 days old");
+  const cappedNone = appLimit([daysAgo(1), daysAgo(2), daysAgo(5), daysAgo(16), daysAgo(20)], now, 0);
+  ok(cappedNone.nextAt === new Date(now + 25 * 86_400_000).toISOString(), "5 in 30 days with nothing saved: the next free one opens when they're under 3");
+  ok(/5 apps in the last 30 days, the most anyone can/.test(limitMessage(capped.nextAt!, true)) && !limitMessage(capped.nextAt!, true).includes("V Store"), "at 5 the message doesn't point to the V Store");
 }
 
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");

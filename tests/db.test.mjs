@@ -25,7 +25,7 @@ const AFTER_LATE = [
 ];
 // Paying for testers was retired for bounties; applied last, after the tests
 // of the tester spots it refunds.
-const FINAL = ["20261022000000_testers_to_bounties.sql", "20261023000000_app_post_price.sql"];
+const FINAL = ["20261022000000_testers_to_bounties.sql", "20261023000000_app_post_price.sql", "20261024000000_economy_fixes.sql"];
 const migrations = readdirSync(migrationsDir)
   .filter((f) => f.endsWith(".sql") && !LATE.includes(f) && !AFTER_LATE.includes(f) && !FINAL.includes(f))
   .sort()
@@ -1534,6 +1534,115 @@ ok(!!(await fails("anon", null, "insert into public.sponsorships (sponsor_brand,
   ok((await credits(CHEAP)) === 15, "Pro still costs 50");
   await as("authenticated", CHEAP, "select public.buy_store_item('app_post')");
   ok((await shopErr(CHEAP, "select public.buy_store_item('app_post')")).includes("2 extra app posts every 30 days"), "still 2 a month at most");
+
+  // Fixes from a code review (20261024000000_economy_fixes.sql).
+  ok((await as("anon", null, "select public.schema_version() as v")).rows[0].v === 20261024, "the database says which update it has");
+  const newApp = "insert into public.apps (owner_id, slug, name, tagline, url, category) values ($1, $2, $2, 'x', 'https://example.com', 'games') returning id";
+  // The app limit counts every post, even apps deleted since.
+  const LOG = "bebebebe-0000-0000-0000-000000000000";
+  await db.exec(`insert into auth.users (id) values ('${LOG}')`);
+  const logPost = async (n) => (await as("authenticated", LOG, newApp, [LOG, `log-${n}`])).rows[0].id;
+  const logTry = async (n) => (await fails("authenticated", LOG, newApp, [LOG, `log-${n}`])) || "";
+  const firstLog = await logPost(1);
+  await logPost(2);
+  await logPost(3);
+  ok((await as("authenticated", LOG, "select count(*)::int n from public.app_posts")).rows[0].n === 3, "each app you post is remembered, and you can see your own");
+  ok((await as("authenticated", C, "select count(*)::int n from public.app_posts where owner_id = $1", [LOG])).rows[0].n === 0, "…but nobody else's");
+  ok(!!(await fails("authenticated", LOG, "delete from public.app_posts where owner_id = $1", [LOG])), "nobody can wipe their own post history");
+  await db.query("delete from public.apps where id = $1", [firstLog]);
+  ok((await logTry(4)).includes("3 apps every 30 days"), "deleting an app doesn't free up a post (no more delete-and-repost)");
+  // At most 5 in 30 days (3 + 2 extra posts), and at most 2 extra posts saved.
+  await fund(LOG, 200);
+  await as("authenticated", LOG, "select public.buy_store_item('app_post')");
+  await as("authenticated", LOG, "select public.buy_store_item('app_post')");
+  ok((await logTry(4)) === "" && (await logTry(5)) === "", "extra posts still let you post a 4th and 5th app");
+  const monthLater = () => db.query("update public.store_purchases set created_at = created_at - interval '31 days' where user_id = $1", [LOG]);
+  await monthLater();
+  await as("authenticated", LOG, "select public.buy_store_item('app_post')");
+  await as("authenticated", LOG, "select public.buy_store_item('app_post')");
+  await monthLater();
+  ok((await shopErr(LOG, "select public.buy_store_item('app_post')")).includes("2 extra app posts saved, the most you can hold"), "you can hold 2 extra posts at most");
+  const capDate = (await db.query("select to_char((now() + interval '30 days') at time zone 'America/Los_Angeles', 'FMMon FMDD') d")).rows[0].d;
+  const capMsg = await logTry(6);
+  ok(capMsg.includes("5 apps in the last 30 days") && capMsg.includes(`opens on ${capDate}.`), `nobody posts more than 5 apps in 30 days, even with extra posts saved (${capMsg})`);
+  ok((await as("authenticated", LOG, "select * from public.my_store()")).rows[0].extra_app_posts === 2, "…and the saved ones are kept for later");
+  // Posting failed halfway: the server takes the app back, with the extra post it used.
+  const UNDO = "cacacaca-0000-0000-0000-000000000000";
+  await db.exec(`insert into auth.users (id) values ('${UNDO}')`);
+  for (const n of [1, 2, 3]) await as("authenticated", UNDO, newApp, [UNDO, `undo-${n}`]);
+  await fund(UNDO, 20);
+  await as("authenticated", UNDO, "select public.buy_store_item('app_post')");
+  const failedApp = (await as("authenticated", UNDO, newApp, [UNDO, "undo-4"])).rows[0].id;
+  const undoSaved = async () => (await as("authenticated", UNDO, "select * from public.my_store()")).rows[0].extra_app_posts;
+  ok((await undoSaved()) === 0, "the 4th app used the extra post");
+  ok(!!(await fails("authenticated", UNDO, "select public.undo_app_post($1)", [failedApp])), "only the server can take a post back");
+  await as("service_role", null, "select public.undo_app_post($1)", [failedApp]);
+  const undoPosts = (await db.query("select count(*)::int n from public.app_posts where owner_id = $1", [UNDO])).rows[0].n;
+  const undoApps = (await db.query("select count(*)::int n from public.apps where id = $1", [failedApp])).rows[0].n;
+  ok(undoApps === 0 && undoPosts === 3 && (await undoSaved()) === 1, "a failed post is taken back: the app is gone, it doesn't count, and the extra post comes back");
+
+  // Bounty splits: by the answers that still exist, and the whole reward is paid out.
+  const people = ["c0", "c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8"].map((x) => `${x}${x}${x}${x}-1111-0000-0000-000000000000`);
+  const [BO, ...answerers] = people;
+  await db.exec(`insert into auth.users (id) values ${people.map((p) => `('${p}')`).join(", ")}`);
+  await fund(BO, 100);
+  const boApp = await makeApp(BO, "split-fixes");
+  const postB = async (title, reward) => (await as("authenticated", BO, "select public.post_bounty($1, $2, '', $3) as id", [boApp, title, reward])).rows[0].id;
+  const answer = (who, b) => as("authenticated", who, "select public.answer_bounty($1, 'I tried it on my phone and the signup button did nothing.')", [b]);
+  const small = await postB("Try the signup on a phone", 5);
+  for (const who of answerers.slice(0, 6)) await answer(who, small);
+  const leftovers = await postB("Find anything confusing", 25);
+  for (const who of answerers.slice(0, 3)) await answer(who, leftovers);
+  const deserted = await postB("Record your first minute", 10);
+  await answer(answerers[7], deserted);
+  // Someone who answered deletes their account: their answer goes, and so does their count.
+  await db.query("delete from auth.users where id = $1", [answerers[2]]);
+  await db.query("delete from auth.users where id = $1", [answerers[7]]);
+  const counts = (await db.query("select id, answer_count from public.bounties where id = any($1::uuid[])", [[small, leftovers, deserted]])).rows;
+  const countOf = (id) => counts.find((r) => r.id === id).answer_count;
+  ok(countOf(small) === 5 && countOf(leftovers) === 2 && countOf(deserted) === 0, "an answer removed with its account counts down");
+  ok(!(await fails("authenticated", BO, "select public.cancel_bounty($1)", [deserted])), "a bounty whose only answer is gone can be taken down");
+  await db.query("update public.bounties set expires_at = now() - interval '1 minute' where id in ($1, $2)", [small, leftovers]);
+  const beforeSplit = Object.fromEntries(await Promise.all([BO, ...answerers].map(async (p) => [p, (await db.query("select credits from public.profiles where id = $1", [p])).rows[0]?.credits])));
+  await as("anon", null, "select public.settle_bounties()");
+  const got = async (p) => (await credits(p)) - beforeSplit[p];
+  // 25 between the 2 answers left: 13 to the earlier one, 12 to the other.
+  ok((await got(answerers[0])) === 1 + 13 && (await got(answerers[1])) === 1 + 12, "a split pays out the whole reward, the leftover to the earliest answer");
+  // 5 between 5 answers left: 1 each (the 6th answer, from someone who left, isn't counted).
+  ok((await got(answerers[3])) === 1 && (await got(answerers[4])) === 1 && (await got(answerers[5])) === 1, "a small reward with lots of answers still pays them");
+  ok((await got(BO)) === 0, "…so nothing is left over for the builder");
+  const small6 = await postB("Check the pricing page", 5);
+  for (const who of answerers.slice(0, 6).filter((p) => p !== answerers[2])) await answer(who, small6);
+  const LATE6 = "c9c9c9c9-1111-0000-0000-000000000000";
+  await db.exec(`insert into auth.users (id) values ('${LATE6}')`);
+  await answer(LATE6, small6);
+  await db.query("update public.bounties set expires_at = now() - interval '1 minute' where id = $1", [small6]);
+  const late0 = await credits(LATE6);
+  const first0 = await credits(answerers[0]);
+  await as("anon", null, "select public.settle_bounties()");
+  ok((await credits(answerers[0])) === first0 + 1 && (await credits(LATE6)) === late0, "more answers than Methodium: the earliest answers get 1 each");
+
+  // Tips and perks need an account at least a week old; tips are 50 a day at most.
+  const [TN, TO] = ["d5d5d5d5-1111-0000-0000-000000000000", "d6d6d6d6-1111-0000-0000-000000000000"];
+  await db.exec(`insert into auth.users (id) values ('${TN}'), ('${TO}')`);
+  await fund(TN, 100);
+  await fund(TO, 200);
+  ok((await shopErr(TN, "select public.send_tip($1, 5)", [TO])).includes("New accounts can send tips once they're a week old"), "a brand-new account can't send tips");
+  ok((await credits(TN)) === 110, "…and keeps its Methodium");
+  await db.query("update public.profiles set created_at = now() - interval '8 days' where id = $1", [TO]);
+  ok((await shopErr(TO, "select public.send_tip($1, 30, null, 'Thanks for the bug report')", [TN])) === "", "a week-old account can");
+  ok((await as("authenticated", TN, "select note from public.tips where to_id = $1", [TN])).rows[0]?.note === "Thanks for the bug report", "the person tipped can read the note");
+  ok((await shopErr(TO, "select public.send_tip($1, 25)", [TN])).includes("50 Methodium a day (20 left today)"), "tips are capped at 50 Methodium a day");
+  ok((await shopErr(TO, "select public.send_tip($1, 20)", [TN])) === "", "…up to exactly 50");
+  const toApp = await makeApp(TO, "week-old-perks");
+  const halfOff = (await as("authenticated", TO, "select public.save_perk(null, $1, 'Half off a year', '', 'HALF', 10, null) as id", [toApp])).rows[0].id;
+  const tn0 = await credits(TN);
+  ok((await shopErr(TN, "select public.claim_perk($1)", [halfOff])).includes("unlock perks once they're a week old"), "a brand-new account can't unlock perks");
+  ok((await credits(TN)) === tn0, "…and isn't charged");
+  await db.query("update public.profiles set created_at = now() - interval '8 days' where id = $1", [TN]);
+  ok((await as("authenticated", TN, "select public.claim_perk($1) as s", [halfOff])).rows[0].s === "HALF", "a week-old account can");
+  await db.query("update public.profiles set credits = 0 where id = $1", [TN]);
+  ok((await shopErr(TN, "select public.buy_store_item('pro')")).includes("Earn more by answering bounties"), "not enough Methodium points to bounties, not testing");
 }
 
 // Security hardening (20261011000000_security_hardening.sql).

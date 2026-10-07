@@ -331,8 +331,8 @@ export function DeleteAppForm({ appId, appName, username }: { appId: string; app
         Delete this app
       </h2>
       <p className="mt-1 text-sm text-muted">
-        Removes the app, all its Drops, likes, comments, feedback and Q&amp;A for good. Testers you paid for but haven&apos;t used yet come
-        back as credits.
+        Removes the app, all its Drops, likes, comments, feedback and Q&amp;A for good. A bounty nobody has answered is taken down and its
+        Methodium comes back. The app still counts toward the apps you can post this month.
       </p>
       {open ? (
         <form onSubmit={remove} className="mt-3 flex flex-col gap-2">

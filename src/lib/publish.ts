@@ -3,7 +3,8 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { CATEGORIES, MAX_DROP_SECONDS, PRICING, STAGES, isOneOf } from "./constants";
-import { APP_LIMIT, appLimit, limitMessage } from "./app-limit";
+import { appLimit, limitMessage } from "./app-limit";
+import { recentPostTimes } from "./app-posts";
 import { dbMessage } from "./db-errors";
 import { parseList, slugify } from "./format";
 import { checkLink } from "./link-check";
@@ -69,21 +70,12 @@ export async function publishApp(
     return { ok: false, error: "The server is missing SUPABASE_SECRET_KEY, so it can't verify links yet." };
   }
 
-  // 3 new apps every 30 days (the database enforces it too); checked before
-  // the slow link check so nobody waits just to be told no.
-  const { data: mine } = await supabase
-    .from("apps")
-    .select("created_at")
-    .eq("owner_id", viewerId)
-    .gt("created_at", new Date(Date.now() - APP_LIMIT.days * 24 * 60 * 60 * 1000).toISOString());
-  const { data: store } = await supabase.rpc("my_store");
+  // 3 new apps every 30 days, 5 with extra posts (the database enforces it
+  // too); checked before the slow link check so nobody waits just to be told no.
+  const [posted, { data: store }] = await Promise.all([recentPostTimes(supabase, viewerId), supabase.rpc("my_store")]);
   const extra = Number((Array.isArray(store) ? store[0] : store)?.extra_app_posts ?? 0);
-  const limit = appLimit(
-    (mine ?? []).map((a) => a.created_at as string),
-    Date.now(),
-    extra,
-  );
-  if (limit.nextAt) return { ok: false, error: limitMessage(limit.nextAt) };
+  const limit = appLimit(posted, Date.now(), extra);
+  if (limit.nextAt) return { ok: false, error: limitMessage(limit.nextAt, limit.capped) };
 
   const link = await checkLink(input.url);
   if (!link.ok) return { ok: false, error: `Link check failed: ${link.reason}` };
@@ -133,7 +125,13 @@ export async function publishApp(
       : { error: null };
 
   if (dropError) {
-    await supabase.from("apps").delete().eq("id", app.id);
+    // Take the app back so it doesn't count toward the limit, with any extra
+    // post it used (undo_app_post); before that update is run, just delete it.
+    const { error: undoError } = await admin.rpc("undo_app_post", { p_app: app.id });
+    if (undoError) {
+      if (undoError.code !== "PGRST202") console.error("undo_app_post failed", undoError.code, undoError.message);
+      await supabase.from("apps").delete().eq("id", app.id);
+    }
     return { ok: false, error: dbMessage(dropError, "Couldn't save your Drop.") };
   }
   return { ok: true, slug: app.slug };

@@ -6,6 +6,11 @@ import { createAdminClient, createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
+// The newest database update this code needs: schema_version() in
+// supabase/migrations/20261024000000_economy_fixes.sql (each new migration
+// bumps both).
+const SCHEMA_VERSION = 20261024;
+
 // Setup check: open /api/health after deploying to see what's connected and
 // what's missing. Never shows keys or data, only yes/no and what to do next.
 export async function GET() {
@@ -18,8 +23,11 @@ export async function GET() {
   if (isSupabaseConfigured) {
     const supabase = await createClient();
     const { error: reach } = await supabase.from("apps").select("id", { head: true, count: "exact" }).limit(1);
-    // Photos, social handles, polls and the Spotlight are from the newest migrations, so they show the database is up to date.
-    const [{ error: behindProfiles }, { error: behindQa }, { error: behindSpotlight }, { error: behindPackages }, { error: behindCovers }, { error: behindShots }, { error: behindGuarantee }, { error: behindPromos }, { error: behindPrizes }, { error: behindEconomy }] = await Promise.all([
+    // Tables and columns from the migrations show the database is up to date;
+    // from 20261024000000_economy_fixes.sql on, schema_version() says which
+    // update it has (migrations that only change functions can't be seen
+    // otherwise).
+    const [{ error: behindProfiles }, { error: behindQa }, { error: behindSpotlight }, { error: behindPackages }, { error: behindCovers }, { error: behindShots }, { error: behindGuarantee }, { error: behindPromos }, { error: behindPrizes }, { error: behindEconomy }, version] = await Promise.all([
       supabase.from("profiles").select("avatar_path, instagram_handle, cover_path", { head: true }).limit(1),
       supabase.from("questions").select("poll_options", { head: true }).limit(1),
       supabase.from("spotlights").select("id", { head: true }).limit(1),
@@ -30,12 +38,14 @@ export async function GET() {
       supabase.from("promotions").select("slug", { head: true }).limit(1),
       supabase.from("leaderboard_prizes").select("month", { head: true }).limit(1),
       supabase.from("bounties").select("id", { head: true }).limit(1),
+      supabase.rpc("schema_version"),
     ]);
-    const latest = behindProfiles ?? behindQa ?? behindSpotlight ?? behindPackages ?? behindCovers ?? behindShots ?? behindGuarantee ?? behindPromos ?? behindPrizes ?? behindEconomy;
+    const behindVersion = version.error || Number(version.data) < SCHEMA_VERSION ? { message: "schema_version" } : null;
+    const latest = behindProfiles ?? behindQa ?? behindSpotlight ?? behindPackages ?? behindCovers ?? behindShots ?? behindGuarantee ?? behindPromos ?? behindPrizes ?? behindEconomy ?? behindVersion;
     checks.database = reach
       ? { ok: false, note: /relation|does not exist|schema cache/i.test(reach.message) ? "Tables are missing: run supabase/setup.sql in the Supabase SQL Editor." : "Can't reach the database: check the Supabase URL and key." }
       : latest
-        ? { ok: false, note: "The database is behind: in Supabase → SQL Editor, run the newest files in supabase/migrations/ you haven't run yet (20261019000000_v_coin_economy.sql adds perks, bounties, tips and invites; 20261018000000_leaderboard_prizes.sql pays the monthly leaderboard prizes; 20261016000000_drop_bonus.sql starts the post-a-Drop bonus; 20261015000000_tester_guarantee.sql refunds tester spots nobody fills; 20261014000000_feedback_replies.sql lets builders reply to feedback; 20261013000000_feedback_screenshots.sql adds screenshots on feedback; 20261012000000_app_covers.sql adds app cover images; 20261011000000_security_hardening.sql makes Methodium balances private and adds spam limits; 20261010000000_cover_photos.sql adds profile header pictures; 20261009000000_review_fixes.sql: fixes from a code review; 20261008000000_sponsor_packages.sql adds sponsorship packages; 20261007000000_spotlight.sql adds the Spotlight and credit packs; 20261004000000_qa_fixes.sql fixes replies, polls and the builders board; 20261003000000_questions_feed.sql adds polls and replies; 20261002000000_socials.sql adds Instagram, TikTok, YouTube and Threads; 20261001000000_avatars.sql adds profile photos). Run them oldest first." }
+        ? { ok: false, note: "The database is behind: in Supabase → SQL Editor, run the newest files in supabase/migrations/ you haven't run yet (20261024000000_economy_fixes.sql: fixes to the app limit, bounties, tips and perks from a code review; 20261023000000_app_post_price.sql makes an extra app post 15 Methodium; 20261022000000_testers_to_bounties.sql replaces tester spots with bounties; 20261021000000_v_store.sql adds the V Store; 20261020000000_app_limit.sql limits new apps to 3 every 30 days; 20261019000000_v_coin_economy.sql adds perks, bounties, tips and invites; 20261018000000_leaderboard_prizes.sql pays the monthly leaderboard prizes; 20261016000000_drop_bonus.sql starts the post-a-Drop bonus; 20261015000000_tester_guarantee.sql refunds tester spots nobody fills; 20261014000000_feedback_replies.sql lets builders reply to feedback; 20261013000000_feedback_screenshots.sql adds screenshots on feedback; 20261012000000_app_covers.sql adds app cover images; 20261011000000_security_hardening.sql makes Methodium balances private and adds spam limits; 20261010000000_cover_photos.sql adds profile header pictures; 20261009000000_review_fixes.sql: fixes from a code review; 20261008000000_sponsor_packages.sql adds sponsorship packages; 20261007000000_spotlight.sql adds the Spotlight and credit packs; 20261004000000_qa_fixes.sql fixes replies, polls and the builders board; 20261003000000_questions_feed.sql adds polls and replies; 20261002000000_socials.sql adds Instagram, TikTok, YouTube and Threads; 20261001000000_avatars.sql adds profile photos). Run them oldest first." }
         : { ok: true, note: "Connected, and the tables are up to date." };
 
     const admin = createAdminClient();

@@ -38,7 +38,7 @@ export function PerksSection({
       <p className="mt-1 text-sm text-muted">
         {isOwner
           ? `Offer a deal on ${app.name} (a promo code, a free month, a lifetime deal) that people unlock with Methodium. The Methodium comes to you, to spend on bounties or in the V Store.`
-          : `Deals on ${app.name} from its builder. Unlock one with Methodium you earned testing apps.`}
+          : `Deals on ${app.name} from its builder. Unlock one with your Methodium.`}
       </p>
 
       {perks.length > 0 && (
@@ -105,7 +105,12 @@ export function PerkCard({ perk, app, isOwner, showApp = false }: { perk: Perk; 
 
       {secret ? (
         <SecretBox secret={secret} label={isOwner ? "What people get" : "Your perk"} />
-      ) : isOwner ? null : left === 0 ? (
+      ) : isOwner ? null : perk.claimed ? (
+        // Already unlocked: showing the code again is free.
+        <button type="button" onClick={unlock} disabled={pending} className="btn-ghost self-start">
+          {pending ? "Opening…" : "You unlocked this · show your code"}
+        </button>
+      ) : left === 0 ? (
         <p className="text-sm text-muted">All claimed.</p>
       ) : confirming ? (
         <div className="flex flex-wrap items-center gap-2">

@@ -1065,22 +1065,22 @@ export async function postDrop(input: NewDrop, onProgress?: (fraction: number) =
   return ok({ slug: r.data.slug });
 }
 
-// How many more apps you can post (3 every 30 days, src/lib/app-limit.ts),
-// and when the next one opens if you can't right now.
-export async function getMyAppLimit(viewerId: string | null): Promise<{ left: number; nextAt: string | null }> {
-  if (!supabase || !viewerId) return { left: APP_LIMIT.perWindow, nextAt: null };
-  const [{ data }, store] = await Promise.all([
-    supabase
-      .from("apps")
-      .select("created_at")
-      .eq("owner_id", viewerId)
-      .gt("created_at", new Date(Date.now() - APP_LIMIT.days * 24 * 60 * 60 * 1000).toISOString()),
+// How many more apps you can post (3 every 30 days, 5 with extra posts;
+// src/lib/app-limit.ts), and when the next one opens if you can't right now.
+export async function getMyAppLimit(viewerId: string | null): Promise<{ left: number; nextAt: string | null; capped: boolean }> {
+  if (!supabase || !viewerId) return { left: APP_LIMIT.perWindow, nextAt: null, capped: false };
+  const since = new Date(Date.now() - APP_LIMIT.days * 24 * 60 * 60 * 1000).toISOString();
+  const [posts, store] = await Promise.all([
+    // Every app posted in the last 30 days, deleted ones too (they count).
+    supabase.from("app_posts").select("created_at").eq("owner_id", viewerId).gt("created_at", since),
     // Extra app posts bought in the V Store (0 before its SQL is run).
     supabase.rpc("my_store"),
   ]);
+  // Before the app_posts SQL is run: the apps you have now.
+  const rows = posts.error ? (await supabase.from("apps").select("created_at").eq("owner_id", viewerId).gt("created_at", since)).data : posts.data;
   const row = (Array.isArray(store.data) ? store.data[0] : store.data) as { extra_app_posts?: number } | null;
   return appLimit(
-    ((data ?? []) as { created_at: string }[]).map((a) => a.created_at),
+    ((rows ?? []) as { created_at: string }[]).map((a) => a.created_at),
     Date.now(),
     Number(row?.extra_app_posts ?? 0),
   );

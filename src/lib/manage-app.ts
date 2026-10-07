@@ -151,6 +151,20 @@ export async function deleteApp(supabase: SupabaseClient, viewerId: string, appI
     if (!error) shots = (fb ?? []).flatMap((f) => [...(f.worked_shots ?? []), ...(f.confusing_shots ?? [])]);
   }
 
+  // Bounties hold Methodium, and deleting the app would take them with it.
+  // Answered ones need a winner first (or their deadline, when the answers
+  // split the reward), so nobody's work goes unpaid; unanswered ones are
+  // taken down and the reward comes back.
+  await supabase.rpc("settle_bounties");
+  const { data: openBounties } = await supabase.from("bounties").select("id, answer_count").eq("app_id", appId).eq("status", "open");
+  if ((openBounties ?? []).some((b) => Number(b.answer_count) > 0)) {
+    return { ok: false, error: "This app has a bounty people have answered. Pick the best answer first (or wait until its deadline), so nobody goes unpaid." };
+  }
+  for (const b of openBounties ?? []) {
+    const { error: cancelError } = await supabase.rpc("cancel_bounty", { p_bounty: b.id });
+    if (cancelError) return { ok: false, error: "Couldn't take down this app's bounty and give you its Methodium back. Try again in a minute." };
+  }
+
   // Testers not used yet go back to the builder as credits.
   const { data: request } = await supabase.from("test_requests").select("slots_total, slots_filled").eq("app_id", appId).maybeSingle();
   if (request && request.slots_filled < request.slots_total) {

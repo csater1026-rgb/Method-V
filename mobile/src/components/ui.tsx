@@ -1,5 +1,6 @@
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
+import { useId } from "react";
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View, type TextProps, type ViewStyle } from "react-native";
 import Svg, { Defs, LinearGradient, Polygon, Polyline, Rect, Stop } from "react-native-svg";
 
@@ -216,16 +217,19 @@ export function Handle({ username, size = 15 }: { username: string; size?: numbe
 // Methodium, Method V's credits: a mint hexagon token reading "Mv", the
 // same as the website's. Drawn from the website's src/lib/methodium-icon.ts.
 export function Coin({ size = 14 }: { size?: number }) {
+  // Each token gets its own gradient id: on the web build, tokens sharing one
+  // id all point at the first, which draws nothing while it's hidden.
+  const edge = `mvEdge${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
   return (
     <Svg width={(size * MV_VIEW.width) / MV_VIEW.height} height={size} viewBox={`0 0 ${MV_VIEW.width} ${MV_VIEW.height}`} accessible={false}>
       <Defs>
-        <LinearGradient id="mvEdge" x1="0" y1="0" x2="0" y2="1">
+        <LinearGradient id={edge} x1="0" y1="0" x2="0" y2="1">
           <Stop offset="0" stopColor={MV_COLORS.edgeTop} />
           <Stop offset="1" stopColor={MV_COLORS.edgeBottom} />
         </LinearGradient>
       </Defs>
       <Polygon points={MV_OUTER} fill={MV_COLORS.shadow} transform={`translate(0 ${MV_SHADOW_DY})`} />
-      <Polygon points={MV_OUTER} fill="url(#mvEdge)" />
+      <Polygon points={MV_OUTER} fill={`url(#${edge})`} />
       <Polygon points={MV_INNER} fill={MV_COLORS.face} />
       <Polyline points={MV_M} fill="none" stroke={MV_COLORS.symbol} strokeWidth={MV_M_WIDTH} strokeLinejoin="miter" strokeLinecap="butt" />
       <Polyline points={MV_V} fill="none" stroke={MV_COLORS.symbol} strokeWidth={MV_V_WIDTH} strokeLinejoin="miter" strokeLinecap="butt" />

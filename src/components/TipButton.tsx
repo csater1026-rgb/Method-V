@@ -9,7 +9,8 @@ import { TIPS } from "@/lib/constants";
 import { Coin } from "./Coin";
 
 // Send Methodium to someone: a builder whose app you love, or a tester whose
-// feedback helped. 1 to 50 at a time, up to 100 a day.
+// feedback helped. 1 to 50 at a time, up to 50 a day, once your account is a
+// week old.
 export function TipButton({
   to,
   appId = null,
@@ -78,7 +79,7 @@ export function TipButton({
           Cancel
         </button>
       </div>
-      <p className="text-xs text-muted">Up to {TIPS.perDay} Methodium of tips a day.</p>
+      <p className="text-xs text-muted">Up to {TIPS.perDay} Methodium of tips a day, once your account is a week old.</p>
       {error && <p className="text-danger">{error}</p>}
     </div>
   );

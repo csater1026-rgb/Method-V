@@ -6,7 +6,7 @@ import { BountyList } from "@/components/Bounties";
 import { Coin } from "@/components/Coin";
 import { TopTesters } from "@/components/Passport";
 import { BOUNTIES, CREDITS, STREAK_BONUS } from "@/lib/constants";
-import { getApps, getOpenBounties, getTopTesters, getViewer, settleBounties } from "@/lib/data";
+import { getApps, getOpenBounties, getTopTesters, getViewer } from "@/lib/data";
 
 export const metadata: Metadata = {
   title: "Test & earn",
@@ -18,8 +18,7 @@ export const metadata: Metadata = {
 // the newest apps to try and give free feedback on. Nobody pays for testers.
 export default async function TestPage() {
   const viewer = await getViewer();
-  await settleBounties();
-  const [bounties, newest, topTesters] = await Promise.all([getOpenBounties(12), getApps({}, 6), getTopTesters()]);
+  const [bounties, newest, topTesters] = await Promise.all([getOpenBounties(viewer, 12), getApps({}, 6), getTopTesters()]);
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8">

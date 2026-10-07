@@ -69,14 +69,19 @@ export const CREDIT_REASONS: Record<string, string> = {
 // More to do with Methodium. Must match supabase/migrations/20261019000000_v_coin_economy.sql.
 export const PERKS = { minCost: 5, maxCost: 500, perApp: 3 } as const;
 export const BOUNTIES = { minReward: 5, maxReward: 200, perApp: 3, days: 14, minDays: 3, maxDays: 30, minAnswer: 20 } as const;
-export const TIPS = { max: 50, perDay: 100, amounts: [2, 5, 10, 25] } as const;
+// Tips: 1 to 50 at a time, 50 a day, from accounts at least a week old (perks
+// need a week-old account too). Must match send_tip() and claim_perk() in
+// supabase/migrations/20261024000000_economy_fixes.sql.
+export const TIPS = { max: 50, perDay: 50, newAccountDays: 7, amounts: [2, 5, 10, 25] } as const;
 export const REFERRALS = { bonus: 10, perMonth: 20 } as const;
 
 // The V Store: upgrades bought with Methodium (Methodium is spend-only, never
-// money). Must match buy_store_item() in supabase/migrations/20261023000000_app_post_price.sql.
+// money). Extra app posts: 2 can be bought every 30 days, and you can hold 2
+// at a time. Must match buy_store_item() in
+// supabase/migrations/20261024000000_economy_fixes.sql.
 export const V_STORE = {
   pro: { cost: 50, days: 30 },
-  appPost: { cost: 15, perWindow: 2, days: 30 },
+  appPost: { cost: 15, perWindow: 2, maxSaved: 2, days: 30 },
 } as const;
 
 // Methodium for 1st, 2nd and 3rd on each monthly leaderboard (top builders and
