@@ -96,7 +96,9 @@ export default function BrowseScreen() {
         </View>
       }
       renderItem={({ item }) => (
-        <AppBannerCard app={item} width={cardWidth} compact />
+        <View style={{ width: cardWidth }}>
+          <AppBannerCard app={item} width="100%" compact />
+        </View>
       )}
       ListEmptyComponent={data ? <Body muted style={{ paddingHorizontal: 16 }}>Nothing matches that yet.</Body> : null}
     />

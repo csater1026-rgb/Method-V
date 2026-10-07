@@ -189,9 +189,12 @@ await visit("/browse", "browse");
   await page.screenshot({ path: `${OUT}browse-leaderboards.png` });
   // Apps are cards like Home's, 2 across.
   {
-    const ys = [];
-    for (const name of ["NoteFlow", "QuizPop", "PalettePal"]) ys.push(Math.round((await page.getByRole("link", { name: new RegExp(`^${name}:`) }).first().boundingBox()).y));
+    const boxes = [];
+    for (const name of ["NoteFlow", "QuizPop", "PalettePal"]) boxes.push(await page.getByRole("link", { name: new RegExp(`^${name}:`) }).first().boundingBox());
+    const ys = boxes.map((b) => Math.round(b.y));
     ok(ys[0] === ys[1] && ys[2] > ys[1], `Browse shows apps 2 across (${ys.join(",")})`);
+    const vw = page.viewportSize().width;
+    ok(boxes.every((b) => b.x >= 0 && b.x + b.width <= vw + 1 && b.width < vw / 2), `Browse cards fit on screen (${boxes.map((b) => Math.round(b.width)).join(",")} of ${vw})`);
   }
   await page.getByText("All apps", { exact: true }).scrollIntoViewIfNeeded();
   await page.waitForTimeout(400);

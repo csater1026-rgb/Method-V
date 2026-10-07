@@ -45,42 +45,39 @@ export function AppCard({ app, wide }: { app: Card; wide?: boolean }) {
       <Pressable
         accessibilityRole="link"
         accessibilityLabel={`${app.name}: ${app.tagline}`}
-        style={({ pressed }) => ({
-          width: wide ? 260 : undefined,
-          backgroundColor: t.surface,
-          borderColor: pressed ? t.accent : t.line,
-          borderWidth: 1,
-          borderRadius: 12,
-          overflow: "hidden",
-        })}
+        style={{ width: wide ? 260 : undefined }}
       >
-        <View style={{ aspectRatio: wide ? 4 / 3 : 16 / 9, backgroundColor: media.bg }}>
-          {app.poster_url ? (
-            <Image source={{ uri: app.poster_url }} style={{ flex: 1 }} contentFit="cover" transition={150} />
-          ) : (
-            <DropPlaceholder name={app.name} compact />
-          )}
-        </View>
-        <View style={{ padding: 12, gap: 6 }}>
-          <View style={{ flexDirection: "row", gap: 6 }}>
-            <Tag>{labelFor(CATEGORIES, app.category)}</Tag>
+        {({ pressed }) => (
+          <View style={{ backgroundColor: t.surface, borderColor: pressed ? t.accent : t.line, borderWidth: 1, borderRadius: 12, overflow: "hidden" }}>
+            <View style={{ aspectRatio: wide ? 4 / 3 : 16 / 9, backgroundColor: media.bg }}>
+              {app.poster_url ? (
+                <Image source={{ uri: app.poster_url }} style={{ flex: 1 }} contentFit="cover" transition={150} />
+              ) : (
+                <DropPlaceholder name={app.name} compact />
+              )}
+            </View>
+            <View style={{ padding: 12, gap: 6 }}>
+              <View style={{ flexDirection: "row", gap: 6 }}>
+                <Tag>{labelFor(CATEGORIES, app.category)}</Tag>
+              </View>
+              <Display size={26} numberOfLines={1}>
+                {app.name}
+              </Display>
+              <Body muted size={13} numberOfLines={2}>
+                {app.tagline}
+              </Body>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 2 }}>
+                <Avatar username={app.owner.username} name={app.owner.display_name} src={app.owner.avatar_url} size={20} />
+                <Body size={12} muted numberOfLines={1} style={{ flex: 1 }}>
+                  {app.owner.display_name || <Handle username={app.owner.username} size={12} />}
+                </Body>
+                <Mono>
+                  <TryCount appId={app.id} count={app.try_count} /> tries
+                </Mono>
+              </View>
+            </View>
           </View>
-          <Display size={26} numberOfLines={1}>
-            {app.name}
-          </Display>
-          <Body muted size={13} numberOfLines={2}>
-            {app.tagline}
-          </Body>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 2 }}>
-            <Avatar username={app.owner.username} name={app.owner.display_name} src={app.owner.avatar_url} size={20} />
-            <Body size={12} muted numberOfLines={1} style={{ flex: 1 }}>
-              {app.owner.display_name || <Handle username={app.owner.username} size={12} />}
-            </Body>
-            <Mono>
-              <TryCount appId={app.id} count={app.try_count} /> tries
-            </Mono>
-          </View>
-        </View>
+        )}
       </Pressable>
     </Link>
   );
@@ -136,45 +133,49 @@ export function AppBannerCard({
       <Pressable
         accessibilityRole="link"
         accessibilityLabel={`${app.name}: ${app.tagline}`}
-        style={({ pressed }) => ({ width, backgroundColor: t.surface, borderColor: pressed ? t.accent : t.line, borderWidth: 1, borderRadius: 12, overflow: "hidden" })}
+        style={{ width }}
       >
-        <View style={{ aspectRatio: 16 / 9, backgroundColor: media.bg }}>
-          {app.poster_url ? (
-            <Image source={{ uri: app.poster_url }} style={{ flex: 1 }} contentFit="cover" transition={150} />
-          ) : (
-            <DropPlaceholder name={app.name} compact bare />
-          )}
-        </View>
-        <View style={{ paddingHorizontal: compact ? 10 : 12, paddingBottom: 12 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 10 }}>
-            <Display size={compact ? 22 : 26} numberOfLines={1} style={{ flexShrink: 1 }}>
-              {app.name}
-            </Display>
-            {!compact && <Tag>{labelFor(CATEGORIES, app.category)}</Tag>}
-          </View>
-          <Body muted size={13} numberOfLines={1}>
-            {app.tagline}
-          </Body>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8 }}>
-            {showOwner ? (
-              <>
-                <Avatar username={app.owner.username} name={app.owner.display_name} src={app.owner.avatar_url} size={18} />
-                {compact ? (
-                  <View style={{ flex: 1 }} />
+        {({ pressed }) => (
+          <View style={{ backgroundColor: t.surface, borderColor: pressed ? t.accent : t.line, borderWidth: 1, borderRadius: 12, overflow: "hidden" }}>
+            <View style={{ aspectRatio: 16 / 9, backgroundColor: media.bg }}>
+              {app.poster_url ? (
+                <Image source={{ uri: app.poster_url }} style={{ flex: 1 }} contentFit="cover" transition={150} />
+              ) : (
+                <DropPlaceholder name={app.name} compact bare />
+              )}
+            </View>
+            <View style={{ paddingHorizontal: compact ? 10 : 12, paddingBottom: 12 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 10 }}>
+                <Display size={compact ? 22 : 26} numberOfLines={1} style={{ flexShrink: 1 }}>
+                  {app.name}
+                </Display>
+                {!compact && <Tag>{labelFor(CATEGORIES, app.category)}</Tag>}
+              </View>
+              <Body muted size={13} numberOfLines={1}>
+                {app.tagline}
+              </Body>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8 }}>
+                {showOwner ? (
+                  <>
+                    <Avatar username={app.owner.username} name={app.owner.display_name} src={app.owner.avatar_url} size={18} />
+                    {compact ? (
+                      <View style={{ flex: 1 }} />
+                    ) : (
+                      <Body size={12} muted numberOfLines={1} style={{ flex: 1 }}>
+                        {app.owner.display_name || <Handle username={app.owner.username} size={12} />}
+                      </Body>
+                    )}
+                  </>
                 ) : (
-                  <Body size={12} muted numberOfLines={1} style={{ flex: 1 }}>
-                    {app.owner.display_name || <Handle username={app.owner.username} size={12} />}
-                  </Body>
+                  <View style={{ flex: 1 }} />
                 )}
-              </>
-            ) : (
-              <View style={{ flex: 1 }} />
-            )}
-            <Mono>
-              <TryCount appId={app.id} count={app.try_count} /> tries{showOwner ? "" : ` · ${formatCount(app.like_count)} ♥`}
-            </Mono>
+                <Mono>
+                  <TryCount appId={app.id} count={app.try_count} /> tries{showOwner ? "" : ` · ${formatCount(app.like_count)} ♥`}
+                </Mono>
+              </View>
+            </View>
           </View>
-        </View>
+        )}
       </Pressable>
     </Link>
   );
