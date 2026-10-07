@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { createApp, previewLink } from "@/app/actions";
 import { uploadAppCover } from "@/components/AppCover";
+import { AppLogo } from "@/components/AppLogo";
+import { uploadAppLogo } from "@/components/AppLogoUpload";
 import { LoadingCoder } from "@/components/LoadingCoder";
 import { VideoPicker } from "@/components/VideoPicker";
 import { imageProblem } from "@/lib/crop-image";
@@ -47,6 +49,9 @@ export function SubmitForm({ userId }: { userId: string | null }) {
   // Optional cover image for the app's card (else the Drop's frame).
   const [cover, setCover] = useState<{ file: File; preview: string } | null>(null);
   const [coverError, setCoverError] = useState<string | null>(null);
+  // Optional square logo (else the app's first letter on its own colors).
+  const [logo, setLogo] = useState<{ file: File; preview: string } | null>(null);
+  const [logoError, setLogoError] = useState<string | null>(null);
   // Once someone types in a field, auto-fill leaves it alone.
   const touched = useRef({ name: false, tagline: false, description: false, category: false });
   const lastPreviewed = useRef("");
@@ -155,6 +160,19 @@ export function SubmitForm({ userId }: { userId: string | null }) {
       uploaded.push(up.path);
     }
 
+    let logoPath: string | null = null;
+    if (logo) {
+      const up = await uploadAppLogo(userId, logo.file);
+      if ("error" in up) {
+        await bucket.remove(uploaded);
+        setStep("idle");
+        setError(`Logo: ${up.error}`);
+        return;
+      }
+      logoPath = up.path;
+      uploaded.push(up.path);
+    }
+
     setStep("saving");
     // On success this redirects to the new app page.
     const result = await createApp({
@@ -172,6 +190,7 @@ export function SubmitForm({ userId }: { userId: string | null }) {
       durationSeconds: video ? video.duration : null,
       safetyChecked: safe,
       coverPath,
+      logoPath,
     });
     if (result && !result.ok) {
       await bucket.remove(uploaded);
@@ -314,6 +333,50 @@ export function SubmitForm({ userId }: { userId: string | null }) {
               ))}
             </div>
           </fieldset>
+
+          {/* The app's logo, next to its name on cards. Optional: without one, its first letter on its own colors. */}
+          <div className="flex flex-col gap-2">
+            <p className="text-sm font-medium">
+              Logo <span className="font-normal text-muted">· Optional. Shows next to your app&apos;s name on Home and Browse.</span>
+            </p>
+            <div className="flex flex-wrap items-center gap-3">
+              <AppLogo name={name || "?"} src={logo?.preview ?? null} size={64} className="border border-line" />
+              <label className="btn-ghost cursor-pointer">
+                {logo ? "Change logo" : "Add a logo"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  aria-label="Logo image"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = "";
+                    if (!file) return;
+                    const problem = imageProblem(file);
+                    setLogoError(problem);
+                    if (!problem) {
+                      if (logo) URL.revokeObjectURL(logo.preview);
+                      setLogo({ file, preview: URL.createObjectURL(file) });
+                    }
+                  }}
+                />
+              </label>
+              {logo && (
+                <button
+                  type="button"
+                  className="text-sm text-muted hover:text-ink"
+                  onClick={() => {
+                    URL.revokeObjectURL(logo.preview);
+                    setLogo(null);
+                  }}
+                >
+                  Remove
+                </button>
+              )}
+              <p className="text-xs text-muted">Square works best, like an app icon.</p>
+            </div>
+            {logoError && <p className="text-sm text-danger">{logoError}</p>}
+          </div>
 
           {/* The picture on the app's card (Browse, Featured). Optional: without one, cards use the Drop's frame. */}
           <div className="flex flex-col gap-2">

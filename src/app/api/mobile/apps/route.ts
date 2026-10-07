@@ -34,6 +34,7 @@ export async function POST(request: Request) {
     durationSeconds: body.durationSeconds == null ? null : Number(body.durationSeconds),
     safetyChecked: body.safetyChecked === true,
     coverPath: str(body.coverPath, 300) || null,
+    logoPath: str(body.logoPath, 300) || null,
   });
   return result.ok
     ? NextResponse.json({ slug: result.slug })

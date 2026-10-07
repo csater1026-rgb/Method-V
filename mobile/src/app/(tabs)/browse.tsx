@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CATEGORIES } from "@shared/constants";
 
-import { AppCard } from "@/components/AppCard";
+import { AppRow } from "@/components/AppCard";
 import { Leaderboard, builderStat, testerStat } from "@/components/Leaderboard";
 import { Body, Display, ErrorText } from "@/components/ui";
 import { browseApps, getLeaderboards } from "@/lib/data";
@@ -93,7 +93,7 @@ export default function BrowseScreen() {
       }
       renderItem={({ item }) => (
         <View style={{ paddingHorizontal: 16 }}>
-          <AppCard app={item} />
+          <AppRow app={item} />
         </View>
       )}
       ListEmptyComponent={data ? <Body muted style={{ paddingHorizontal: 16 }}>Nothing matches that yet.</Body> : null}

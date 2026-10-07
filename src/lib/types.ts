@@ -69,6 +69,9 @@ export type App = {
   // The builder's own card picture (20261012000000_app_covers); cards fall
   // back to the frame from their latest Drop.
   cover_path?: string | null;
+  // The app's square logo (20261025000000_app_logos); without one, cards show
+  // its first letter on its own colors.
+  logo_path?: string | null;
   created_at: string;
 };
 
@@ -96,6 +99,7 @@ export type FeedItem = Drop & {
 export type AppCard = App & {
   owner: ProfileSummary;
   poster_url: string | null;
+  logo_url: string | null;
 };
 
 // A Drop on a builder's profile: which app it's for, and a picture for the tile.

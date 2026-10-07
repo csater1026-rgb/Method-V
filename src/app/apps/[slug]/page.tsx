@@ -6,6 +6,7 @@ import { Avatar } from "@/components/Avatar";
 import { Backers } from "@/components/Backers";
 import { BackButton } from "@/components/Earn";
 import { AppCoverEditor } from "@/components/AppCover";
+import { AppLogo } from "@/components/AppLogo";
 import { PackageEditor, SponsorPackages } from "@/components/Packages";
 import { SponsoredBy } from "@/components/Sponsored";
 import { Countdown } from "@/components/Countdown";
@@ -145,7 +146,8 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
             )}
             {status.boostedUntil && <span className="tag-accent">Spotlight</span>}
           </div>
-          <h1 className="display mt-3 text-7xl break-words sm:text-8xl">{app.name}</h1>
+          <AppLogo name={app.name} src={publicFileUrl(app.logo_path ?? null)} size={64} className="mt-4" />
+          <h1 className="display mt-2 text-7xl break-words sm:text-8xl">{app.name}</h1>
           <p className="mt-1 text-lg text-muted">{app.tagline}</p>
           <p className="mt-1 text-sm text-muted">Posted {timeAgo(app.created_at)}</p>
         </div>

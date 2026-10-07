@@ -1,9 +1,9 @@
 // In the browser: crop a picked image to a centered width×height rectangle
 // and shrink it to a JPEG, so only a small file is uploaded. Used for profile
-// header pictures and app cover images.
+// header pictures, app cover images and app logos.
 export const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
 
-export async function cropToJpeg(file: File, width: number, height: number, quality = 0.85): Promise<Blob> {
+export async function cropToJpeg(file: File, width: number, height: number, quality = 0.85, background?: string): Promise<Blob> {
   const bitmap = await createImageBitmap(file);
   const scale = Math.min(bitmap.width / width, bitmap.height / height);
   const w = width * scale;
@@ -13,6 +13,11 @@ export async function cropToJpeg(file: File, width: number, height: number, qual
   canvas.height = height;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("no canvas");
+  // A logo with see-through parts would turn black as a JPEG.
+  if (background) {
+    ctx.fillStyle = background;
+    ctx.fillRect(0, 0, width, height);
+  }
   ctx.drawImage(bitmap, (bitmap.width - w) / 2, (bitmap.height - h) / 2, w, h, 0, 0, width, height);
   bitmap.close();
   const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", quality));

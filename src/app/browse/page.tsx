@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { AppCard } from "@/components/AppCard";
+import { AppRow } from "@/components/AppRow";
 import { TopBuilders, TopTesters } from "@/components/Passport";
 import { Avatar } from "@/components/Avatar";
 import { StatusBadge } from "@/components/Tags";
@@ -160,9 +160,9 @@ export default async function BrowsePage({ searchParams }: PageProps<"/browse">)
       )}
 
       {apps.length > 0 ? (
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-6 flex flex-col gap-2.5">
           {apps.map((app, i) => (
-            <AppCard key={app.id} app={app} index={i} />
+            <AppRow key={app.id} app={app} index={i} />
           ))}
         </div>
       ) : (

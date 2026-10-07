@@ -24,6 +24,7 @@ import { describeDatabaseError, loggingFetch } from "../src/lib/supabase/log.ts"
 import { dbMessage, withMethodium } from "../src/lib/db-errors.ts";
 import { USERNAME_PATTERN, isDefaultUsername, suggestUsername } from "../src/lib/username.ts";
 import { appLimit, limitMessage } from "../src/lib/app-limit.ts";
+import { LOGO_GRADIENTS, logoGradient, logoLetter } from "../src/lib/app-logo.ts";
 import { RANDOM_STAGE, STAGE_SPOTS, buildStage, dailyPicks, paidOrder, stageOrder } from "../src/lib/spotlight-stage.ts";
 
 let failures = 0;
@@ -467,6 +468,14 @@ ok(!confirmMatches("ada", "ada_builds") && !confirmMatches("", "ada_builds") && 
   const cappedNone = appLimit([daysAgo(1), daysAgo(2), daysAgo(5), daysAgo(16), daysAgo(20)], now, 0);
   ok(cappedNone.nextAt === new Date(now + 25 * 86_400_000).toISOString(), "5 in 30 days with nothing saved: the next free one opens when they're under 3");
   ok(/5 apps in the last 30 days, the most anyone can/.test(limitMessage(capped.nextAt!, true)) && !limitMessage(capped.nextAt!, true).includes("V Store"), "at 5 the message doesn't point to the V Store");
+}
+
+// App logos without a picture: the first letter on the app's own colors.
+{
+  ok(logoLetter("NoteFlow") === "N" && logoLetter("  42 Things") === "4" && logoLetter("ñandu") === "Ñ" && logoLetter("") === "?", "the fallback logo uses the first letter or digit");
+  ok(logoGradient("NoteFlow") === logoGradient(" noteflow "), "the same app always gets the same colors");
+  const used = new Set(["NoteFlow", "QuizPop", "PalettePal", "Splitsy"].map((n) => LOGO_GRADIENTS.indexOf(logoGradient(n))));
+  ok(used.size === 4, "the sample apps all get different colors");
 }
 
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");

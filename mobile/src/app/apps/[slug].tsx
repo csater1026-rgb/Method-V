@@ -6,13 +6,13 @@ import { Pressable, RefreshControl, ScrollView, Share, View } from "react-native
 import { CATEGORIES, PRICING, STAGES, labelFor } from "@shared/constants";
 import { formatCount, timeAgo } from "@shared/format";
 
-import { DropPlaceholder } from "@/components/AppCard";
+import { AppLogo, DropPlaceholder } from "@/components/AppCard";
 import { Loading } from "@/components/Loading";
 import { Sponsored } from "@/components/Sponsored";
 import { TryCount } from "@/components/TryCount";
 import { Avatar, Body, Button, Card, Display, ErrorText, Handle, Mono, StatusBadge, Tag, tap } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
-import { SITE_URL } from "@/lib/config";
+import { SITE_URL, fileUrl } from "@/lib/config";
 import { getAppDetail, getAppQuestions, setLike } from "@/lib/data";
 import { tryApp } from "@/lib/tryApp";
 import { useLoad } from "@/lib/useLoad";
@@ -77,6 +77,9 @@ export default function AppScreen() {
         <Tag>{labelFor(STAGES, app.stage)}</Tag>
       </View>
       <View>
+        <View style={{ marginBottom: 8 }}>
+          <AppLogo name={app.name} src={fileUrl(app.logo_path ?? null)} size={56} />
+        </View>
         <Display size={56}>{app.name}</Display>
         <Body muted size={17}>
           {app.tagline}

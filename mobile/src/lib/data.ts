@@ -43,6 +43,7 @@ import { PROFILE_COLUMNS } from "@shared/types";
 
 import { FEED_SHUFFLE, SIGNALS, bumpInterest, mergeInterests, rankFeed, rankQuestions, type Interests } from "@shared/interests";
 import { APP_LIMIT, appLimit } from "@shared/app-limit";
+import { LOGO_SIZE } from "@shared/app-logo";
 import { RANDOM_STAGE, buildStage, stageDay } from "@shared/spotlight-stage";
 import { SUGGESTION_LIMIT, setUpFirst, topUpSuggestions } from "@shared/suggest";
 
@@ -91,6 +92,7 @@ function toApp(row: any): App {
     boosted_from: row.boosted_from ?? null,
     backer_count: row.backer_count ?? 0,
     cover_path: row.cover_path ?? null,
+    logo_path: row.logo_path ?? null,
     created_at: row.created_at,
   };
 }
@@ -98,7 +100,7 @@ function toApp(row: any): App {
 function toCard(row: any): AppCard {
   const latest = [...(row.drops ?? [])].sort((a: any, b: any) => b.created_at.localeCompare(a.created_at))[0];
   // The builder's cover image, or else the frame from their latest Drop.
-  return { ...toApp(row), owner: toSummary(row.owner), poster_url: fileUrl(row.cover_path ?? latest?.poster_path) };
+  return { ...toApp(row), owner: toSummary(row.owner), poster_url: fileUrl(row.cover_path ?? latest?.poster_path), logo_url: fileUrl(row.logo_path) };
 }
 
 function toDrop(row: any): Drop {
@@ -117,7 +119,7 @@ function toDrop(row: any): Drop {
 }
 
 const demoProfile = (id: string) => demoProfiles.find((p) => p.id === id)!;
-const demoCards = (): AppCard[] => demoApps.map((a) => ({ ...a, owner: toSummary(demoProfile(a.owner_id)), poster_url: null }));
+const demoCards = (): AppCard[] => demoApps.map((a) => ({ ...a, owner: toSummary(demoProfile(a.owner_id)), poster_url: null, logo_url: null }));
 
 function demoSponsor(hostId: string): SponsorCard | null {
   const id = demoSponsors[hostId];
@@ -1001,6 +1003,8 @@ export type NewDrop = {
   safetyChecked: boolean;
   // Optional cover image for the app's card (Browse, Featured).
   coverUri?: string | null;
+  // Optional square logo, next to the app's name on cards.
+  logoUri?: string | null;
 };
 
 // Uploads the video straight to storage (into your own folder, streamed from
@@ -1046,6 +1050,16 @@ export async function postDrop(input: NewDrop, onProgress?: (fraction: number) =
       return fail(up === "read" ? "Couldn't use that cover image. Try another one." : "The cover image didn't upload. Try again.");
     }
   }
+  // The optional logo, cropped square.
+  let logoPath: string | null = null;
+  if (input.logoUri) {
+    logoPath = `${auth.data.id}/applogo-${Date.now()}.jpg`;
+    const up = await uploadImage(input.logoUri, logoPath, [LOGO_SIZE, LOGO_SIZE], auth.data.token);
+    if (up !== "ok") {
+      await supabase!.storage.from(DROPS_BUCKET).remove(coverPath ? [path, coverPath] : [path]);
+      return fail(up === "read" ? "Couldn't use that logo. Try another one." : "The logo didn't upload. Try again.");
+    }
+  }
   const r = await callSite<{ slug: string }>("/api/mobile/apps", auth.data.token, {
     videoPath: path,
     durationSeconds: input.durationSeconds,
@@ -1056,10 +1070,11 @@ export async function postDrop(input: NewDrop, onProgress?: (fraction: number) =
     caption: input.caption,
     safetyChecked: input.safetyChecked,
     coverPath,
+    logoPath,
   });
   if (!r.ok) {
-    // Don't leave an orphaned video (or cover) behind.
-    await supabase!.storage.from(DROPS_BUCKET).remove(coverPath ? [path, coverPath] : [path]);
+    // Don't leave an orphaned video (or cover, or logo) behind.
+    await supabase!.storage.from(DROPS_BUCKET).remove([path, ...(coverPath ? [coverPath] : []), ...(logoPath ? [logoPath] : [])]);
     return fail(friendly(r.error, "Couldn't post your Drop."));
   }
   return ok({ slug: r.data.slug });

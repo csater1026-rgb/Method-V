@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { AppCoverEditor } from "@/components/AppCover";
+import { AppLogoEditor } from "@/components/AppLogoUpload";
 import { DropBonusBanner } from "@/components/DropBonus";
 import { getManageApp, getPromotion, getViewer } from "@/lib/data";
 import { isSupabaseConfigured, publicFileUrl } from "@/lib/supabase/env";
@@ -12,7 +13,7 @@ import { AppDetailsForm, AppLinkForm, DeleteAppForm, ManageDrops } from "./Manag
 export const metadata: Metadata = { title: "Manage your app" };
 
 // Everything about one of your apps in one place: its Drops, details, link,
-// card picture and feedback, and deleting it. Only the builder can open it.
+// logo, card picture and feedback, and deleting it. Only the builder can open it.
 export default async function ManageAppPage({ params }: PageProps<"/apps/[slug]/manage">) {
   const { slug } = await params;
   const viewer = await getViewer();
@@ -67,7 +68,8 @@ export default async function ManageAppPage({ params }: PageProps<"/apps/[slug]/
       <AppDetailsForm app={app} />
       <AppLinkForm appId={app.id} url={app.url} />
 
-      <div className="mt-10">
+      <div className="mt-10 flex flex-col gap-6">
+        <AppLogoEditor appId={app.id} appName={app.name} userId={userId} current={publicFileUrl(app.logo_path ?? null)} />
         <AppCoverEditor appId={app.id} userId={userId} current={publicFileUrl(app.cover_path ?? null)} dropFrame={drops[0]?.poster_url ?? null} />
       </div>
 

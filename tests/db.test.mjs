@@ -25,7 +25,7 @@ const AFTER_LATE = [
 ];
 // Paying for testers was retired for bounties; applied last, after the tests
 // of the tester spots it refunds.
-const FINAL = ["20261022000000_testers_to_bounties.sql", "20261023000000_app_post_price.sql", "20261024000000_economy_fixes.sql"];
+const FINAL = ["20261022000000_testers_to_bounties.sql", "20261023000000_app_post_price.sql", "20261024000000_economy_fixes.sql", "20261025000000_app_logos.sql"];
 const migrations = readdirSync(migrationsDir)
   .filter((f) => f.endsWith(".sql") && !LATE.includes(f) && !AFTER_LATE.includes(f) && !FINAL.includes(f))
   .sort()
@@ -1536,7 +1536,7 @@ ok(!!(await fails("anon", null, "insert into public.sponsorships (sponsor_brand,
   ok((await shopErr(CHEAP, "select public.buy_store_item('app_post')")).includes("2 extra app posts every 30 days"), "still 2 a month at most");
 
   // Fixes from a code review (20261024000000_economy_fixes.sql).
-  ok((await as("anon", null, "select public.schema_version() as v")).rows[0].v === 20261024, "the database says which update it has");
+  ok((await as("anon", null, "select public.schema_version() as v")).rows[0].v >= 20261024, "the database says which update it has");
   const newApp = "insert into public.apps (owner_id, slug, name, tagline, url, category) values ($1, $2, $2, 'x', 'https://example.com', 'games') returning id";
   // The app limit counts every post, even apps deleted since.
   const LOG = "bebebebe-0000-0000-0000-000000000000";
@@ -1643,6 +1643,21 @@ ok(!!(await fails("anon", null, "insert into public.sponsorships (sponsor_brand,
   ok((await as("authenticated", TN, "select public.claim_perk($1) as s", [halfOff])).rows[0].s === "HALF", "a week-old account can");
   await db.query("update public.profiles set credits = 0 where id = $1", [TN]);
   ok((await shopErr(TN, "select public.buy_store_item('pro')")).includes("Earn more by answering bounties"), "not enough Methodium points to bounties, not testing");
+
+  // App logos (20261025000000_app_logos.sql): a square JPEG in the builder's own folder.
+  ok((await as("anon", null, "select public.schema_version() as v")).rows[0].v === 20261025, "the database says it has the logos update");
+  const setLogo = "update public.apps set logo_path = $1 where id = $2";
+  await as("authenticated", TO, setLogo, [`${TO}/applogo-1727000000000.jpg`, toApp]);
+  ok((await db.query("select logo_path from public.apps where id = $1", [toApp])).rows[0].logo_path === `${TO}/applogo-1727000000000.jpg`, "builders can set their app's logo");
+  ok(!!(await fails("authenticated", TO, setLogo, [`${TN}/applogo-1.jpg`, toApp])), "the logo must be in the builder's own folder");
+  ok(!!(await fails("authenticated", TO, setLogo, [`${TO}/appcover-1.jpg`, toApp])), "logo paths are only applogo-<time>.jpg");
+  const theirLogo = (await db.query("select logo_path from public.apps where id = $1", [boApp])).rows[0].logo_path;
+  await as("authenticated", TO, setLogo, [`${TO}/applogo-2.jpg`, boApp]).catch(() => {});
+  ok((await db.query("select logo_path from public.apps where id = $1", [boApp])).rows[0].logo_path === theirLogo, "nobody can change someone else's logo");
+  await as("authenticated", TO, setLogo, [null, toApp]);
+  ok((await db.query("select logo_path from public.apps where id = $1", [toApp])).rows[0].logo_path === null, "a logo can be removed (back to the first letter)");
+  const withLogo = (await as("authenticated", TO, "insert into public.apps (owner_id, slug, name, tagline, url, category, logo_path) values ($1, 'logo-new', 'x', 'x', 'https://example.com', 'games', $2) returning logo_path", [TO, `${TO}/applogo-3.jpg`])).rows[0].logo_path;
+  ok(withLogo === `${TO}/applogo-3.jpg`, "a new app can be posted with its logo");
 }
 
 // Security hardening (20261011000000_security_hardening.sql).

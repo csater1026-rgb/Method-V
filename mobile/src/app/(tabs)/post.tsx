@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CATEGORIES, DROP_VIDEO_TYPES, MAX_DROP_BYTES, MAX_DROP_MB, MAX_DROP_SECONDS, SAFETY_AGREEMENT, SAFETY_CHECKLIST, V_STORE } from "@shared/constants";
 import { APP_LIMIT, limitMessage } from "@shared/app-limit";
 
+import { AppLogo } from "@/components/AppCard";
 import { Body, Button, Card, Display, ErrorText, Mono, tap } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import { isLive } from "@/lib/config";
@@ -33,6 +34,8 @@ export default function PostScreen() {
   const [safe, setSafe] = useState(false);
   // Optional cover image for the app's card (else the Drop's frame).
   const [cover, setCover] = useState<string | null>(null);
+  // Optional square logo (else the app's first letter on its own colors).
+  const [logo, setLogo] = useState<string | null>(null);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [reading, setReading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -113,7 +116,7 @@ export default function PostScreen() {
     if (fresh?.nextAt) return setError(limitMessage(fresh.nextAt, fresh.capped));
     setProgress(0);
     const r = await postDrop(
-      { videoUri: video.uri, mimeType: video.mimeType, durationSeconds: video.seconds, url: url.trim(), name, tagline, category, caption, safetyChecked: safe, coverUri: cover },
+      { videoUri: video.uri, mimeType: video.mimeType, durationSeconds: video.seconds, url: url.trim(), name, tagline, category, caption, safetyChecked: safe, coverUri: cover, logoUri: logo },
       setProgress,
     );
     setProgress(null);
@@ -126,6 +129,7 @@ export default function PostScreen() {
     setCaption("");
     setSafe(false);
     setCover(null);
+    setLogo(null);
     setTouched({});
     void reloadLimit();
     router.push(`/apps/${r.data.slug}`);
@@ -217,6 +221,25 @@ export default function PostScreen() {
             })}
           </View>
           <Field t={t} label="Caption (optional)" value={caption} maxLength={300} onChangeText={setCaption} multiline />
+        </View>
+
+        {/* The app's logo, next to its name on cards. Optional: without one, its first letter on its own colors. */}
+        <View style={{ gap: 8 }}>
+          <Body bold size={14}>
+            Logo <Body muted size={13}>· Optional. Shows next to your app&apos;s name on Home and Browse.</Body>
+          </Body>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <AppLogo name={name.trim() || "?"} src={logo} size={56} />
+            <Button
+              label={logo ? "Change" : "Add a logo"}
+              kind="ghost"
+              onPress={async () => {
+                const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], allowsEditing: true, aspect: [1, 1], quality: 1 });
+                if (!r.canceled && r.assets[0]) setLogo(r.assets[0].uri);
+              }}
+            />
+            {logo ? <Button label="Remove" kind="ghost" onPress={() => setLogo(null)} /> : null}
+          </View>
         </View>
 
         {/* The picture on the app's card. Optional: without one, cards use the Drop's frame. */}

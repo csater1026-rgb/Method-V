@@ -464,6 +464,29 @@ export async function setAppCover(appId: string, path: string | null): Promise<A
   return { ok: true };
 }
 
+// Saves (or with null, removes) an app's logo: the square picture next to its
+// name on cards. The browser just uploaded it to drops/<your id>/applogo-<time>.jpg;
+// the old one is deleted.
+export async function setAppLogo(appId: string, path: string | null): Promise<ActionResult> {
+  const auth = await requireViewer();
+  if ("error" in auth) return { ok: false, error: auth.error };
+  const id = auth.viewer.id;
+  if (!UUID.test(appId)) return { ok: false, error: "Unknown app." };
+  if (path !== null && !new RegExp(`^${id}/applogo-[0-9]+\\.jpg$`).test(path)) {
+    return { ok: false, error: "That logo didn't upload properly. Try again." };
+  }
+  const supabase = await createClient();
+  const { data: before, error: readError } = await supabase.from("apps").select("slug, owner_id, logo_path").eq("id", appId).maybeSingle();
+  if (readError) return { ok: false, error: "Logos need the latest database update. Open /api/health to see what to run." };
+  if (!before || before.owner_id !== id) return { ok: false, error: "You can only change your own app." };
+  const { error } = await supabase.from("apps").update({ logo_path: path }).eq("id", appId).eq("owner_id", id);
+  if (error) return { ok: false, error: "Couldn't save the logo." };
+  const old = before.logo_path as string | null;
+  if (old && old !== path) await supabase.storage.from(DROPS_BUCKET).remove([old]);
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
 // ---------------------------------------------------------------------------
 // Push notifications: which kinds, and this browser on or off
 // ---------------------------------------------------------------------------

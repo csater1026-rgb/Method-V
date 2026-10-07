@@ -77,10 +77,13 @@ await run("home (phone)", phone, async (page) => {
   ok((await featured.locator(".stage-beam").count()) === 4, "a light shines on each of them");
   ok(await page.getByRole("region", { name: "Builders like you" }).isVisible(), "Home shows builders to follow");
   const justPosted = page.getByRole("region", { name: "Just posted" });
-  const newest = await justPosted.locator("article a.font-semibold").allTextContents();
+  const newest = await justPosted.locator("article a.display").allTextContents();
   ok(newest.length === 4 && newest[0] === "NoteFlow", `Just posted lists the newest projects first (${newest.join(",")})`);
   ok((await justPosted.locator("article").first().getAttribute("class")).includes("snap-start"), "Just posted swipes sideways too");
   ok((await justPosted.locator("article .tag-accent").count()) === 0, "Just posted cards have no Featured-style labels");
+  // Each card: the picture as a banner with the app's logo over its edge (sample apps have no logo, so their first letter).
+  const logos = await justPosted.locator("article [data-app-logo]").allTextContents();
+  ok(logos.length === 4 && logos[0] === "N", `Just posted cards show each app's logo, its first letter without one (${logos.join("")})`);
   const order = await page.locator("main section[aria-label]").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
   ok(order.join(" > ") === "In the Spotlight > Builders like you > Just posted", `Home order: the Spotlight comes first, no "post your app" box (${order.join(" > ")})`);
   // (Hidden on phones, which use the + tab; it shows from tablet width up.)
@@ -340,6 +343,8 @@ await run("push notification setup", desktop, async (page) => {
 await run("browse", desktop, async (page) => {
   await go(page, "/browse");
   ok((await page.locator("main article").count()) === 4, "browse shows 4 apps");
+  ok((await page.locator("main article a[href^='/try/'][href$='via=card']").count()) === 4, "each app on Browse is a row with its own Try button");
+  ok((await page.locator("main article [data-app-logo]").count()) === 4, "…and its logo");
   await page.getByLabel("Search apps").fill("palette");
   await page.getByRole("button", { name: "Apply" }).click();
   await page.waitForURL(/q=palette/);

@@ -2,7 +2,7 @@ import { useRouter } from "expo-router";
 import { Pressable, RefreshControl, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { AppCard } from "@/components/AppCard";
+import { AppBannerCard } from "@/components/AppCard";
 import { DropBonusPopup } from "@/components/DropBonusPopup";
 import { Loading } from "@/components/Loading";
 import { Suggestions } from "@/components/Suggestions";
@@ -56,7 +56,7 @@ export default function HomeScreen() {
           {featured.length > STAGE_SPOTS && (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingHorizontal: 16, paddingTop: 12 }}>
               {featured.slice(STAGE_SPOTS).map((app) => (
-                <AppCard key={app.id} app={app} wide />
+                <AppBannerCard key={app.id} app={app} />
               ))}
             </ScrollView>
           )}
@@ -64,7 +64,7 @@ export default function HomeScreen() {
       ) : featured.length > 0 ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingHorizontal: 16 }}>
           {featured.map((app) => (
-            <AppCard key={app.id} app={app} wide />
+            <AppBannerCard key={app.id} app={app} />
           ))}
         </ScrollView>
       ) : (
@@ -99,7 +99,7 @@ export default function HomeScreen() {
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingHorizontal: 16 }}>
             {newest.map((app) => (
-              <AppCard key={app.id} app={app} wide />
+              <AppBannerCard key={app.id} app={app} />
             ))}
           </ScrollView>
         </View>

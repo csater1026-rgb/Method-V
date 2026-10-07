@@ -73,6 +73,8 @@ export function publicApp(app: AppCard | AppDetail, origin: string) {
     embed_url: `${origin}/embed/${app.slug}`,
     // The app's cover image when it has one, like its card on the site.
     poster_url: "poster_url" in app ? app.poster_url : (publicFileUrl(app.cover_path ?? null) ?? drop?.poster_url ?? null),
+    // Its square logo, if the builder added one.
+    logo_url: publicFileUrl(app.logo_path ?? null),
     drop: drop ? { video_url: drop.video_url, poster_url: drop.poster_url, duration_seconds: drop.duration_seconds, caption: drop.caption } : undefined,
     stats: {
       tries: app.try_count,

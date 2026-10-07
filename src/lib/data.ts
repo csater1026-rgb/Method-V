@@ -173,6 +173,7 @@ function toApp(row: any): App {
     boosted_from: row.boosted_from ?? null,
     backer_count: row.backer_count ?? 0,
     cover_path: row.cover_path ?? null,
+    logo_path: row.logo_path ?? null,
     created_at: row.created_at,
   };
 }
@@ -367,7 +368,7 @@ export async function getApps(filters: BrowseFilters, max = 60): Promise<AppCard
       .filter((a) => !needle || `${a.name} ${a.tagline} ${a.description}`.toLowerCase().includes(needle))
       .sort((a, b) => (sortByTries ? b.try_count - a.try_count : b.created_at.localeCompare(a.created_at)))
       .slice(0, limit)
-      .map((a) => ({ ...a, owner: toSummary(demoProfile(a.owner_id)), poster_url: null }));
+      .map((a) => ({ ...a, owner: toSummary(demoProfile(a.owner_id)), poster_url: null, logo_url: null }));
   }
 
   const supabase = await createClient();
@@ -394,6 +395,7 @@ export async function getApps(filters: BrowseFilters, max = 60): Promise<AppCard
     ...toApp(row),
     owner: toSummary(row.owner),
     poster_url: cardImage(row, row.drops?.[0]?.poster_path),
+    logo_url: publicFileUrl(row.logo_path ?? null),
   }));
 }
 
@@ -571,7 +573,7 @@ export async function getProfile(
     if (!profile) return null;
     const apps = demoApps
       .filter((a) => a.owner_id === profile.id)
-      .map((a) => ({ ...a, owner: toSummary(profile), poster_url: null }));
+      .map((a) => ({ ...a, owner: toSummary(profile), poster_url: null, logo_url: null }));
     return { profile, apps, isFollowing: false };
   }
 
@@ -598,6 +600,7 @@ export async function getProfile(
     ...toApp(row),
     owner,
     poster_url: cardImage(row, row.drops?.[0]?.poster_path),
+    logo_url: publicFileUrl(row.logo_path ?? null),
   }));
   return { profile: profile as Profile, apps, isFollowing: following };
 }
@@ -717,7 +720,7 @@ const CARD_SELECT = () => `*, owner:profiles!apps_owner_id_fkey(${summaryCols()}
 /* eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped rows */
 function toCard(row: any): AppCard {
   const latest = [...(row.drops ?? [])].sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
-  return { ...toApp(row), owner: toSummary(row.owner), poster_url: cardImage(row, latest?.poster_path) };
+  return { ...toApp(row), owner: toSummary(row.owner), poster_url: cardImage(row, latest?.poster_path), logo_url: publicFileUrl(row.logo_path ?? null) };
 }
 
 function demoCards(): AppCard[] {
@@ -727,6 +730,7 @@ function demoCards(): AppCard[] {
     ...schedule[a.id],
     owner: toSummary(demoProfile(a.owner_id)),
     poster_url: null,
+    logo_url: null,
   }));
 }
 

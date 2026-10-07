@@ -64,6 +64,9 @@ await page.getByText("Builders like you").scrollIntoViewIfNeeded();
 await page.waitForTimeout(300);
 await page.screenshot({ path: `${OUT}home-suggestions.png` });
 ok((await page.getByText("All projects").count()) === 0, "Home leaves the full list to Browse");
+await page.getByText("Just posted").evaluate((el) => el.scrollIntoView({ block: "start" }));
+await page.waitForTimeout(300);
+await page.screenshot({ path: `${OUT}home-just-posted.png` });
 ok(await page.getByText("Just posted").isVisible(), "Home shows the newest projects under the suggestions");
 ok((await page.getByText("Top builders ·", { exact: false }).count()) === 0, "the leaderboards moved off Home");
 ok(await page.getByText("🏆 Monthly leaderboards").isVisible(), "Home links to the leaderboards");
@@ -184,6 +187,11 @@ await visit("/browse", "browse");
   await page.getByText("Top builders ·", { exact: false }).first().scrollIntoViewIfNeeded();
   await page.waitForTimeout(400);
   await page.screenshot({ path: `${OUT}browse-leaderboards.png` });
+  // Apps are rows: logo, name, tagline and a Try button.
+  ok((await page.getByRole("button", { name: "Try NoteFlow" }).count()) === 1, "Browse lists apps as rows with a Try button");
+  await page.getByText("All apps", { exact: true }).scrollIntoViewIfNeeded();
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: `${OUT}browse-apps.png` });
 }
 await page.getByRole("button", { name: "Education" }).click();
 await page.waitForTimeout(400);

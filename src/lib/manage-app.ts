@@ -119,7 +119,7 @@ const OPEN_DEALS = ["requested", "accepted", "delivered", "disputed"];
 const OPEN_SPONSORSHIPS = ["offered", "accepted", "active"];
 
 export async function deleteApp(supabase: SupabaseClient, viewerId: string, appId: string, typedName: string): Promise<Result> {
-  const { data: app } = await supabase.from("apps").select("id, slug, name, cover_path").eq("id", appId).eq("owner_id", viewerId).maybeSingle();
+  const { data: app } = await supabase.from("apps").select("*").eq("id", appId).eq("owner_id", viewerId).maybeSingle();
   if (!app) return { ok: false, error: "That app is already gone." };
   if (String(typedName ?? "").trim().toLowerCase() !== String(app.name).trim().toLowerCase()) {
     return { ok: false, error: `Type the app's name (${app.name}) to confirm.` };
@@ -142,7 +142,7 @@ export async function deleteApp(supabase: SupabaseClient, viewerId: string, appI
   // Files to clean up once the app is gone: its videos, thumbnails and card
   // picture (in the builder's folder), and testers' feedback screenshots.
   const { data: drops } = await supabase.from("drops").select("video_path, poster_path").eq("app_id", appId);
-  const ownFiles = [...(drops ?? []).flatMap((d) => [d.video_path, d.poster_path]), app.cover_path].filter(
+  const ownFiles = [...(drops ?? []).flatMap((d) => [d.video_path, d.poster_path]), app.cover_path, app.logo_path].filter(
     (p): p is string => typeof p === "string" && p.startsWith(`${viewerId}/`),
   );
   let shots: string[] = [];
