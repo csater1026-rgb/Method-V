@@ -403,6 +403,7 @@ await run("profile", desktop, async (page) => {
   ok((await page.getByText("Open to collab").count()) === 1 && (await page.locator("main .tag-accent", { hasText: "Open to collab" }).isVisible()), "status shows once, as the badge by the avatar");
   ok(await page.locator("main").getByText("Founder", { exact: true }).isVisible(), "other role tags still shown");
   ok((await page.locator("main article").count()) === 2, "profile lists their 2 apps");
+  ok((await page.locator("main article [data-app-logo]").count()) === 2, "…as banner cards with each app's logo, like Home");
   const drops = page.getByRole("list", { name: "Drops" }).getByRole("link");
   ok((await drops.count()) === 2, "profile shows their 2 Drops");
   ok(/^\/drops\?d=/.test((await drops.first().getAttribute("href")) ?? ""), "a Drop opens the feed on it");

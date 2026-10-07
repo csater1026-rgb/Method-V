@@ -116,10 +116,10 @@ export function AppLogo({ name, src, size, ring }: { name: string; src: string |
   return <View style={{ padding: 4, borderRadius: radius + 4, backgroundColor: ring, alignSelf: "flex-start" }}>{logo}</View>;
 }
 
-// The card for the rows on Home (Featured, Just posted), like the website's:
-// the app's picture as a wide banner with its logo over the bottom edge, then
-// the name, tagline and builder.
-export function AppBannerCard({ app, width = 260 }: { app: Card; width?: number }) {
+// The card for the rows on Home (Featured, Just posted) and profiles, like the
+// website's: the app's picture as a wide banner with its logo over the bottom
+// edge, then the name, tagline and builder (or, on a profile, its likes).
+export function AppBannerCard({ app, width = 260, showOwner = true }: { app: Card; width?: number | "100%"; showOwner?: boolean }) {
   const t = useTheme();
   const media = useMedia();
   return (
@@ -150,12 +150,18 @@ export function AppBannerCard({ app, width = 260 }: { app: Card; width?: number 
             {app.tagline}
           </Body>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8 }}>
-            <Avatar username={app.owner.username} name={app.owner.display_name} src={app.owner.avatar_url} size={18} />
-            <Body size={12} muted numberOfLines={1} style={{ flex: 1 }}>
-              {app.owner.display_name || <Handle username={app.owner.username} size={12} />}
-            </Body>
+            {showOwner ? (
+              <>
+                <Avatar username={app.owner.username} name={app.owner.display_name} src={app.owner.avatar_url} size={18} />
+                <Body size={12} muted numberOfLines={1} style={{ flex: 1 }}>
+                  {app.owner.display_name || <Handle username={app.owner.username} size={12} />}
+                </Body>
+              </>
+            ) : (
+              <View style={{ flex: 1 }} />
+            )}
             <Mono>
-              <TryCount appId={app.id} count={app.try_count} /> tries
+              <TryCount appId={app.id} count={app.try_count} /> tries{showOwner ? "" : ` · ${formatCount(app.like_count)} ♥`}
             </Mono>
           </View>
         </View>

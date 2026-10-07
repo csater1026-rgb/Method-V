@@ -8,7 +8,7 @@ import { ROLES, labelFor, primaryStatus } from "@shared/constants";
 import { formatCount, formatDuration } from "@shared/format";
 import { socialLinks } from "@shared/socials";
 
-import { AppCard, DropPlaceholder } from "@/components/AppCard";
+import { AppBannerCard, DropPlaceholder } from "@/components/AppCard";
 import { Loading } from "@/components/Loading";
 import { Avatar, Body, Button, Display, ErrorText, Handle, Mono, StatusBadge, Tag } from "@/components/ui";
 import { SITE_URL, fileUrl } from "@/lib/config";
@@ -199,7 +199,7 @@ export default function ProfileScreen() {
       {apps.length === 0 && <Body muted>No apps posted yet.</Body>}
       {apps.map((app) => (
         <View key={app.id} style={{ gap: 8 }}>
-          <AppCard app={app} />
+          <AppBannerCard app={app} width="100%" showOwner={false} />
           {isSelf && SITE_URL && (
             <Button label="✎ Manage: edit, Drops, feedback" kind="ghost" onPress={() => void WebBrowser.openBrowserAsync(`${SITE_URL}/apps/${app.slug}/manage`)} />
           )}

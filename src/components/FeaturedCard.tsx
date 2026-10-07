@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { formatCount } from "@/lib/format";
 import type { AppCard, FeaturedApp } from "@/lib/types";
 
 import { AppLogo } from "./AppLogo";
@@ -20,8 +21,19 @@ export const FEATURED_LABELS: Record<FeaturedApp["reason"], string> = {
 // as a wide banner with its logo sitting over the bottom edge, then the name,
 // tagline, builder and a Try button. Several fit side by side, and the next
 // one peeks in on phones so it's clear the row swipes. A Featured app says
-// why it's there unless it was simply picked.
-export function FeaturedCard({ app, rank, fill = false }: { app: AppCard & { reason?: FeaturedApp["reason"] }; rank: number; fill?: boolean }) {
+// why it's there unless it was simply picked. On a builder's profile
+// (showOwner false) the footer shows likes instead of who made it.
+export function FeaturedCard({
+  app,
+  rank,
+  fill = false,
+  showOwner = true,
+}: {
+  app: AppCard & { reason?: FeaturedApp["reason"] };
+  rank: number;
+  fill?: boolean;
+  showOwner?: boolean;
+}) {
   return (
     <article
       className={`rise flex shrink-0 snap-start flex-col overflow-hidden rounded-xl border border-line bg-surface ${fill ? "w-full" : "w-[70vw] max-w-[272px]"}`}
@@ -61,11 +73,17 @@ export function FeaturedCard({ app, rank, fill = false }: { app: AppCard & { rea
         </Link>
         <p className="mt-1 truncate text-sm text-muted">{app.tagline}</p>
         <div className="mt-auto flex items-center gap-1.5 pt-2.5 text-xs text-muted">
-          <Avatar username={app.owner.username} name={app.owner.display_name} src={app.owner.avatar_url} size={18} />
-          <Link href={`/u/${app.owner.username}`} className="truncate hover:text-ink">
-            <Handle username={app.owner.username} />
-          </Link>
-          <span className="ml-auto shrink-0 font-mono text-[11px]"><TryCount appId={app.id} count={app.try_count} /> tries</span>
+          {showOwner && (
+            <>
+              <Avatar username={app.owner.username} name={app.owner.display_name} src={app.owner.avatar_url} size={18} />
+              <Link href={`/u/${app.owner.username}`} className="truncate hover:text-ink">
+                <Handle username={app.owner.username} />
+              </Link>
+            </>
+          )}
+          <span className="ml-auto shrink-0 font-mono text-[11px]">
+            <TryCount appId={app.id} count={app.try_count} /> tries{showOwner ? "" : ` · ${formatCount(app.like_count)} ♥`}
+          </span>
         </div>
       </div>
     </article>

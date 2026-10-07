@@ -206,6 +206,14 @@ await visit("/u/ada_builds", "profile");
 ok(await page.getByText("Pro", { exact: true }).isVisible(), "Pro badge on a Pro profile");
 ok((await page.getByText("Open to collab", { exact: true }).count()) === 1, "status shows once, as the badge by the photo");
 ok(await page.getByText("Founder", { exact: true }).isVisible(), "other role tags still show");
+{
+  // Their apps as banner cards with the logo, like Home.
+  const apps = page.getByText(/^(Your apps|Apps)/).first();
+  await apps.evaluate((el) => el.scrollIntoView({ block: "start" }));
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: `${OUT}profile-apps.png` });
+  ok((await page.getByText("NoteFlow", { exact: true }).count()) > 0, "profile lists their apps as cards");
+}
 await page.getByText(/^\d[\d.,K]* followers$/).first().click();
 await page.waitForTimeout(1000);
 ok(new URL(page.url()).pathname === "/follows" && (await page.getByRole("tab", { name: "Followers" }).isVisible()), "tapping followers opens the list");

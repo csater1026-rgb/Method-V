@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { AppCard } from "@/components/AppCard";
+import { FeaturedCard } from "@/components/FeaturedCard";
 import { Avatar } from "@/components/Avatar";
 import { ConnectButton } from "@/components/ConnectButton";
 import { FollowButton } from "@/components/FollowButton";
@@ -222,7 +222,7 @@ export default async function ProfilePage({ params }: PageProps<"/u/[username]">
             {orderedApps.map((app, i) => (
               <div key={app.id} className="relative flex flex-col gap-2">
                 {app.id === pinnedId && <span className="tag-accent absolute top-2 right-2 z-10">Pinned</span>}
-                <AppCard app={app} showOwner={false} index={i} />
+                <FeaturedCard app={app} rank={i} fill showOwner={false} />
                 {isSelf && (
                   <div className="flex flex-wrap gap-2">
                     <Link href={`/apps/${app.slug}/manage`} className="btn-accent flex-1 px-3 py-1.5 text-center text-sm">
