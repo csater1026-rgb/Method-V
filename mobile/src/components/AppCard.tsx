@@ -9,11 +9,10 @@ import { CATEGORIES, labelFor } from "@shared/constants";
 import { formatCount } from "@shared/format";
 import type { AppCard as Card } from "@shared/types";
 
-import { tryApp } from "@/lib/tryApp";
 import { fonts, useMedia, useTheme } from "@/theme";
 
 import { TryCount } from "./TryCount";
-import { Avatar, Body, Display, Handle, Mono, Tag, tap } from "./ui";
+import { Avatar, Body, Display, Handle, Mono, Tag } from "./ui";
 
 // A striped stand-in when there's no poster (like the website's).
 export function DropPlaceholder({ name, compact, bare }: { name: string; compact?: boolean; bare?: boolean }) {
@@ -116,10 +115,20 @@ export function AppLogo({ name, src, size, ring }: { name: string; src: string |
   return <View style={{ padding: 4, borderRadius: radius + 4, backgroundColor: ring, alignSelf: "flex-start" }}>{logo}</View>;
 }
 
-// The card for the rows on Home (Featured, Just posted) and profiles, like the
-// website's: the app's picture as a wide banner with its logo over the bottom
-// edge, then the name, tagline and builder (or, on a profile, its likes).
-export function AppBannerCard({ app, width = 260, showOwner = true }: { app: Card; width?: number | "100%"; showOwner?: boolean }) {
+// The card for Home's rows (Featured, Just posted), Browse and profiles, like
+// the website's: the app's picture as a wide banner, then the name, tagline
+// and builder (or, on a profile, its likes). `compact` for 2 across.
+export function AppBannerCard({
+  app,
+  width = 260,
+  showOwner = true,
+  compact = false,
+}: {
+  app: Card;
+  width?: number | "100%";
+  showOwner?: boolean;
+  compact?: boolean;
+}) {
   const t = useTheme();
   const media = useMedia();
   return (
@@ -136,15 +145,12 @@ export function AppBannerCard({ app, width = 260, showOwner = true }: { app: Car
             <DropPlaceholder name={app.name} compact bare />
           )}
         </View>
-        <View style={{ paddingHorizontal: 12, paddingBottom: 12 }}>
-          <View style={{ marginTop: -30 }}>
-            <AppLogo name={app.name} src={app.logo_url} size={52} ring={t.surface} />
-          </View>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 6 }}>
-            <Display size={26} numberOfLines={1} style={{ flexShrink: 1 }}>
+        <View style={{ paddingHorizontal: compact ? 10 : 12, paddingBottom: 12 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 10 }}>
+            <Display size={compact ? 22 : 26} numberOfLines={1} style={{ flexShrink: 1 }}>
               {app.name}
             </Display>
-            <Tag>{labelFor(CATEGORIES, app.category)}</Tag>
+            {!compact && <Tag>{labelFor(CATEGORIES, app.category)}</Tag>}
           </View>
           <Body muted size={13} numberOfLines={1}>
             {app.tagline}
@@ -153,9 +159,13 @@ export function AppBannerCard({ app, width = 260, showOwner = true }: { app: Car
             {showOwner ? (
               <>
                 <Avatar username={app.owner.username} name={app.owner.display_name} src={app.owner.avatar_url} size={18} />
-                <Body size={12} muted numberOfLines={1} style={{ flex: 1 }}>
-                  {app.owner.display_name || <Handle username={app.owner.username} size={12} />}
-                </Body>
+                {compact ? (
+                  <View style={{ flex: 1 }} />
+                ) : (
+                  <Body size={12} muted numberOfLines={1} style={{ flex: 1 }}>
+                    {app.owner.display_name || <Handle username={app.owner.username} size={12} />}
+                  </Body>
+                )}
               </>
             ) : (
               <View style={{ flex: 1 }} />
@@ -167,46 +177,5 @@ export function AppBannerCard({ app, width = 260, showOwner = true }: { app: Car
         </View>
       </Pressable>
     </Link>
-  );
-}
-
-// One app as a row, for Browse (like the website's): its logo, name and
-// tagline, and a Try button.
-export function AppRow({ app }: { app: Card }) {
-  const t = useTheme();
-  return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 10, padding: 12, backgroundColor: t.surface, borderColor: t.line, borderWidth: 1, borderRadius: 12 }}>
-      <Link href={`/apps/${app.slug}`} asChild>
-        <Pressable accessibilityRole="link" accessibilityLabel={`${app.name}: ${app.tagline}`} style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 12, minWidth: 0 }}>
-          <AppLogo name={app.name} src={app.logo_url} size={52} />
-          <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <Display size={24} numberOfLines={1} style={{ flexShrink: 1 }}>
-                {app.name}
-              </Display>
-              <Tag>{labelFor(CATEGORIES, app.category)}</Tag>
-            </View>
-            <Body muted size={13} numberOfLines={1}>
-              {app.tagline}
-            </Body>
-            <Mono numberOfLines={1}>
-              <TryCount appId={app.id} count={app.try_count} /> tries · {formatCount(app.like_count)} ♥
-            </Mono>
-          </View>
-        </Pressable>
-      </Link>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`Try ${app.name}`}
-        onPress={() => {
-          tap();
-          void tryApp(app.slug);
-        }}
-        hitSlop={6}
-        style={({ pressed }) => ({ backgroundColor: t.accent, borderRadius: 9, paddingHorizontal: 14, paddingVertical: 9, opacity: pressed ? 0.8 : 1 })}
-      >
-        <Text style={{ fontFamily: fonts.bodyBold, color: t.accentInk, fontSize: 14 }}>Try</Text>
-      </Pressable>
-    </View>
   );
 }

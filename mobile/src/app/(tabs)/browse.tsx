@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { FlatList, Pressable, RefreshControl, ScrollView, TextInput, View } from "react-native";
+import { FlatList, Pressable, RefreshControl, ScrollView, TextInput, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CATEGORIES } from "@shared/constants";
 
-import { AppRow } from "@/components/AppCard";
+import { AppBannerCard } from "@/components/AppCard";
 import { Leaderboard, builderStat, testerStat } from "@/components/Leaderboard";
 import { Body, Display, ErrorText } from "@/components/ui";
 import { browseApps, getLeaderboards } from "@/lib/data";
@@ -22,11 +22,15 @@ export default function BrowseScreen() {
   const { data, error, refreshing, reload } = useLoad(() => browseApps({ q: query, category }), [query, category]);
   const boards = useLoad(getLeaderboards, []);
   const showBoards = !query && !category && boards.data;
+  // Two cards across, with 16 on each side and 10 between them.
+  const cardWidth = (useWindowDimensions().width - 32 - 10) / 2;
 
   return (
     <FlatList
       data={data ?? []}
       keyExtractor={(a) => a.id}
+      numColumns={2}
+      columnWrapperStyle={{ gap: 10, paddingHorizontal: 16 }}
       keyboardShouldPersistTaps="handled"
       contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: 32, gap: 14 }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => {
@@ -92,9 +96,7 @@ export default function BrowseScreen() {
         </View>
       }
       renderItem={({ item }) => (
-        <View style={{ paddingHorizontal: 16 }}>
-          <AppRow app={item} />
-        </View>
+        <AppBannerCard app={item} width={cardWidth} compact />
       )}
       ListEmptyComponent={data ? <Body muted style={{ paddingHorizontal: 16 }}>Nothing matches that yet.</Body> : null}
     />

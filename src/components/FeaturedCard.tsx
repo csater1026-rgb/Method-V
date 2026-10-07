@@ -3,7 +3,6 @@ import Link from "next/link";
 import { formatCount } from "@/lib/format";
 import type { AppCard, FeaturedApp } from "@/lib/types";
 
-import { AppLogo } from "./AppLogo";
 import { Avatar } from "./Avatar";
 import { DropPlaceholder } from "./DropVideo";
 import { Handle } from "./Handle";
@@ -17,9 +16,9 @@ export const FEATURED_LABELS: Record<FeaturedApp["reason"], string> = {
   hot: "Hot",
 };
 
-// The card for the rows on Home (Featured, Just posted): the app's picture
-// as a wide banner with its logo sitting over the bottom edge, then the name,
-// tagline, builder and a Try button. Several fit side by side, and the next
+// The card for Home's rows (Featured, Just posted), Browse and profiles: the
+// app's picture as a wide banner, then the name, a Try button, the tagline
+// and the builder. Several fit side by side, and the next
 // one peeks in on phones so it's clear the row swipes. A Featured app says
 // why it's there unless it was simply picked. On a builder's profile
 // (showOwner false) the footer shows likes instead of who made it.
@@ -57,20 +56,16 @@ export function FeaturedCard({
         )}
       </Link>
 
-      <div className="flex flex-1 flex-col px-3 pb-3">
-        {/* The logo sits over the banner's bottom edge, ringed in the card's color. */}
-        <div className="relative -mt-7 flex items-end justify-between gap-2">
-          <Link href={`/apps/${app.slug}`} tabIndex={-1} aria-hidden>
-            <AppLogo name={app.name} src={app.logo_url} size={56} style={{ boxShadow: "0 0 0 4px var(--color-surface)" }} />
+      <div className="flex flex-1 flex-col p-3">
+        <div className="flex items-center justify-between gap-2">
+          <Link href={`/apps/${app.slug}`} className="display block min-w-0 truncate text-[22px] leading-none hover:text-accent sm:text-[28px]">
+            {app.name}
           </Link>
           {/* A plain link (not next/link) so prefetching never counts as a try. */}
-          <a href={`/try/${app.slug}?via=card`} target="_blank" rel="noopener" className="btn-accent shrink-0 px-3.5">
+          <a href={`/try/${app.slug}?via=card`} target="_blank" rel="noopener" className="btn-accent shrink-0 px-3 sm:px-3.5">
             Try
           </a>
         </div>
-        <Link href={`/apps/${app.slug}`} className="display mt-2 block truncate text-[28px] leading-none hover:text-accent">
-          {app.name}
-        </Link>
         <p className="mt-1 truncate text-sm text-muted">{app.tagline}</p>
         <div className="mt-auto flex items-center gap-1.5 pt-2.5 text-xs text-muted">
           {showOwner && (

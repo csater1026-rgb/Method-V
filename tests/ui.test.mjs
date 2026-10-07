@@ -81,9 +81,7 @@ await run("home (phone)", phone, async (page) => {
   ok(newest.length === 4 && newest[0] === "NoteFlow", `Just posted lists the newest projects first (${newest.join(",")})`);
   ok((await justPosted.locator("article").first().getAttribute("class")).includes("snap-start"), "Just posted swipes sideways too");
   ok((await justPosted.locator("article .tag-accent").count()) === 0, "Just posted cards have no Featured-style labels");
-  // Each card: the picture as a banner with the app's logo over its edge (sample apps have no logo, so their first letter).
-  const logos = await justPosted.locator("article [data-app-logo]").allTextContents();
-  ok(logos.length === 4 && logos[0] === "N", `Just posted cards show each app's logo, its first letter without one (${logos.join("")})`);
+  ok((await justPosted.locator("article [data-app-logo]").count()) === 0, "no logo over the card pictures (for now)");
   const order = await page.locator("main section[aria-label]").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
   ok(order.join(" > ") === "In the Spotlight > Builders like you > Just posted", `Home order: the Spotlight comes first, no "post your app" box (${order.join(" > ")})`);
   // (Hidden on phones, which use the + tab; it shows from tablet width up.)
@@ -343,8 +341,13 @@ await run("push notification setup", desktop, async (page) => {
 await run("browse", desktop, async (page) => {
   await go(page, "/browse");
   ok((await page.locator("main article").count()) === 4, "browse shows 4 apps");
-  ok((await page.locator("main article a[href^='/try/'][href$='via=card']").count()) === 4, "each app on Browse is a row with its own Try button");
-  ok((await page.locator("main article [data-app-logo]").count()) === 4, "…and its logo");
+  ok((await page.locator("main article a[href^='/try/'][href$='via=card']").count()) === 4, "each app on Browse is a card with its own Try button");
+  {
+    const tops = await page.locator("main article").evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().top)));
+    // (Cards slide in one after another, so allow a few pixels.)
+    const same = (a, b) => Math.abs(a - b) < 12;
+    ok(same(tops[0], tops[1]) && same(tops[1], tops[2]) && tops[3] > tops[0] + 50, `Browse shows 3 cards across on a laptop (${tops.join(",")})`);
+  }
   await page.getByLabel("Search apps").fill("palette");
   await page.getByRole("button", { name: "Apply" }).click();
   await page.waitForURL(/q=palette/);
@@ -363,6 +366,8 @@ await run("browse", desktop, async (page) => {
 await run("browse (phone)", phone, async (page) => {
   await go(page, "/browse");
   await noSideScroll(page, "browse phone");
+  const tops = await page.locator("main article").evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().top)));
+  ok(Math.abs(tops[0] - tops[1]) < 12 && tops[2] > tops[1] + 50, `Browse shows 2 cards across on a phone (${tops.join(",")})`);
   await page.screenshot({ path: OUT + "browse-phone.png", fullPage: true });
 });
 
@@ -403,7 +408,7 @@ await run("profile", desktop, async (page) => {
   ok((await page.getByText("Open to collab").count()) === 1 && (await page.locator("main .tag-accent", { hasText: "Open to collab" }).isVisible()), "status shows once, as the badge by the avatar");
   ok(await page.locator("main").getByText("Founder", { exact: true }).isVisible(), "other role tags still shown");
   ok((await page.locator("main article").count()) === 2, "profile lists their 2 apps");
-  ok((await page.locator("main article [data-app-logo]").count()) === 2, "…as banner cards with each app's logo, like Home");
+  ok((await page.locator("main article a[href$='via=card']").count()) === 2, "…as cards like Home");
   const drops = page.getByRole("list", { name: "Drops" }).getByRole("link");
   ok((await drops.count()) === 2, "profile shows their 2 Drops");
   ok(/^\/drops\?d=/.test((await drops.first().getAttribute("href")) ?? ""), "a Drop opens the feed on it");

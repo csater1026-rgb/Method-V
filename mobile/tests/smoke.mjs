@@ -187,8 +187,12 @@ await visit("/browse", "browse");
   await page.getByText("Top builders ·", { exact: false }).first().scrollIntoViewIfNeeded();
   await page.waitForTimeout(400);
   await page.screenshot({ path: `${OUT}browse-leaderboards.png` });
-  // Apps are rows: logo, name, tagline and a Try button.
-  ok((await page.getByRole("button", { name: "Try NoteFlow" }).count()) === 1, "Browse lists apps as rows with a Try button");
+  // Apps are cards like Home's, 2 across.
+  {
+    const ys = [];
+    for (const name of ["NoteFlow", "QuizPop", "PalettePal"]) ys.push(Math.round((await page.getByRole("link", { name: new RegExp(`^${name}:`) }).first().boundingBox()).y));
+    ok(ys[0] === ys[1] && ys[2] > ys[1], `Browse shows apps 2 across (${ys.join(",")})`);
+  }
   await page.getByText("All apps", { exact: true }).scrollIntoViewIfNeeded();
   await page.waitForTimeout(400);
   await page.screenshot({ path: `${OUT}browse-apps.png` });
